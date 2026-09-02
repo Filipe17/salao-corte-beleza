@@ -1,13 +1,14 @@
 """
 BELEZZA — Backend Flask API
 Sistema de Gestão de Salão de Beleza
+Banco: PostgreSQL via SQLAlchemy (Railway)
 """
 
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
-import json
+from flask_sqlalchemy import SQLAlchemy
 import os
-from datetime import datetime, date
+from datetime import date
 
 # ── Configuração ─────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -19,71 +20,190 @@ app = Flask(
 )
 CORS(app)
 
-# ── Banco de dados em memória (substitua por SQLite/PostgreSQL) ──
-# Em produção, use db.py com SQLAlchemy ou similar.
-DATA_FILE = os.path.join(os.path.dirname(__file__), 'data.json')
+# DATABASE_URL é fornecida automaticamente pelo Railway
+# Ex: postgresql://user:pass@host:port/dbname
+DATABASE_URL = os.environ.get('DATABASE_URL', '')
+# Railway às vezes retorna "postgres://" — SQLAlchemy exige "postgresql://"
+if DATABASE_URL.startswith('postgres://'):
+    DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
 
 
-def load_data():
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    return _default_data()
+# ═══════════════════════════════════════════════════════
+# MODELOS
+# ═══════════════════════════════════════════════════════
+
+class Cliente(db.Model):
+    __tablename__ = 'clientes'
+    id            = db.Column(db.Integer, primary_key=True)
+    nome          = db.Column(db.String(120), nullable=False)
+    telefone      = db.Column(db.String(30), default='')
+    email         = db.Column(db.String(120), default='')
+    data_cadastro = db.Column(db.String(10), default=lambda: str(date.today()))
+    ultima_visita = db.Column(db.String(10), default=lambda: str(date.today()))
+    total_gasto   = db.Column(db.Float, default=0)
+    visitas       = db.Column(db.Integer, default=0)
+    observacoes   = db.Column(db.Text, default='')
+
+    def to_dict(self):
+        return {
+            'id': self.id, 'nome': self.nome, 'telefone': self.telefone,
+            'email': self.email, 'dataCadastro': self.data_cadastro,
+            'ultimaVisita': self.ultima_visita, 'totalGasto': self.total_gasto,
+            'visitas': self.visitas, 'observacoes': self.observacoes,
+        }
 
 
-def save_data(data):
-    with open(DATA_FILE, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+class Profissional(db.Model):
+    __tablename__ = 'profissionais'
+    id                 = db.Column(db.Integer, primary_key=True)
+    nome               = db.Column(db.String(120), nullable=False)
+    funcao             = db.Column(db.String(80), default='')
+    telefone           = db.Column(db.String(30), default='')
+    comissao           = db.Column(db.Integer, default=40)
+    atendimentos_mes   = db.Column(db.Integer, default=0)
+    faturamento_mes    = db.Column(db.Float, default=0)
+    status             = db.Column(db.String(20), default='ativo')
+
+    def to_dict(self):
+        return {
+            'id': self.id, 'nome': self.nome, 'funcao': self.funcao,
+            'telefone': self.telefone, 'comissao': self.comissao,
+            'atendimentosMes': self.atendimentos_mes,
+            'faturamentoMes': self.faturamento_mes, 'status': self.status,
+        }
 
 
-def _default_data():
-    return {
-        "clientes": [
-            {"id": 1, "nome": "Ana Paula Ferreira", "telefone": "(11) 99234-5678",
-             "email": "ana@email.com", "dataCadastro": "2024-01-10",
-             "ultimaVisita": "2025-08-28", "totalGasto": 1840, "visitas": 14,
-             "observacoes": "Alergia a acetona"},
-            {"id": 2, "nome": "Beatriz Santos", "telefone": "(11) 98765-4321",
-             "email": "bea@email.com", "dataCadastro": "2024-03-15",
-             "ultimaVisita": "2025-08-30", "totalGasto": 3200, "visitas": 28,
-             "observacoes": "Prefere horário manhã"},
-        ],
-        "profissionais": [
-            {"id": 1, "nome": "Camila Rocha", "funcao": "Manicure & Pedicure",
-             "telefone": "(11) 91234-5678", "comissao": 45,
-             "atendimentosMes": 62, "faturamentoMes": 5580, "status": "ativo"},
-            {"id": 2, "nome": "Larissa Dias", "funcao": "Cabeleireira",
-             "telefone": "(11) 90987-6543", "comissao": 40,
-             "atendimentosMes": 38, "faturamentoMes": 8320, "status": "ativo"},
-        ],
-        "servicos": [
-            {"id": 1, "nome": "Manicure simples", "categoria": "Unhas",
-             "preco": 40, "duracao": 45, "comissao": 45, "emoji": "💅", "ativo": True},
-            {"id": 2, "nome": "Pedicure simples", "categoria": "Unhas",
-             "preco": 50, "duracao": 60, "comissao": 45, "emoji": "🦶", "ativo": True},
-            {"id": 3, "nome": "Corte feminino", "categoria": "Cabelo",
-             "preco": 80, "duracao": 60, "comissao": 40, "emoji": "✂️", "ativo": True},
-        ],
-        "produtos": [
-            {"id": 1, "nome": "Base coat Essie", "categoria": "Unhas",
-             "qtd": 3, "minimo": 5, "unidade": "un", "custo": 18, "preco": 45},
-            {"id": 2, "nome": "Acetona 1L", "categoria": "Unhas",
-             "qtd": 2, "minimo": 4, "unidade": "un", "custo": 12, "preco": 25},
-        ],
-        "agendamentos": [
-            {"id": 1, "clienteId": 1, "proId": 1, "servicoId": 1,
-             "data": str(date.today()), "hora": "09:00", "duracao": 45,
-             "status": "confirmado", "valor": 40, "obs": ""},
-        ],
-        "transacoes": [],
-    }
+class Servico(db.Model):
+    __tablename__ = 'servicos'
+    id        = db.Column(db.Integer, primary_key=True)
+    nome      = db.Column(db.String(120), nullable=False)
+    categoria = db.Column(db.String(60), default='Outros')
+    preco     = db.Column(db.Float, default=0)
+    duracao   = db.Column(db.Integer, default=60)
+    comissao  = db.Column(db.Integer, default=40)
+    emoji     = db.Column(db.String(10), default='✨')
+    ativo     = db.Column(db.Boolean, default=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id, 'nome': self.nome, 'categoria': self.categoria,
+            'preco': self.preco, 'duracao': self.duracao,
+            'comissao': self.comissao, 'emoji': self.emoji, 'ativo': self.ativo,
+        }
 
 
-# ── Helpers ──────────────────────────────────────────────
-def next_id(lst):
-    return max((x['id'] for x in lst), default=0) + 1
+class Produto(db.Model):
+    __tablename__ = 'produtos'
+    id        = db.Column(db.Integer, primary_key=True)
+    nome      = db.Column(db.String(120), nullable=False)
+    categoria = db.Column(db.String(60), default='')
+    qtd       = db.Column(db.Integer, default=0)
+    minimo    = db.Column(db.Integer, default=5)
+    unidade   = db.Column(db.String(20), default='un')
+    custo     = db.Column(db.Float, default=0)
+    preco     = db.Column(db.Float, default=0)
+
+    def to_dict(self):
+        return {
+            'id': self.id, 'nome': self.nome, 'categoria': self.categoria,
+            'qtd': self.qtd, 'minimo': self.minimo, 'unidade': self.unidade,
+            'custo': self.custo, 'preco': self.preco,
+        }
 
 
+class Agendamento(db.Model):
+    __tablename__ = 'agendamentos'
+    id          = db.Column(db.Integer, primary_key=True)
+    cliente_id  = db.Column(db.Integer, db.ForeignKey('clientes.id'), nullable=False)
+    pro_id      = db.Column(db.Integer, db.ForeignKey('profissionais.id'), nullable=False)
+    servico_id  = db.Column(db.Integer, db.ForeignKey('servicos.id'), nullable=False)
+    data        = db.Column(db.String(10), nullable=False)
+    hora        = db.Column(db.String(5), nullable=False)
+    duracao     = db.Column(db.Integer, default=60)
+    status      = db.Column(db.String(20), default='confirmado')
+    valor       = db.Column(db.Float, default=0)
+    obs         = db.Column(db.Text, default='')
+
+    def to_dict(self):
+        return {
+            'id': self.id, 'clienteId': self.cliente_id, 'proId': self.pro_id,
+            'servicoId': self.servico_id, 'data': self.data, 'hora': self.hora,
+            'duracao': self.duracao, 'status': self.status,
+            'valor': self.valor, 'obs': self.obs,
+        }
+
+
+class Transacao(db.Model):
+    __tablename__ = 'transacoes'
+    id        = db.Column(db.Integer, primary_key=True)
+    tipo      = db.Column(db.String(20), default='entrada')   # entrada | saida
+    descricao = db.Column(db.String(200), default='')
+    data      = db.Column(db.String(10), default=lambda: str(date.today()))
+    valor     = db.Column(db.Float, default=0)
+    forma     = db.Column(db.String(40), default='dinheiro')
+    categoria = db.Column(db.String(60), default='outros')
+
+    def to_dict(self):
+        return {
+            'id': self.id, 'tipo': self.tipo, 'descricao': self.descricao,
+            'data': self.data, 'valor': self.valor,
+            'forma': self.forma, 'categoria': self.categoria,
+        }
+
+
+# ── Cria tabelas e seed inicial ───────────────────────────
+def seed():
+    """Popula o banco com dados de exemplo se estiver vazio."""
+    if Cliente.query.count() == 0:
+        db.session.add_all([
+            Cliente(nome='Ana Paula Ferreira', telefone='(11) 99234-5678',
+                    email='ana@email.com', data_cadastro='2024-01-10',
+                    ultima_visita='2025-08-28', total_gasto=1840, visitas=14,
+                    observacoes='Alergia a acetona'),
+            Cliente(nome='Beatriz Santos', telefone='(11) 98765-4321',
+                    email='bea@email.com', data_cadastro='2024-03-15',
+                    ultima_visita='2025-08-30', total_gasto=3200, visitas=28,
+                    observacoes='Prefere horário manhã'),
+        ])
+    if Profissional.query.count() == 0:
+        db.session.add_all([
+            Profissional(nome='Camila Rocha', funcao='Manicure & Pedicure',
+                         telefone='(11) 91234-5678', comissao=45,
+                         atendimentos_mes=62, faturamento_mes=5580),
+            Profissional(nome='Larissa Dias', funcao='Cabeleireira',
+                         telefone='(11) 90987-6543', comissao=40,
+                         atendimentos_mes=38, faturamento_mes=8320),
+        ])
+    if Servico.query.count() == 0:
+        db.session.add_all([
+            Servico(nome='Manicure simples', categoria='Unhas',
+                    preco=40, duracao=45, comissao=45, emoji='💅'),
+            Servico(nome='Pedicure simples', categoria='Unhas',
+                    preco=50, duracao=60, comissao=45, emoji='🦶'),
+            Servico(nome='Corte feminino', categoria='Cabelo',
+                    preco=80, duracao=60, comissao=40, emoji='✂️'),
+        ])
+    if Produto.query.count() == 0:
+        db.session.add_all([
+            Produto(nome='Base coat Essie', categoria='Unhas',
+                    qtd=3, minimo=5, unidade='un', custo=18, preco=45),
+            Produto(nome='Acetona 1L', categoria='Unhas',
+                    qtd=2, minimo=4, unidade='un', custo=12, preco=25),
+        ])
+    db.session.commit()
+
+
+with app.app_context():
+    db.create_all()   # cria tabelas se não existirem
+    seed()            # insere dados de exemplo
+
+
+# ── Helper ────────────────────────────────────────────────
 def today():
     return str(date.today())
 
@@ -105,67 +225,60 @@ def serve_static(path):
 
 @app.route('/api/clientes', methods=['GET'])
 def get_clientes():
-    data = load_data()
     busca = request.args.get('busca', '').lower()
-    clientes = data['clientes']
+    q = Cliente.query
     if busca:
-        clientes = [c for c in clientes
-                    if busca in c['nome'].lower()
-                    or busca in c.get('email', '').lower()
-                    or busca in c.get('telefone', '')]
-    return jsonify(clientes)
+        q = q.filter(
+            db.or_(
+                Cliente.nome.ilike(f'%{busca}%'),
+                Cliente.email.ilike(f'%{busca}%'),
+                Cliente.telefone.ilike(f'%{busca}%'),
+            )
+        )
+    return jsonify([c.to_dict() for c in q.all()])
 
 
 @app.route('/api/clientes/<int:id>', methods=['GET'])
 def get_cliente(id):
-    data = load_data()
-    c = next((x for x in data['clientes'] if x['id'] == id), None)
-    if not c:
-        return jsonify({'erro': 'Cliente não encontrado'}), 404
-    # histórico
-    historico = [a for a in data['agendamentos'] if a['clienteId'] == id]
-    return jsonify({**c, 'historico': historico})
+    c = Cliente.query.get_or_404(id, description='Cliente não encontrado')
+    historico = [a.to_dict() for a in Agendamento.query.filter_by(cliente_id=id).all()]
+    return jsonify({**c.to_dict(), 'historico': historico})
 
 
 @app.route('/api/clientes', methods=['POST'])
 def create_cliente():
-    data = load_data()
     body = request.get_json()
     if not body.get('nome'):
         return jsonify({'erro': 'Nome obrigatório'}), 400
-    novo = {
-        'id': next_id(data['clientes']),
-        'nome': body['nome'],
-        'telefone': body.get('telefone', ''),
-        'email': body.get('email', ''),
-        'dataCadastro': today(),
-        'ultimaVisita': today(),
-        'totalGasto': 0,
-        'visitas': 0,
-        'observacoes': body.get('observacoes', ''),
-    }
-    data['clientes'].append(novo)
-    save_data(data)
-    return jsonify(novo), 201
+    c = Cliente(
+        nome=body['nome'],
+        telefone=body.get('telefone', ''),
+        email=body.get('email', ''),
+        observacoes=body.get('observacoes', ''),
+    )
+    db.session.add(c)
+    db.session.commit()
+    return jsonify(c.to_dict()), 201
 
 
 @app.route('/api/clientes/<int:id>', methods=['PUT'])
 def update_cliente(id):
-    data = load_data()
-    c = next((x for x in data['clientes'] if x['id'] == id), None)
-    if not c:
-        return jsonify({'erro': 'Não encontrado'}), 404
+    c = Cliente.query.get_or_404(id)
     body = request.get_json()
-    c.update({k: v for k, v in body.items() if k != 'id'})
-    save_data(data)
-    return jsonify(c)
+    for k, v in body.items():
+        campo = {'dataCadastro': 'data_cadastro', 'ultimaVisita': 'ultima_visita',
+                 'totalGasto': 'total_gasto'}.get(k, k)
+        if hasattr(c, campo) and campo != 'id':
+            setattr(c, campo, v)
+    db.session.commit()
+    return jsonify(c.to_dict())
 
 
 @app.route('/api/clientes/<int:id>', methods=['DELETE'])
 def delete_cliente(id):
-    data = load_data()
-    data['clientes'] = [c for c in data['clientes'] if c['id'] != id]
-    save_data(data)
+    c = Cliente.query.get_or_404(id)
+    db.session.delete(c)
+    db.session.commit()
     return jsonify({'ok': True})
 
 
@@ -175,41 +288,36 @@ def delete_cliente(id):
 
 @app.route('/api/profissionais', methods=['GET'])
 def get_profissionais():
-    data = load_data()
-    return jsonify(data['profissionais'])
+    return jsonify([p.to_dict() for p in Profissional.query.all()])
 
 
 @app.route('/api/profissionais', methods=['POST'])
 def create_profissional():
-    data = load_data()
     body = request.get_json()
     if not body.get('nome'):
         return jsonify({'erro': 'Nome obrigatório'}), 400
-    novo = {
-        'id': next_id(data['profissionais']),
-        'nome': body['nome'],
-        'funcao': body.get('funcao', ''),
-        'telefone': body.get('telefone', ''),
-        'comissao': body.get('comissao', 40),
-        'atendimentosMes': 0,
-        'faturamentoMes': 0,
-        'status': 'ativo',
-    }
-    data['profissionais'].append(novo)
-    save_data(data)
-    return jsonify(novo), 201
+    p = Profissional(
+        nome=body['nome'],
+        funcao=body.get('funcao', ''),
+        telefone=body.get('telefone', ''),
+        comissao=int(body.get('comissao', 40)),
+    )
+    db.session.add(p)
+    db.session.commit()
+    return jsonify(p.to_dict()), 201
 
 
 @app.route('/api/profissionais/<int:id>', methods=['PUT'])
 def update_profissional(id):
-    data = load_data()
-    p = next((x for x in data['profissionais'] if x['id'] == id), None)
-    if not p:
-        return jsonify({'erro': 'Não encontrado'}), 404
+    p = Profissional.query.get_or_404(id)
     body = request.get_json()
-    p.update({k: v for k, v in body.items() if k != 'id'})
-    save_data(data)
-    return jsonify(p)
+    mapa = {'atendimentosMes': 'atendimentos_mes', 'faturamentoMes': 'faturamento_mes'}
+    for k, v in body.items():
+        campo = mapa.get(k, k)
+        if hasattr(p, campo) and campo != 'id':
+            setattr(p, campo, v)
+    db.session.commit()
+    return jsonify(p.to_dict())
 
 
 # ═══════════════════════════════════════════════════════
@@ -218,136 +326,116 @@ def update_profissional(id):
 
 @app.route('/api/servicos', methods=['GET'])
 def get_servicos():
-    data = load_data()
-    apenas_ativos = request.args.get('ativo')
-    servicos = data['servicos']
-    if apenas_ativos == 'true':
-        servicos = [s for s in servicos if s.get('ativo')]
-    return jsonify(servicos)
+    q = Servico.query
+    if request.args.get('ativo') == 'true':
+        q = q.filter_by(ativo=True)
+    return jsonify([s.to_dict() for s in q.all()])
 
 
 @app.route('/api/servicos', methods=['POST'])
 def create_servico():
-    data = load_data()
     body = request.get_json()
-    novo = {
-        'id': next_id(data['servicos']),
-        'nome': body.get('nome', ''),
-        'categoria': body.get('categoria', 'Outros'),
-        'preco': float(body.get('preco', 0)),
-        'duracao': int(body.get('duracao', 60)),
-        'comissao': int(body.get('comissao', 40)),
-        'emoji': body.get('emoji', '✨'),
-        'ativo': True,
-    }
-    data['servicos'].append(novo)
-    save_data(data)
-    return jsonify(novo), 201
+    s = Servico(
+        nome=body.get('nome', ''),
+        categoria=body.get('categoria', 'Outros'),
+        preco=float(body.get('preco', 0)),
+        duracao=int(body.get('duracao', 60)),
+        comissao=int(body.get('comissao', 40)),
+        emoji=body.get('emoji', '✨'),
+    )
+    db.session.add(s)
+    db.session.commit()
+    return jsonify(s.to_dict()), 201
 
 
 @app.route('/api/servicos/<int:id>', methods=['PUT'])
 def update_servico(id):
-    data = load_data()
-    s = next((x for x in data['servicos'] if x['id'] == id), None)
-    if not s:
-        return jsonify({'erro': 'Não encontrado'}), 404
+    s = Servico.query.get_or_404(id)
     body = request.get_json()
-    s.update({k: v for k, v in body.items() if k != 'id'})
-    save_data(data)
-    return jsonify(s)
+    for k, v in body.items():
+        if hasattr(s, k) and k != 'id':
+            setattr(s, k, v)
+    db.session.commit()
+    return jsonify(s.to_dict())
 
 
 # ═══════════════════════════════════════════════════════
 # API — AGENDAMENTOS
 # ═══════════════════════════════════════════════════════
 
+def _enrich(a):
+    d = a.to_dict()
+    c  = Cliente.query.get(a.cliente_id)
+    pr = Profissional.query.get(a.pro_id)
+    sv = Servico.query.get(a.servico_id)
+    d['clienteNome'] = c.nome  if c  else ''
+    d['profNome']    = pr.nome if pr else ''
+    d['servicoNome'] = sv.nome if sv else ''
+    return d
+
+
 @app.route('/api/agendamentos', methods=['GET'])
 def get_agendamentos():
-    data = load_data()
+    q = Agendamento.query
     data_filtro = request.args.get('data')
-    agendamentos = data['agendamentos']
     if data_filtro:
-        agendamentos = [a for a in agendamentos if a['data'] == data_filtro]
-    # Enrich with names
-    clientes_map = {c['id']: c for c in data['clientes']}
-    pros_map     = {p['id']: p for p in data['profissionais']}
-    servicos_map = {s['id']: s for s in data['servicos']}
-    result = []
-    for a in agendamentos:
-        enrich = {
-            **a,
-            'clienteNome':   clientes_map.get(a['clienteId'], {}).get('nome', ''),
-            'profNome':      pros_map.get(a['proId'], {}).get('nome', ''),
-            'servicoNome':   servicos_map.get(a['servicoId'], {}).get('nome', ''),
-        }
-        result.append(enrich)
-    return jsonify(sorted(result, key=lambda x: (x['data'], x['hora'])))
+        q = q.filter_by(data=data_filtro)
+    agendamentos = sorted(q.all(), key=lambda a: (a.data, a.hora))
+    return jsonify([_enrich(a) for a in agendamentos])
 
 
 @app.route('/api/agendamentos/hoje', methods=['GET'])
 def get_agenda_hoje():
-    data = load_data()
-    hoje = today()
-    agendamentos = [a for a in data['agendamentos'] if a['data'] == hoje]
-    return jsonify(agendamentos)
+    agendamentos = Agendamento.query.filter_by(data=today()).all()
+    return jsonify([_enrich(a) for a in agendamentos])
 
 
 @app.route('/api/agendamentos', methods=['POST'])
 def create_agendamento():
-    data = load_data()
     body = request.get_json()
-    required = ['clienteId', 'proId', 'servicoId', 'data', 'hora']
-    for field in required:
+    for field in ['clienteId', 'proId', 'servicoId', 'data', 'hora']:
         if field not in body:
             return jsonify({'erro': f'{field} obrigatório'}), 400
-    serv = next((s for s in data['servicos'] if s['id'] == body['servicoId']), None)
-    novo = {
-        'id': next_id(data['agendamentos']),
-        'clienteId': body['clienteId'],
-        'proId': body['proId'],
-        'servicoId': body['servicoId'],
-        'data': body['data'],
-        'hora': body['hora'],
-        'duracao': serv['duracao'] if serv else 60,
-        'status': 'confirmado',
-        'valor': serv['preco'] if serv else 0,
-        'obs': body.get('obs', ''),
-    }
-    data['agendamentos'].append(novo)
-    save_data(data)
-    return jsonify(novo), 201
+    serv = Servico.query.get(body['servicoId'])
+    a = Agendamento(
+        cliente_id=body['clienteId'],
+        pro_id=body['proId'],
+        servico_id=body['servicoId'],
+        data=body['data'],
+        hora=body['hora'],
+        duracao=serv.duracao if serv else 60,
+        valor=serv.preco if serv else 0,
+        obs=body.get('obs', ''),
+    )
+    db.session.add(a)
+    db.session.commit()
+    return jsonify(_enrich(a)), 201
 
 
 @app.route('/api/agendamentos/<int:id>/status', methods=['PATCH'])
 def update_status(id):
-    data = load_data()
-    a = next((x for x in data['agendamentos'] if x['id'] == id), None)
-    if not a:
-        return jsonify({'erro': 'Não encontrado'}), 404
+    a = Agendamento.query.get_or_404(id)
     body = request.get_json()
     status = body.get('status')
     if status not in ('confirmado', 'pendente', 'finalizado', 'cancelado'):
         return jsonify({'erro': 'Status inválido'}), 400
-    a['status'] = status
-    # Se finalizado, atualiza cliente
+    a.status = status
     if status == 'finalizado':
-        cli = next((c for c in data['clientes'] if c['id'] == a['clienteId']), None)
+        cli = Cliente.query.get(a.cliente_id)
         if cli:
-            cli['totalGasto'] += a['valor']
-            cli['visitas'] += 1
-            cli['ultimaVisita'] = today()
-        # Lança transação automática
-        data['transacoes'].append({
-            'id': next_id(data['transacoes']),
-            'tipo': 'entrada',
-            'descricao': f"Atendimento #{id}",
-            'data': today(),
-            'valor': a['valor'],
-            'forma': body.get('formaPgto', 'dinheiro'),
-            'categoria': 'servico',
-        })
-    save_data(data)
-    return jsonify(a)
+            cli.total_gasto += a.valor
+            cli.visitas += 1
+            cli.ultima_visita = today()
+        db.session.add(Transacao(
+            tipo='entrada',
+            descricao=f'Atendimento #{id}',
+            data=today(),
+            valor=a.valor,
+            forma=body.get('formaPgto', 'dinheiro'),
+            categoria='servico',
+        ))
+    db.session.commit()
+    return jsonify(_enrich(a))
 
 
 # ═══════════════════════════════════════════════════════
@@ -356,61 +444,49 @@ def update_status(id):
 
 @app.route('/api/produtos', methods=['GET'])
 def get_produtos():
-    data = load_data()
-    apenas_baixo = request.args.get('baixo') == 'true'
-    produtos = data['produtos']
-    if apenas_baixo:
-        produtos = [p for p in produtos if p['qtd'] <= p['minimo']]
-    return jsonify(produtos)
+    q = Produto.query
+    if request.args.get('baixo') == 'true':
+        q = q.filter(Produto.qtd <= Produto.minimo)
+    return jsonify([p.to_dict() for p in q.all()])
 
 
 @app.route('/api/produtos', methods=['POST'])
 def create_produto():
-    data = load_data()
     body = request.get_json()
-    novo = {
-        'id': next_id(data['produtos']),
-        'nome': body.get('nome', ''),
-        'categoria': body.get('categoria', ''),
-        'qtd': int(body.get('qtd', 0)),
-        'minimo': int(body.get('minimo', 5)),
-        'unidade': body.get('unidade', 'un'),
-        'custo': float(body.get('custo', 0)),
-        'preco': float(body.get('preco', 0)),
-    }
-    data['produtos'].append(novo)
-    save_data(data)
-    return jsonify(novo), 201
+    p = Produto(
+        nome=body.get('nome', ''),
+        categoria=body.get('categoria', ''),
+        qtd=int(body.get('qtd', 0)),
+        minimo=int(body.get('minimo', 5)),
+        unidade=body.get('unidade', 'un'),
+        custo=float(body.get('custo', 0)),
+        preco=float(body.get('preco', 0)),
+    )
+    db.session.add(p)
+    db.session.commit()
+    return jsonify(p.to_dict()), 201
 
 
 @app.route('/api/produtos/<int:id>/entrada', methods=['POST'])
 def entrada_estoque(id):
-    data = load_data()
-    p = next((x for x in data['produtos'] if x['id'] == id), None)
-    if not p:
-        return jsonify({'erro': 'Produto não encontrado'}), 404
-    body = request.get_json()
-    qty = int(body.get('qtd', 0))
+    p = Produto.query.get_or_404(id)
+    qty = int(request.get_json().get('qtd', 0))
     if qty <= 0:
         return jsonify({'erro': 'Quantidade inválida'}), 400
-    p['qtd'] += qty
-    save_data(data)
-    return jsonify({'produto': p, 'qtdAdicionada': qty})
+    p.qtd += qty
+    db.session.commit()
+    return jsonify({'produto': p.to_dict(), 'qtdAdicionada': qty})
 
 
 @app.route('/api/produtos/<int:id>/saida', methods=['POST'])
 def saida_estoque(id):
-    data = load_data()
-    p = next((x for x in data['produtos'] if x['id'] == id), None)
-    if not p:
-        return jsonify({'erro': 'Produto não encontrado'}), 404
-    body = request.get_json()
-    qty = int(body.get('qtd', 0))
-    if qty <= 0 or qty > p['qtd']:
+    p = Produto.query.get_or_404(id)
+    qty = int(request.get_json().get('qtd', 0))
+    if qty <= 0 or qty > p.qtd:
         return jsonify({'erro': 'Quantidade inválida ou insuficiente'}), 400
-    p['qtd'] -= qty
-    save_data(data)
-    return jsonify({'produto': p, 'qtdRetirada': qty})
+    p.qtd -= qty
+    db.session.commit()
+    return jsonify({'produto': p.to_dict(), 'qtdRetirada': qty})
 
 
 # ═══════════════════════════════════════════════════════
@@ -419,67 +495,58 @@ def saida_estoque(id):
 
 @app.route('/api/transacoes', methods=['GET'])
 def get_transacoes():
-    data = load_data()
+    q = Transacao.query
     tipo = request.args.get('tipo')
-    transacoes = data['transacoes']
     if tipo:
-        transacoes = [t for t in transacoes if t['tipo'] == tipo]
-    return jsonify(sorted(transacoes, key=lambda x: x['data'], reverse=True))
+        q = q.filter_by(tipo=tipo)
+    return jsonify([t.to_dict() for t in q.order_by(Transacao.data.desc()).all()])
 
 
 @app.route('/api/transacoes', methods=['POST'])
 def create_transacao():
-    data = load_data()
     body = request.get_json()
-    nova = {
-        'id': next_id(data['transacoes']),
-        'tipo': body.get('tipo', 'entrada'),
-        'descricao': body.get('descricao', ''),
-        'data': body.get('data', today()),
-        'valor': float(body.get('valor', 0)),
-        'forma': body.get('forma', 'dinheiro'),
-        'categoria': body.get('categoria', 'outros'),
-    }
-    data['transacoes'].append(nova)
-    save_data(data)
-    return jsonify(nova), 201
+    t = Transacao(
+        tipo=body.get('tipo', 'entrada'),
+        descricao=body.get('descricao', ''),
+        data=body.get('data', today()),
+        valor=float(body.get('valor', 0)),
+        forma=body.get('forma', 'dinheiro'),
+        categoria=body.get('categoria', 'outros'),
+    )
+    db.session.add(t)
+    db.session.commit()
+    return jsonify(t.to_dict()), 201
 
 
 # ═══════════════════════════════════════════════════════
-# API — RESUMO / DASHBOARD
+# API — DASHBOARD
 # ═══════════════════════════════════════════════════════
 
 @app.route('/api/dashboard', methods=['GET'])
 def dashboard():
-    data = load_data()
     hoje = today()
+    mes  = hoje[:7]
 
-    # Atendimentos hoje
-    agenda_hoje = [a for a in data['agendamentos'] if a['data'] == hoje]
-    confirmados = [a for a in agenda_hoje if a['status'] == 'confirmado']
+    agenda_hoje  = Agendamento.query.filter_by(data=hoje).all()
+    confirmados  = [a for a in agenda_hoje if a.status == 'confirmado']
+    fat_hoje     = sum(a.valor for a in confirmados)
 
-    # Faturamento hoje
-    fat_hoje = sum(a['valor'] for a in confirmados)
+    fat_mes = db.session.query(db.func.sum(Transacao.valor)).filter(
+        Transacao.tipo == 'entrada',
+        Transacao.data.like(f'{mes}%')
+    ).scalar() or 0
 
-    # Faturamento mês
-    mes = hoje[:7]  # YYYY-MM
-    fat_mes = sum(
-        t['valor'] for t in data['transacoes']
-        if t['tipo'] == 'entrada' and t['data'].startswith(mes)
-    )
-
-    # Estoque baixo
-    estoque_baixo = [p for p in data['produtos'] if p['qtd'] <= p['minimo']]
+    produtos_baixos = Produto.query.filter(Produto.qtd <= Produto.minimo).all()
 
     return jsonify({
-        'atendimentosHoje': len(agenda_hoje),
-        'confirmadosHoje': len(confirmados),
-        'faturamentoHoje': fat_hoje,
-        'faturamentoMes': fat_mes,
-        'totalClientes': len(data['clientes']),
-        'estoqueBaixo': len(estoque_baixo),
-        'agendaHoje': agenda_hoje[:6],
-        'produtosBaixos': estoque_baixo,
+        'atendimentosHoje':  len(agenda_hoje),
+        'confirmadosHoje':   len(confirmados),
+        'faturamentoHoje':   fat_hoje,
+        'faturamentoMes':    fat_mes,
+        'totalClientes':     Cliente.query.count(),
+        'estoqueBaixo':      len(produtos_baixos),
+        'agendaHoje':        [_enrich(a) for a in agenda_hoje[:6]],
+        'produtosBaixos':    [p.to_dict() for p in produtos_baixos],
     })
 
 
@@ -489,32 +556,41 @@ def dashboard():
 
 @app.route('/api/relatorios/faturamento', methods=['GET'])
 def relatorio_faturamento():
-    data = load_data()
     mes = request.args.get('mes', today()[:7])
-    entradas = [t for t in data['transacoes']
-                if t['tipo'] == 'entrada' and t['data'].startswith(mes)]
-    saidas = [t for t in data['transacoes']
-              if t['tipo'] == 'saida' and t['data'].startswith(mes)]
+
+    def soma(tipo):
+        return db.session.query(db.func.sum(Transacao.valor)).filter(
+            Transacao.tipo == tipo,
+            Transacao.data.like(f'{mes}%')
+        ).scalar() or 0
+
+    def qtd(tipo):
+        return Transacao.query.filter(
+            Transacao.tipo == tipo,
+            Transacao.data.like(f'{mes}%')
+        ).count()
+
+    entradas = soma('entrada')
+    saidas   = soma('saida')
     return jsonify({
         'mes': mes,
-        'totalEntradas': sum(t['valor'] for t in entradas),
-        'totalSaidas': sum(t['valor'] for t in saidas),
-        'saldo': sum(t['valor'] for t in entradas) - sum(t['valor'] for t in saidas),
-        'qtdTransacoes': len(entradas) + len(saidas),
+        'totalEntradas':   entradas,
+        'totalSaidas':     saidas,
+        'saldo':           entradas - saidas,
+        'qtdTransacoes':   qtd('entrada') + qtd('saida'),
     })
 
 
 @app.route('/api/relatorios/comissoes', methods=['GET'])
 def relatorio_comissoes():
-    data = load_data()
     comissoes = []
-    for p in data['profissionais']:
+    for p in Profissional.query.all():
         comissoes.append({
-            'profissional': p['nome'],
-            'atendimentos': p['atendimentosMes'],
-            'faturamento': p['faturamentoMes'],
-            'comissaoPct': p['comissao'],
-            'valorComissao': p['faturamentoMes'] * p['comissao'] / 100,
+            'profissional':  p.nome,
+            'atendimentos':  p.atendimentos_mes,
+            'faturamento':   p.faturamento_mes,
+            'comissaoPct':   p.comissao,
+            'valorComissao': p.faturamento_mes * p.comissao / 100,
         })
     return jsonify(sorted(comissoes, key=lambda x: x['valorComissao'], reverse=True))
 
@@ -527,4 +603,5 @@ if __name__ == '__main__':
     print("🌸 Belezza — Sistema de Gestão iniciando...")
     print(f"   Frontend: http://localhost:5000")
     print(f"   API:      http://localhost:5000/api")
-    app.run(debug=True, port=5000, host='0.0.0.0')
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=False, port=port, host='0.0.0.0')
