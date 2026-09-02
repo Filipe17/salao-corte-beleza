@@ -60,6 +60,20 @@
     }
 
     /* Orbs decorativos */
+    .bg-letter {
+      position: absolute;
+      font-family: var(--font-display);
+      font-size: 520px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.04);
+      line-height: 1;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      user-select: none;
+      letter-spacing: -0.05em;
+    }
     .orb {
       position: absolute;
       border-radius: 50%;
@@ -89,6 +103,54 @@
       z-index: 1;
       text-align: center;
       max-width: 380px;
+    }
+    .brand-logo {
+      display: flex;
+      align-items: baseline;
+      line-height: 1;
+      margin-bottom: 12px;
+    }
+    .brand-b {
+      font-family: var(--font-display);
+      font-size: 2.8rem;
+      font-weight: 600;
+      color: white;
+      line-height: 1;
+    }
+    .brand-rest {
+      font-family: var(--font-display);
+      font-size: 2.8rem;
+      font-weight: 500;
+      color: white;
+      margin-left: 2px;
+    }
+    .brand-prime {
+      font-family: var(--font-body);
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary-light);
+      margin-left: 8px;
+      letter-spacing: 0.05em;
+    }
+    .brand-sub {
+      font-family: var(--font-body);
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: white;
+      margin-bottom: 10px;
+    }
+    .brand-line {
+      width: 60px;
+      height: 3px;
+      background: linear-gradient(to right, var(--primary-light), var(--accent-light));
+      border-radius: 2px;
+      margin-bottom: 16px;
+    }
+    .brand-desc {
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.5);
+      line-height: 1.6;
+      max-width: 340px;
     }
     .left-brand {
       display: flex;
@@ -350,7 +412,55 @@
         padding: 32px 24px 40px;
         box-shadow: none;
       }
-      .left-brand { margin-bottom: 16px; }
+      .brand-logo {
+      display: flex;
+      align-items: baseline;
+      line-height: 1;
+      margin-bottom: 12px;
+    }
+    .brand-b {
+      font-family: var(--font-display);
+      font-size: 2.8rem;
+      font-weight: 600;
+      color: white;
+      line-height: 1;
+    }
+    .brand-rest {
+      font-family: var(--font-display);
+      font-size: 2.8rem;
+      font-weight: 500;
+      color: white;
+      margin-left: 2px;
+    }
+    .brand-prime {
+      font-family: var(--font-body);
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary-light);
+      margin-left: 8px;
+      letter-spacing: 0.05em;
+    }
+    .brand-sub {
+      font-family: var(--font-body);
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: white;
+      margin-bottom: 10px;
+    }
+    .brand-line {
+      width: 60px;
+      height: 3px;
+      background: linear-gradient(to right, var(--primary-light), var(--accent-light));
+      border-radius: 2px;
+      margin-bottom: 16px;
+    }
+    .brand-desc {
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.5);
+      line-height: 1.6;
+      max-width: 340px;
+    }
+    .left-brand { margin-bottom: 16px; }
     }
   </style>
 </head>
@@ -358,20 +468,20 @@
 
   <!-- Lado esquerdo -->
   <div class="login-left">
+    <div class="bg-letter">B</div>
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
     <div class="orb orb-3"></div>
 
     <div class="left-content">
-      <div class="left-brand">
-        <div class="brand-icon">✦</div>
-        <span class="brand-name">Belezza</span>
+      <div class="left-brand" style="flex-direction:column;align-items:flex-start;gap:0">
+        <div class="brand-logo">
+          <span class="brand-b">B</span><span class="brand-rest">elezza</span><span class="brand-prime">PRIME</span>
+        </div>
+        <div class="brand-sub">Seu negócio, nosso sistema</div>
+        <div class="brand-line"></div>
+        <p class="brand-desc">Transforme a gestão do seu negócio com um sistema moderno, completo e fácil de usar.</p>
       </div>
-
-      <div class="left-tagline">Gestão elegante para o seu salão</div>
-      <p class="left-desc">
-        Controle agenda, clientes, estoque e financeiro em um só lugar — simples, bonito e eficiente.
-      </p>
 
       <div class="left-pills">
         <span class="pill">📅 Agenda</span>
