@@ -1,0 +1,11 @@
+:8080 {
+    root * /app
+    file_server
+
+    @root {
+        path /
+    }
+    redir @root /login.html 302
+
+    reverse_proxy /api/* localhost:5000
+}
