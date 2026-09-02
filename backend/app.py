@@ -13,7 +13,11 @@ import bcrypt
 import secrets
 
 # ── Configuração ─────────────────────────────────────────
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR  = os.path.dirname(_THIS_DIR)
+# Se index.html não estiver um nível acima, usa o próprio diretório
+if not os.path.exists(os.path.join(BASE_DIR, 'index.html')):
+    BASE_DIR = _THIS_DIR
 
 app = Flask(
     __name__,
