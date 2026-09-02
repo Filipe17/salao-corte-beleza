@@ -14,10 +14,20 @@ import secrets
 
 # ── Configuração ─────────────────────────────────────────
 _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-BASE_DIR  = os.path.dirname(_THIS_DIR)
-# Se index.html não estiver um nível acima, usa o próprio diretório
-if not os.path.exists(os.path.join(BASE_DIR, 'index.html')):
-    BASE_DIR = _THIS_DIR
+
+def _find_base():
+    """Sobe diretórios até encontrar index.html ou login.html."""
+    d = _THIS_DIR
+    for _ in range(5):
+        if os.path.exists(os.path.join(d, 'login.html')) or os.path.exists(os.path.join(d, 'index.html')):
+            return d
+        parent = os.path.dirname(d)
+        if parent == d:
+            break
+        d = parent
+    return _THIS_DIR  # fallback
+
+BASE_DIR = _find_base()
 
 app = Flask(
     __name__,
