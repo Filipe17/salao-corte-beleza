@@ -16,16 +16,19 @@ import secrets
 _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def _find_base():
-    """Sobe diretórios até encontrar index.html ou login.html."""
-    d = _THIS_DIR
-    for _ in range(5):
-        if os.path.exists(os.path.join(d, 'login.html')) or os.path.exists(os.path.join(d, 'index.html')):
+    # Candidatos em ordem de prioridade
+    candidates = [
+        os.path.dirname(_THIS_DIR),   # um nível acima (backend/../)
+        _THIS_DIR,                     # mesmo diretório do app.py
+        '/app',                        # Railpack padrão
+        '/workspace',                  # alternativa Railway
+    ]
+    for d in candidates:
+        if os.path.exists(os.path.join(d, 'login.html')):
             return d
-        parent = os.path.dirname(d)
-        if parent == d:
-            break
-        d = parent
-    return _THIS_DIR  # fallback
+        if os.path.exists(os.path.join(d, 'index.html')):
+            return d
+    return candidates[0]  # fallback
 
 BASE_DIR = _find_base()
 
