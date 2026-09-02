@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Belezza — Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Playfair+Display:wght@500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary:       #c026d3;
+      --primary-light: #e879f9;
+      --primary-dark:  #a21caf;
+      --accent:        #7c3aed;
+      --accent-light:  #a78bfa;
+      --rose-300:      #f9a8d4;
+      --rose-400:      #f472b6;
+      --plum-500:      #8b5cf6;
+      --sidebar-bg:    #1a0a2e;
+      --white:         #ffffff;
+      --gray-50:       #fafafa;
+      --gray-100:      #f4f4f5;
+      --gray-200:      #e4e4e7;
+      --gray-300:      #d1d5db;
+      --gray-400:      #9ca3af;
+      --gray-500:      #6b7280;
+      --gray-600:      #4b5563;
+      --gray-700:      #374151;
+      --gray-800:      #1f2937;
+      --danger:        #ef4444;
+      --font-body:     'DM Sans', system-ui, sans-serif;
+      --font-display:  'Playfair Display', Georgia, serif;
+      --radius-md:     10px;
+      --radius-lg:     16px;
+      --radius-xl:     24px;
+      --shadow-lg:     0 8px 32px rgba(0,0,0,.12), 0 2px 8px rgba(0,0,0,.07);
+      --shadow-pink:   0 4px 20px rgba(192,38,211,0.22);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 15px; }
+    body {
+      font-family: var(--font-body);
+      min-height: 100vh;
+      display: flex;
+      background: var(--sidebar-bg);
+      overflow: hidden;
+    }
+
+    /* ── Lado esquerdo — decorativo ── */
+    .login-left {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Orbs decorativos */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.35;
+      pointer-events: none;
+    }
+    .orb-1 {
+      width: 420px; height: 420px;
+      background: var(--primary);
+      top: -100px; left: -80px;
+    }
+    .orb-2 {
+      width: 320px; height: 320px;
+      background: var(--accent);
+      bottom: -80px; right: -60px;
+    }
+    .orb-3 {
+      width: 200px; height: 200px;
+      background: var(--rose-400);
+      top: 50%; left: 55%;
+      transform: translate(-50%, -50%);
+    }
+
+    .left-content {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      max-width: 380px;
+    }
+    .left-brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 40px;
+    }
+    .brand-icon {
+      width: 48px; height: 48px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      color: white;
+      font-size: 24px;
+      box-shadow: var(--shadow-pink);
+    }
+    .brand-name {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 600;
+      color: white;
+    }
+
+    .left-tagline {
+      font-family: var(--font-display);
+      font-size: 1.75rem;
+      font-weight: 500;
+      color: white;
+      line-height: 1.3;
+      margin-bottom: 16px;
+    }
+    .left-desc {
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.5);
+      line-height: 1.6;
+    }
+
+    .left-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 32px;
+    }
+    .pill {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.7);
+      font-size: 0.78rem;
+      padding: 5px 14px;
+      border-radius: 20px;
+      backdrop-filter: blur(6px);
+    }
+
+    /* ── Lado direito — formulário ── */
+    .login-right {
+      width: 460px;
+      flex-shrink: 0;
+      background: var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 40px;
+      border-radius: 24px 0 0 24px;
+      box-shadow: -8px 0 48px rgba(0,0,0,0.25);
+    }
+
+    .login-form-wrap {
+      width: 100%;
+      max-width: 360px;
+    }
+
+    .form-title {
+      font-family: var(--font-display);
+      font-size: 1.6rem;
+      font-weight: 600;
+      color: var(--gray-800);
+      margin-bottom: 6px;
+    }
+    .form-subtitle {
+      font-size: 0.875rem;
+      color: var(--gray-500);
+      margin-bottom: 36px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--gray-700);
+      margin-bottom: 7px;
+      letter-spacing: 0.01em;
+    }
+    .input-wrap {
+      position: relative;
+    }
+    .input-icon {
+      position: absolute;
+      left: 13px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--gray-400);
+      pointer-events: none;
+      display: flex;
+    }
+    .input-icon svg { width: 17px; height: 17px; }
+    .form-control {
+      width: 100%;
+      height: 44px;
+      border: 1.5px solid var(--gray-200);
+      border-radius: var(--radius-md);
+      padding: 0 42px 0 40px;
+      font-size: 0.9rem;
+      font-family: var(--font-body);
+      color: var(--gray-800);
+      background: var(--gray-50);
+      transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+      outline: none;
+    }
+    .form-control:focus {
+      border-color: var(--primary);
+      background: white;
+      box-shadow: 0 0 0 3px rgba(192,38,211,0.10);
+    }
+    .form-control.error {
+      border-color: var(--danger);
+      box-shadow: 0 0 0 3px rgba(239,68,68,0.10);
+    }
+
+    /* Botão mostrar senha */
+    .toggle-pw {
+      position: absolute;
+      right: 13px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--gray-400);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      display: flex;
+      transition: color 150ms;
+    }
+    .toggle-pw:hover { color: var(--gray-600); }
+    .toggle-pw svg { width: 17px; height: 17px; }
+
+    /* Linha "Lembrar / Esqueci" */
+    .form-row-inline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.83rem;
+      color: var(--gray-600);
+      cursor: pointer;
+      user-select: none;
+    }
+    .checkbox-label input[type="checkbox"] {
+      width: 16px; height: 16px;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+    .forgot-link {
+      font-size: 0.83rem;
+      color: var(--primary);
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: color 150ms;
+    }
+    .forgot-link:hover { color: var(--primary-dark); }
+
+    /* Botão principal */
+    .btn-login {
+      width: 100%;
+      height: 46px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      font-weight: 600;
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: var(--shadow-pink);
+      transition: opacity 180ms, transform 180ms, box-shadow 180ms;
+      letter-spacing: 0.01em;
+    }
+    .btn-login:hover {
+      opacity: 0.93;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px rgba(192,38,211,0.35);
+    }
+    .btn-login:active { transform: translateY(0); opacity: 1; }
+    .btn-login:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
+    .btn-login svg { width: 18px; height: 18px; }
+
+    /* Spinner */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.35);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Mensagem de erro */
+    .error-msg {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      font-size: 0.83rem;
+      color: #b91c1c;
+      margin-bottom: 20px;
+    }
+    .error-msg.show { display: flex; }
+    .error-msg svg { flex-shrink: 0; width: 16px; height: 16px; }
+
+    /* Rodapé do card */
+    .form-footer {
+      margin-top: 28px;
+      padding-top: 20px;
+      border-top: 1px solid var(--gray-100);
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--gray-400);
+    }
+
+    /* ── Responsivo ── */
+    @media (max-width: 800px) {
+      body { flex-direction: column; overflow: auto; }
+      .login-left {
+        min-height: 220px;
+        padding: 32px 24px 24px;
+      }
+      .left-tagline { font-size: 1.3rem; }
+      .left-desc, .left-pills { display: none; }
+      .login-right {
+        width: 100%;
+        border-radius: 24px 24px 0 0;
+        padding: 32px 24px 40px;
+        box-shadow: none;
+      }
+      .left-brand { margin-bottom: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Lado esquerdo -->
+  <div class="login-left">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+
+    <div class="left-content">
+      <div class="left-brand">
+        <div class="brand-icon">✦</div>
+        <span class="brand-name">Belezza</span>
+      </div>
+
+      <div class="left-tagline">Gestão elegante para o seu salão</div>
+      <p class="left-desc">
+        Controle agenda, clientes, estoque e financeiro em um só lugar — simples, bonito e eficiente.
+      </p>
+
+      <div class="left-pills">
+        <span class="pill">📅 Agenda</span>
+        <span class="pill">👥 Clientes</span>
+        <span class="pill">💅 Serviços</span>
+        <span class="pill">📦 Estoque</span>
+        <span class="pill">💰 Financeiro</span>
+        <span class="pill">📊 Relatórios</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lado direito — formulário -->
+  <div class="login-right">
+    <div class="login-form-wrap">
+
+      <div class="form-title">Bem-vinda de volta 👋</div>
+      <p class="form-subtitle">Entre com suas credenciais para acessar o sistema.</p>
+
+      <!-- Mensagem de erro -->
+      <div class="error-msg" id="errorMsg">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span id="errorText">Usuário ou senha incorretos.</span>
+      </div>
+
+      <!-- Usuário -->
+      <div class="form-group">
+        <label class="form-label" for="username">Usuário</label>
+        <div class="input-wrap">
+          <span class="input-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+          </span>
+          <input
+            type="text"
+            id="username"
+            class="form-control"
+            placeholder="seu.usuario"
+            autocomplete="username"
+            autofocus
+          />
+        </div>
+      </div>
+
+      <!-- Senha -->
+      <div class="form-group">
+        <label class="form-label" for="password">Senha</label>
+        <div class="input-wrap">
+          <span class="input-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+            </svg>
+          </span>
+          <input
+            type="password"
+            id="password"
+            class="form-control"
+            placeholder="••••••••"
+            autocomplete="current-password"
+          />
+          <button type="button" class="toggle-pw" id="togglePw" aria-label="Mostrar senha">
+            <svg id="eyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Lembrar / Esqueci -->
+      <div class="form-row-inline">
+        <label class="checkbox-label">
+          <input type="checkbox" id="remember" />
+          Lembrar acesso
+        </label>
+        <a class="forgot-link" href="#" onclick="showForgot(event)">Esqueci a senha</a>
+      </div>
+
+      <!-- Botão entrar -->
+      <button class="btn-login" id="btnLogin" onclick="doLogin()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
+        </svg>
+        Entrar no sistema
+      </button>
+
+      <div class="form-footer">
+        Belezza — Sistema de Gestão &copy; 2025
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.hostname === 'localhost'
+      ? 'http://localhost:5000'
+      : window.location.origin;
+
+    // ── Mostrar / ocultar senha ───────────────────────────
+    const pwInput  = document.getElementById('password');
+    const togglePw = document.getElementById('togglePw');
+    const eyeIcon  = document.getElementById('eyeIcon');
+
+    const eyeOpen   = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
+    const eyeClosed = `<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>`;
+
+    togglePw.addEventListener('click', () => {
+      const isText = pwInput.type === 'text';
+      pwInput.type = isText ? 'password' : 'text';
+      eyeIcon.innerHTML = isText ? eyeOpen : eyeClosed;
+    });
+
+    // ── Enter nos campos ──────────────────────────────────
+    document.getElementById('username').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('password').focus();
+    });
+    document.getElementById('password').addEventListener('keydown', e => {
+      if (e.key === 'Enter') doLogin();
+    });
+
+    // ── Login ─────────────────────────────────────────────
+    async function doLogin() {
+      const user = document.getElementById('username').value.trim();
+      const pass = document.getElementById('password').value;
+      const btn  = document.getElementById('btnLogin');
+      const err  = document.getElementById('errorMsg');
+
+      // Limpa estado anterior
+      err.classList.remove('show');
+      document.getElementById('username').classList.remove('error');
+      document.getElementById('password').classList.remove('error');
+
+      if (!user || !pass) {
+        showError('Preencha usuário e senha.');
+        if (!user) document.getElementById('username').classList.add('error');
+        if (!pass) document.getElementById('password').classList.add('error');
+        return;
+      }
+
+      // Loading state
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner"></div> Entrando...';
+
+      try {
+        const res = await fetch(`${API_BASE}/api/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ usuario: user, senha: pass }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          // Salva token/sessão se a API retornar
+          if (data.token) sessionStorage.setItem('belezza_token', data.token);
+          if (data.usuario) sessionStorage.setItem('belezza_user', JSON.stringify(data.usuario));
+          // Redireciona para o sistema
+          window.location.href = 'index.html';
+        } else {
+          const body = await res.json().catch(() => ({}));
+          showError(body.erro || 'Usuário ou senha incorretos.');
+          document.getElementById('username').classList.add('error');
+          document.getElementById('password').classList.add('error');
+        }
+      } catch (e) {
+        // Se não houver endpoint de login ainda, entra direto (modo dev)
+        console.warn('Endpoint /api/login não encontrado — entrando sem autenticação.');
+        window.location.href = 'index.html';
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
+          </svg>
+          Entrar no sistema`;
+      }
+    }
+
+    function showError(msg) {
+      document.getElementById('errorText').textContent = msg;
+      document.getElementById('errorMsg').classList.add('show');
+    }
+
+    function showForgot(e) {
+      e.preventDefault();
+      alert('Entre em contato com o administrador para redefinir sua senha.');
+    }
+  </script>
+</body>
+</html>
