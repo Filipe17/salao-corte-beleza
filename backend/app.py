@@ -9,6 +9,8 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 import os
 from datetime import date
+import bcrypt
+import secrets
 
 # ── Configuração ─────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -138,6 +140,20 @@ class Agendamento(db.Model):
         }
 
 
+class Usuario(db.Model):
+    __tablename__ = 'usuarios'
+    id       = db.Column(db.Integer, primary_key=True)
+    nome     = db.Column(db.String(120), nullable=False)
+    usuario  = db.Column(db.String(60), unique=True, nullable=False)
+    senha    = db.Column(db.String(200), nullable=False)  # bcrypt hash
+    role     = db.Column(db.String(30), default='profissional')
+    ativo    = db.Column(db.Boolean, default=True)
+
+    def to_dict(self):
+        return {'id': self.id, 'nome': self.nome,
+                'usuario': self.usuario, 'role': self.role, 'ativo': self.ativo}
+
+
 class Transacao(db.Model):
     __tablename__ = 'transacoes'
     id        = db.Column(db.Integer, primary_key=True)
@@ -195,7 +211,10 @@ def seed():
             Produto(nome='Acetona 1L', categoria='Unhas',
                     qtd=2, minimo=4, unidade='un', custo=12, preco=25),
         ])
-    db.session.commit()
+    if Usuario.query.count() == 0:
+        senha_hash = bcrypt.hashpw(b'admin123', bcrypt.gensalt()).decode()
+        db.session.add(Usuario(nome='Admin', usuario='admin', senha=senha_hash, role='gerente'))
+        db.session.commit()
 
 
 with app.app_context():
@@ -211,12 +230,64 @@ def today():
 # ── Serve frontend ────────────────────────────────────────
 @app.route('/')
 def index():
-    return send_from_directory(BASE_DIR, 'index.html')
+    return send_from_directory(BASE_DIR, 'login.html')
 
 
 @app.route('/static/<path:path>')
 def serve_static(path):
     return send_from_directory(os.path.join(BASE_DIR, 'static'), path)
+
+
+# ═══════════════════════════════════════════════════════
+# API — AUTENTICAÇÃO
+# ═══════════════════════════════════════════════════════
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    body = request.get_json()
+    usuario = body.get('usuario', '').strip()
+    senha   = body.get('senha', '').encode()
+    u = Usuario.query.filter_by(usuario=usuario, ativo=True).first()
+    if not u or not bcrypt.checkpw(senha, u.senha.encode()):
+        return jsonify({'erro': 'Usuário ou senha incorretos'}), 401
+    token = secrets.token_hex(32)
+    return jsonify({'ok': True, 'token': token, 'usuario': u.to_dict()})
+
+
+@app.route('/api/usuarios', methods=['GET'])
+def get_usuarios():
+    return jsonify([u.to_dict() for u in Usuario.query.all()])
+
+
+@app.route('/api/usuarios', methods=['POST'])
+def create_usuario():
+    body = request.get_json()
+    if not body.get('usuario') or not body.get('senha'):
+        return jsonify({'erro': 'Usuario e senha obrigatorios'}), 400
+    if Usuario.query.filter_by(usuario=body['usuario']).first():
+        return jsonify({'erro': 'Usuario ja existe'}), 409
+    senha_hash = bcrypt.hashpw(body['senha'].encode(), bcrypt.gensalt()).decode()
+    u = Usuario(
+        nome=body.get('nome', body['usuario']),
+        usuario=body['usuario'],
+        senha=senha_hash,
+        role=body.get('role', 'profissional'),
+    )
+    db.session.add(u)
+    db.session.commit()
+    return jsonify(u.to_dict()), 201
+
+
+@app.route('/api/usuarios/<int:id>/senha', methods=['PATCH'])
+def change_senha(id):
+    u = Usuario.query.get_or_404(id)
+    body = request.get_json()
+    nova = body.get('senha', '')
+    if len(nova) < 6:
+        return jsonify({'erro': 'Senha muito curta (mínimo 6 caracteres)'}), 400
+    u.senha = bcrypt.hashpw(nova.encode(), bcrypt.gensalt()).decode()
+    db.session.commit()
+    return jsonify({'ok': True})
 
 
 # ═══════════════════════════════════════════════════════
