@@ -1162,11 +1162,11 @@ function renderAtendimento() {
 /* ===================== CONFIGURAÇÕES ===================== */
 function renderConfiguracoes() {
   return `
-  <div class="page-header">
+  <div class="page-header" id="configPageHeader">
     <div class="page-header-left"><h1>Configurações</h1><p>Gerencie as configurações do sistema</p></div>
   </div>
 
-  <div class="config-tabs">
+  <div class="config-tabs" id="configTabsBar">
     <button class="config-tab active" onclick="switchConfigTab('dados')">Dados do Salão</button>
     <button class="config-tab" onclick="switchConfigTab('horarios')">Horários</button>
     <button class="config-tab" onclick="switchConfigTab('usuarios')">Usuários</button>
@@ -1356,6 +1356,12 @@ function renderTabelaUsuarios(filtro = '') {
 
 // ── Tela de cadastro / edição (substitui a aba inteira) ──
 function abrirCadastroUsuario(id) {
+  // Esconder abas e header de configurações
+  const tabsBar = document.getElementById('configTabsBar');
+  const header  = document.getElementById('configPageHeader');
+  if (tabsBar) tabsBar.style.display = 'none';
+  if (header)  header.style.display  = 'none';
+
   _usuarioEditando = id ? _usuarios.find(u => u.id === id) : null;
   const isEdicao   = !!_usuarioEditando;
   const u          = _usuarioEditando || {};
@@ -1504,6 +1510,12 @@ function abrirCadastroUsuario(id) {
 }
 
 function voltarListaUsuarios() {
+  // Mostrar abas e header de configurações
+  const tabsBar = document.getElementById('configTabsBar');
+  const header  = document.getElementById('configPageHeader');
+  if (tabsBar) tabsBar.style.display = '';
+  if (header)  header.style.display  = '';
+
   _usuarioEditando = null;
   renderUsuariosArea();
 }
