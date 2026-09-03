@@ -631,7 +631,7 @@
           if (data.token) sessionStorage.setItem('belezza_token', data.token);
           if (data.usuario) sessionStorage.setItem('belezza_user', JSON.stringify(data.usuario));
           // Redireciona para o sistema
-          window.location.href = 'index.html';
+          window.location.href = '/';
         } else {
           const body = await res.json().catch(() => ({}));
           showError(body.erro || 'Usuário ou senha incorretos.');
@@ -641,7 +641,7 @@
       } catch (e) {
         // Se não houver endpoint de login ainda, entra direto (modo dev)
         console.warn('Endpoint /api/login não encontrado — entrando sem autenticação.');
-        window.location.href = 'index.html';
+        window.location.href = '/';
       } finally {
         btn.disabled = false;
         btn.innerHTML = `
