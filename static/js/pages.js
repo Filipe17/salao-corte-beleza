@@ -1230,7 +1230,7 @@ function renderConfiguracoes() {
   </div>
 
   <div id="configTabUsuarios" class="config-tab-content" style="display:none">
-    ${renderUsuariosTab()}
+    <div id="usuariosArea"><div class="loading-box">Carregando...</div></div>
   </div>`;
 }
 
@@ -1253,10 +1253,6 @@ function switchConfigTab(tab) {
 // ── Tela de Usuários ─────────────────────────────────────────────────────────
 let _usuarios = [];
 let _usuarioEditando = null;
-
-async function renderUsuariosTab() {
-  return '<div id="usuariosArea"><div class="loading-box">Carregando...</div></div>';
-}
 
 async function loadUsuarios() {
   try {
