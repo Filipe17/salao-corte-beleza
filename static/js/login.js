@@ -60,6 +60,11 @@ async function doLogin() {
 
     if (res.ok) {
       const data = await res.json();
+      if (data.trocar_senha) {
+        // Senha padrão — exige troca antes de entrar
+        mostrarTrocarSenha(data.usuario.id);
+        return;
+      }
       if (data.token)   sessionStorage.setItem('belezza_token', data.token);
       if (data.usuario) sessionStorage.setItem('belezza_user', JSON.stringify(data.usuario));
       window.location.href = '/';
@@ -93,4 +98,107 @@ function showError(msg) {
 function showForgot(e) {
   e.preventDefault();
   alert('Entre em contato com o administrador para redefinir sua senha.');
+}
+
+// ── Variável para guardar o id do usuário logado ──────
+let _usuarioId = null;
+
+// ── Mostrar painel de troca de senha ─────────────────
+function mostrarTrocarSenha(usuarioId) {
+  _usuarioId = usuarioId;
+  document.getElementById('login-form-area').style.display = 'none';
+  document.getElementById('trocarSenhaWrap').classList.add('ativo');
+
+  // toggle nova senha
+  const novaPw    = document.getElementById('novaSenha');
+  const toggleNova = document.getElementById('toggleNova');
+  const eyeNova   = document.getElementById('eyeNova');
+  toggleNova.addEventListener('click', () => {
+    const isText = novaPw.type === 'text';
+    novaPw.type = isText ? 'password' : 'text';
+    eyeNova.innerHTML = isText ? eyeOpen : eyeClosed;
+  });
+
+  // toggle confirmar senha
+  const confirmPw      = document.getElementById('confirmarSenha');
+  const toggleConfirmar = document.getElementById('toggleConfirmar');
+  const eyeConfirmar   = document.getElementById('eyeConfirmar');
+  toggleConfirmar.addEventListener('click', () => {
+    const isText = confirmPw.type === 'text';
+    confirmPw.type = isText ? 'password' : 'text';
+    eyeConfirmar.innerHTML = isText ? eyeOpen : eyeClosed;
+  });
+
+  // Enter no campo confirmar dispara salvar
+  confirmPw.addEventListener('keydown', e => {
+    if (e.key === 'Enter') doTrocarSenha();
+  });
+}
+
+// ── Salvar nova senha ─────────────────────────────────
+async function doTrocarSenha() {
+  const nova      = document.getElementById('novaSenha').value;
+  const confirmar = document.getElementById('confirmarSenha').value;
+  const btn       = document.getElementById('btnTrocar');
+  const err       = document.getElementById('errorMsgTrocar');
+  const suc       = document.getElementById('successMsgTrocar');
+
+  err.classList.remove('show');
+  suc.classList.remove('show');
+  document.getElementById('novaSenha').classList.remove('error');
+  document.getElementById('confirmarSenha').classList.remove('error');
+
+  if (!nova || !confirmar) {
+    showErrorTrocar('Preencha os dois campos.');
+    if (!nova)      document.getElementById('novaSenha').classList.add('error');
+    if (!confirmar) document.getElementById('confirmarSenha').classList.add('error');
+    return;
+  }
+  if (nova.length < 6) {
+    showErrorTrocar('A senha deve ter no mínimo 6 caracteres.');
+    document.getElementById('novaSenha').classList.add('error');
+    return;
+  }
+  if (nova !== confirmar) {
+    showErrorTrocar('As senhas não coincidem.');
+    document.getElementById('confirmarSenha').classList.add('error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Salvando...';
+
+  try {
+    const res = await fetch(`${API_BASE}/api/usuarios/${_usuarioId}/senha`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ senha: nova }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.token)   sessionStorage.setItem('belezza_token', data.token);
+      if (data.usuario) sessionStorage.setItem('belezza_user', JSON.stringify(data.usuario));
+      suc.classList.add('show');
+      setTimeout(() => { window.location.href = '/'; }, 1500);
+    } else {
+      const body = await res.json().catch(() => ({}));
+      showErrorTrocar(body.erro || 'Erro ao salvar senha.');
+    }
+  } catch (e) {
+    console.warn('Erro ao trocar senha:', e);
+    showErrorTrocar('Erro de conexão. Tente novamente.');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+      Salvar nova senha`;
+  }
+}
+
+function showErrorTrocar(msg) {
+  document.getElementById('errorTextTrocar').textContent = msg;
+  document.getElementById('errorMsgTrocar').classList.add('show');
 }
