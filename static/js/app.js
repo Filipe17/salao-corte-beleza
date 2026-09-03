@@ -55,9 +55,11 @@ function closeSidebar() {
 
 // Date display
 function updateDate() {
+  const el = document.getElementById('topbarDate');
+  if (!el) return;
   const now = new Date();
   const opts = { weekday:'short', day:'numeric', month:'short' };
-  document.getElementById('topbarDate').textContent = now.toLocaleDateString('pt-BR', opts);
+  el.textContent = now.toLocaleDateString('pt-BR', opts);
 }
 
 // Init
