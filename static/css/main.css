@@ -283,7 +283,7 @@ ul { list-style: none; }
 
 /* Busca */
 .topbar-search {
-  flex: 1;
+  margin-left: auto;
   max-width: 320px;
   display: flex;
   align-items: center;
