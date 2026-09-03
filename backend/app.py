@@ -324,6 +324,30 @@ def create_usuario():
     return jsonify(u.to_dict()), 201
 
 
+@app.route('/api/usuarios/<int:id>', methods=['PUT'])
+def update_usuario(id):
+    u = Usuario.query.get_or_404(id)
+    body = request.get_json()
+    if 'nome'    in body: u.nome    = body['nome']
+    if 'usuario' in body:
+        existing = Usuario.query.filter_by(usuario=body['usuario']).first()
+        if existing and existing.id != id:
+            return jsonify({'erro': 'Nome de usuário já existe'}), 409
+        u.usuario = body['usuario']
+    if 'role'    in body: u.role    = body['role']
+    if 'ativo'   in body: u.ativo   = body['ativo']
+    db.session.commit()
+    return jsonify(u.to_dict())
+
+
+@app.route('/api/usuarios/<int:id>', methods=['DELETE'])
+def delete_usuario(id):
+    u = Usuario.query.get_or_404(id)
+    u.ativo = False  # soft delete
+    db.session.commit()
+    return jsonify({'ok': True})
+
+
 @app.route('/api/usuarios/<int:id>/senha', methods=['PATCH'])
 def change_senha(id):
     u = Usuario.query.get_or_404(id)
