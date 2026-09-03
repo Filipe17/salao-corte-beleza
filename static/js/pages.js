@@ -351,11 +351,13 @@ function openNewAppointment() {
       <div class="form-row">
         <div class="form-group"><label class="form-label">Data</label>
           <input type="date" class="form-control" id="na_data" value="${today()}"></div>
-        <div class="form-group"><label class="form-label">Horário</label>
-          <input type="time" class="form-control" id="na_hora" value="09:00"></div>
+        <div class="form-group"><label class="form-label">Início</label>
+          <input type="time" class="form-control" id="na_hora" value="09:00" oninput="calcularHoraFim()"></div>
+        <div class="form-group"><label class="form-label">Fim</label>
+          <input type="time" class="form-control" id="na_hora_fim" value="10:00"></div>
       </div>
       <div class="form-group"><label class="form-label">Serviço</label>
-        <select class="form-control" id="na_serv"><option value="">Selecionar...</option>${servOptions}</select></div>
+        <select class="form-control" id="na_serv" onchange="calcularHoraFim()"><option value="">Selecionar...</option>${servOptions}</select></div>
       <div class="form-group"><label class="form-label">Profissional</label>
         <select class="form-control" id="na_pro"><option value="">Selecionar...</option>${proOptions}</select></div>
       <div class="form-group"><label class="form-label">Observações</label>
@@ -366,20 +368,46 @@ function openNewAppointment() {
   });
 }
 
+function calcularHoraFim() {
+  const inicio = document.getElementById('na_hora')?.value;
+  const servId = parseInt(document.getElementById('na_serv')?.value);
+  if (!inicio) return;
+  const serv = getServico(servId);
+  const durMin = serv ? serv.duracao : 60;
+  const [h, m] = inicio.split(':').map(Number);
+  const totalMin = h * 60 + m + durMin;
+  const fimH = String(Math.floor(totalMin / 60) % 24).padStart(2, '0');
+  const fimM = String(totalMin % 60).padStart(2, '0');
+  const fimEl = document.getElementById('na_hora_fim');
+  if (fimEl) fimEl.value = `${fimH}:${fimM}`;
+}
+
 function saveNewAppointment() {
-  const cliId = parseInt(document.getElementById('na_cli').value);
-  const proId = parseInt(document.getElementById('na_pro').value);
+  const cliId  = parseInt(document.getElementById('na_cli').value);
+  const proId  = parseInt(document.getElementById('na_pro').value);
   const servId = parseInt(document.getElementById('na_serv').value);
-  const data = document.getElementById('na_data').value;
-  const hora = document.getElementById('na_hora').value;
-  const obs = document.getElementById('na_obs').value;
+  const data   = document.getElementById('na_data').value;
+  const hora   = document.getElementById('na_hora').value;
+  const horaFim = document.getElementById('na_hora_fim').value;
+  const obs    = document.getElementById('na_obs').value;
+
   if (!cliId || !proId || !servId || !data || !hora) {
     showToast('Preencha todos os campos obrigatórios', 'error'); return;
   }
+
+  // Calcular duração em minutos pela diferença início/fim
+  let duracao = 60;
+  if (hora && horaFim) {
+    const [h1, m1] = hora.split(':').map(Number);
+    const [h2, m2] = horaFim.split(':').map(Number);
+    const diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+    if (diff > 0) duracao = diff;
+  }
+
   const serv = getServico(servId);
   DB.agendamentos.push({
     id: generateId(DB.agendamentos), clienteId:cliId, proId, servicoId:servId,
-    data, hora, duracao:serv.duracao, status:'confirmado', valor:serv.preco, obs
+    data, hora, hora_fim: horaFim, duracao, status:'confirmado', valor:serv.preco, obs
   });
   closeModal();
   showToast('Agendamento criado com sucesso!', 'success');
