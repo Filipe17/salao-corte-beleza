@@ -236,8 +236,23 @@ def seed():
         db.session.commit()
 
 
+def migrate():
+    """Adiciona colunas novas em tabelas existentes sem derrubar dados."""
+    with db.engine.connect() as conn:
+        # senha_padrao — adicionada na v2
+        try:
+            conn.execute(db.text(
+                "ALTER TABLE usuarios ADD COLUMN senha_padrao BOOLEAN DEFAULT TRUE"
+            ))
+            conn.commit()
+            print("✅ Migration: coluna senha_padrao adicionada.")
+        except Exception:
+            conn.rollback()  # coluna já existe — ignora
+
+
 with app.app_context():
     db.create_all()   # cria tabelas se não existirem
+    migrate()         # adiciona colunas novas em tabelas existentes
     seed()            # insere dados de exemplo
 
 
