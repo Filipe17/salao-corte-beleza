@@ -1369,18 +1369,18 @@ function abrirCadastroUsuario(id) {
 
   const area = document.getElementById('usuariosArea');
   area.innerHTML = `
+    <h1 style="font-family:var(--font-display);font-size:1.6rem;font-weight:600;margin-bottom:8px">
+      ${isEdicao ? 'Editar Usuário' : 'Cadastro de Usuário'}
+    </h1>
+
     <!-- Breadcrumb -->
-    <div class="u-breadcrumb">
+    <div class="u-breadcrumb" style="margin-bottom:24px">
       <span onclick="voltarListaUsuarios()" style="cursor:pointer;color:var(--gray-500)">Configurações</span>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>
       <span onclick="voltarListaUsuarios()" style="cursor:pointer;color:var(--gray-500)">Usuários</span>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>
       <span style="color:var(--primary);font-weight:500">${isEdicao ? 'Editar Usuário' : 'Novo Usuário'}</span>
     </div>
-
-    <h1 style="font-family:var(--font-display);font-size:1.6rem;font-weight:600;margin-bottom:24px">
-      ${isEdicao ? 'Editar Usuário' : 'Cadastro de Usuário'}
-    </h1>
 
     <div class="error-msg" id="uFormErro" style="display:none;margin-bottom:16px">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
