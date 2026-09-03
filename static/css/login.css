@@ -439,3 +439,76 @@ body {
 }
 .success-msg.show { display: flex; }
 .success-msg svg { flex-shrink: 0; width: 16px; height: 16px; }
+
+/* ── Critérios de senha ── */
+.forca-wrap {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  margin-bottom: 4px;
+}
+.forca-wrap.visivel { display: flex; }
+
+.forca-barra {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+.forca-seg {
+  flex: 1;
+  height: 4px;
+  border-radius: 99px;
+  background: var(--gray-200);
+  transition: background 250ms ease;
+}
+
+/* cores por força */
+.forca-fraca  .forca-seg.ativo { background: #ef4444; }
+.forca-media  .forca-seg.ativo { background: #f97316; }
+.forca-boa    .forca-seg.ativo { background: #eab308; }
+.forca-forte  .forca-seg.ativo { background: #22c55e; }
+
+.forca-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  min-width: 52px;
+  text-align: right;
+  transition: color 250ms;
+}
+.forca-fraca  .forca-label { color: #ef4444; }
+.forca-media  .forca-label { color: #f97316; }
+.forca-boa    .forca-label { color: #eab308; }
+.forca-forte  .forca-label { color: #22c55e; }
+
+.criterios {
+  list-style: none;
+  margin-top: 10px;
+  margin-bottom: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  display: none;
+}
+.criterios.visivel { display: flex; }
+
+.criterio {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.8rem;
+  color: var(--gray-400);
+  transition: color 200ms;
+}
+.criterio-icon {
+  font-size: 0.75rem;
+  width: 16px;
+  text-align: center;
+  transition: all 200ms;
+}
+.criterio.ok {
+  color: #16a34a;
+}
+.criterio.ok .criterio-icon {
+  color: #16a34a;
+}
