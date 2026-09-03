@@ -329,8 +329,8 @@ def change_senha(id):
     u = Usuario.query.get_or_404(id)
     body = request.get_json()
     nova = body.get('senha', '')
-    if len(nova) < 6:
-        return jsonify({'erro': 'Senha muito curta (mínimo 6 caracteres)'}), 400
+    if len(nova) < 8:
+        return jsonify({'erro': 'Senha muito curta (mínimo 8 caracteres)'}), 400
     u.senha = bcrypt.hashpw(nova.encode(), bcrypt.gensalt()).decode()
     u.senha_padrao = False  # remove flag de troca obrigatória
     db.session.commit()
