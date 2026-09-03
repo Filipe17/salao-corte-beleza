@@ -247,7 +247,7 @@ def today():
 # ── Serve frontend ────────────────────────────────────────
 @app.route('/')
 def root():
-    return send_from_directory(BASE_DIR, 'login.html')
+    return send_from_directory(BASE_DIR, 'index.html')
 
 @app.route('/login.html')
 def login_page():
