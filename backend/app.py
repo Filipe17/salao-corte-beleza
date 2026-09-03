@@ -170,6 +170,7 @@ class Usuario(db.Model):
     senha_padrao   = db.Column(db.Boolean, default=True)
     permissoes     = db.Column(db.Text, default='dashboard,agenda,clientes,servicos,profissionais,atendimentos,pdv,estoque,financeiro,relatorios,configuracoes')
     data_cadastro  = db.Column(db.String(20), default=lambda: str(date.today()))
+    foto           = db.Column(db.String(200), default='')
 
     def to_dict(self):
         return {
@@ -178,6 +179,7 @@ class Usuario(db.Model):
             'role': self.role, 'ativo': self.ativo,
             'permissoes': (self.permissoes or '').split(','),
             'data_cadastro': self.data_cadastro or '',
+            'foto': self.foto or '',
         }
 
 
@@ -253,6 +255,7 @@ def migrate():
         ("telefone",      "VARCHAR(30) DEFAULT ''"),
         ("permissoes",    "TEXT DEFAULT 'dashboard,agenda,clientes,servicos,profissionais,atendimentos,pdv,estoque,financeiro,relatorios,configuracoes'"),
         ("data_cadastro", "VARCHAR(20) DEFAULT ''"),
+        ("foto",         "VARCHAR(200) DEFAULT ''"),
     ]
     with db.engine.connect() as conn:
         for col, definition in cols:
@@ -361,8 +364,34 @@ def update_usuario(id):
     if 'permissoes' in body:
         perms = body['permissoes']
         u.permissoes = ','.join(perms) if isinstance(perms, list) else perms
+    if 'foto' in body: u.foto = body['foto']
     db.session.commit()
     return jsonify(u.to_dict())
+
+
+@app.route('/api/usuarios/<int:id>/foto', methods=['POST'])
+def upload_foto_usuario(id):
+    u = Usuario.query.get_or_404(id)
+    if 'foto' not in request.files:
+        return jsonify({'erro': 'Nenhum arquivo enviado'}), 400
+    file = request.files['foto']
+    if file.filename == '':
+        return jsonify({'erro': 'Arquivo inválido'}), 400
+    # Validar extensão
+    allowed = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
+    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+    if ext not in allowed:
+        return jsonify({'erro': 'Formato não suportado. Use JPG, PNG, GIF ou WEBP'}), 400
+    # Salvar em static/uploads/usuarios/
+    upload_dir = os.path.join(BASE_DIR, 'static', 'uploads', 'usuarios')
+    os.makedirs(upload_dir, exist_ok=True)
+    filename = f"usuario_{id}.{ext}"
+    filepath = os.path.join(upload_dir, filename)
+    file.save(filepath)
+    # Salvar URL relativa no banco
+    u.foto = f"/static/uploads/usuarios/{filename}"
+    db.session.commit()
+    return jsonify({'ok': True, 'foto': u.foto})
 
 
 @app.route('/api/usuarios/<int:id>', methods=['DELETE'])
