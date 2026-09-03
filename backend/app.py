@@ -159,17 +159,26 @@ class Agendamento(db.Model):
 
 class Usuario(db.Model):
     __tablename__ = 'usuarios'
-    id       = db.Column(db.Integer, primary_key=True)
-    nome     = db.Column(db.String(120), nullable=False)
-    usuario  = db.Column(db.String(60), unique=True, nullable=False)
-    senha    = db.Column(db.String(200), nullable=False)  # bcrypt hash
-    role          = db.Column(db.String(30), default='profissional')
-    ativo         = db.Column(db.Boolean, default=True)
-    senha_padrao  = db.Column(db.Boolean, default=True)  # força troca no primeiro login
+    id             = db.Column(db.Integer, primary_key=True)
+    nome           = db.Column(db.String(120), nullable=False)
+    usuario        = db.Column(db.String(60), unique=True, nullable=False)
+    senha          = db.Column(db.String(200), nullable=False)
+    email          = db.Column(db.String(120), default='')
+    telefone       = db.Column(db.String(30), default='')
+    role           = db.Column(db.String(30), default='profissional')
+    ativo          = db.Column(db.Boolean, default=True)
+    senha_padrao   = db.Column(db.Boolean, default=True)
+    permissoes     = db.Column(db.Text, default='dashboard,agenda,clientes,servicos,profissionais,atendimentos,pdv,estoque,financeiro,relatorios,configuracoes')
+    data_cadastro  = db.Column(db.String(20), default=lambda: str(date.today()))
 
     def to_dict(self):
-        return {'id': self.id, 'nome': self.nome,
-                'usuario': self.usuario, 'role': self.role, 'ativo': self.ativo}
+        return {
+            'id': self.id, 'nome': self.nome, 'usuario': self.usuario,
+            'email': self.email or '', 'telefone': self.telefone or '',
+            'role': self.role, 'ativo': self.ativo,
+            'permissoes': (self.permissoes or '').split(','),
+            'data_cadastro': self.data_cadastro or '',
+        }
 
 
 class Transacao(db.Model):
@@ -238,16 +247,21 @@ def seed():
 
 def migrate():
     """Adiciona colunas novas em tabelas existentes sem derrubar dados."""
+    cols = [
+        ("senha_padrao",  "BOOLEAN DEFAULT TRUE"),
+        ("email",         "VARCHAR(120) DEFAULT ''"),
+        ("telefone",      "VARCHAR(30) DEFAULT ''"),
+        ("permissoes",    "TEXT DEFAULT 'dashboard,agenda,clientes,servicos,profissionais,atendimentos,pdv,estoque,financeiro,relatorios,configuracoes'"),
+        ("data_cadastro", "VARCHAR(20) DEFAULT ''"),
+    ]
     with db.engine.connect() as conn:
-        # senha_padrao — adicionada na v2
-        try:
-            conn.execute(db.text(
-                "ALTER TABLE usuarios ADD COLUMN senha_padrao BOOLEAN DEFAULT TRUE"
-            ))
-            conn.commit()
-            print("✅ Migration: coluna senha_padrao adicionada.")
-        except Exception:
-            conn.rollback()  # coluna já existe — ignora
+        for col, definition in cols:
+            try:
+                conn.execute(db.text(f"ALTER TABLE usuarios ADD COLUMN {col} {definition}"))
+                conn.commit()
+                print(f"✅ Migration: coluna {col} adicionada.")
+            except Exception:
+                conn.rollback()
 
 
 with app.app_context():
@@ -313,11 +327,17 @@ def create_usuario():
     if Usuario.query.filter_by(usuario=body['usuario']).first():
         return jsonify({'erro': 'Usuario ja existe'}), 409
     senha_hash = bcrypt.hashpw(body['senha'].encode(), bcrypt.gensalt()).decode()
+    perms = body.get('permissoes', [])
     u = Usuario(
         nome=body.get('nome', body['usuario']),
         usuario=body['usuario'],
         senha=senha_hash,
+        email=body.get('email', ''),
+        telefone=body.get('telefone', ''),
         role=body.get('role', 'profissional'),
+        ativo=body.get('ativo', True),
+        permissoes=','.join(perms) if perms else 'dashboard,agenda,clientes,servicos,profissionais,atendimentos,pdv,estoque,financeiro,relatorios,configuracoes',
+        data_cadastro=str(date.today()),
     )
     db.session.add(u)
     db.session.commit()
@@ -334,8 +354,13 @@ def update_usuario(id):
         if existing and existing.id != id:
             return jsonify({'erro': 'Nome de usuário já existe'}), 409
         u.usuario = body['usuario']
-    if 'role'    in body: u.role    = body['role']
-    if 'ativo'   in body: u.ativo   = body['ativo']
+    if 'role'      in body: u.role      = body['role']
+    if 'ativo'     in body: u.ativo     = body['ativo']
+    if 'email'     in body: u.email     = body['email']
+    if 'telefone'  in body: u.telefone  = body['telefone']
+    if 'permissoes' in body:
+        perms = body['permissoes']
+        u.permissoes = ','.join(perms) if isinstance(perms, list) else perms
     db.session.commit()
     return jsonify(u.to_dict())
 
