@@ -105,12 +105,29 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
       <div class="topbar-title" id="pageTitle">Dashboard</div>
+
+      <!-- Busca -->
+      <div class="topbar-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Buscar..." id="topbarSearchInput" />
+      </div>
+
       <div class="topbar-actions">
+        <!-- Sino -->
         <button class="topbar-btn" id="notifBtn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
-          <span class="notif-dot"></span>
+          <span class="notif-badge">3</span>
         </button>
-        <div class="topbar-date" id="topbarDate"></div>
+
+        <!-- Usuário -->
+        <div class="topbar-user" id="topbarUser">
+          <div class="topbar-user-avatar" id="topbarAvatar">A</div>
+          <div class="topbar-user-info">
+            <span class="topbar-user-name" id="topbarUserName">Administrador</span>
+            <span class="topbar-user-role" id="topbarUserRole">Admin</span>
+          </div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="color:var(--gray-400)"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
       </div>
     </header>
 
@@ -129,5 +146,19 @@
   <script src="static/js/pages.js"></script>
   <script src="static/js/app.js"></script>
   <script src="static/js/api.js"></script>
+  <script>
+    // Preencher dados do usuário logado na topbar
+    try {
+      const u = JSON.parse(sessionStorage.getItem('belezza_user') || '{}');
+      if (u.nome) {
+        document.getElementById('topbarUserName').textContent = u.nome;
+        document.getElementById('topbarAvatar').textContent   = u.nome[0].toUpperCase();
+      }
+      if (u.role) {
+        const roles = { gerente:'Gerente', administrador:'Administrador', profissional:'Profissional', recepcionista:'Recepcionista', caixa:'Caixa' };
+        document.getElementById('topbarUserRole').textContent = roles[u.role] || u.role;
+      }
+    } catch(e) {}
+  </script>
 </body>
 </html>
