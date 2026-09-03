@@ -210,11 +210,7 @@ function renderAgenda() {
   }).join('');
 
   return `
-  <div class="page-header">
-    <div class="page-header-left">
-      <h1>Agenda</h1>
-      <p>Gerencie os agendamentos do salão</p>
-    </div>
+  <div class="page-header" style="justify-content:flex-end">
     <div class="page-header-right">
       <button class="btn btn-primary" onclick="openNewAppointment()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -433,11 +429,7 @@ function renderClientes() {
     </div>`).join('');
 
   return `
-  <div class="page-header">
-    <div class="page-header-left">
-      <h1>Clientes</h1>
-      <p>${DB.clientes.length} clientes cadastrados</p>
-    </div>
+  <div class="page-header" style="justify-content:flex-end">
     <div class="page-header-right">
       <button class="btn btn-primary" onclick="openNewCliente()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -579,8 +571,7 @@ function renderServicos() {
     </div>`).join('');
 
   return `
-  <div class="page-header">
-    <div class="page-header-left"><h1>Serviços</h1><p>${DB.servicos.filter(s=>s.ativo).length} serviços ativos</p></div>
+  <div class="page-header" style="justify-content:flex-end">
     <div class="page-header-right">
       <button class="btn btn-primary" onclick="openNewServico()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -682,8 +673,7 @@ function renderProfissionais() {
     </div>`).join('');
 
   return `
-  <div class="page-header">
-    <div class="page-header-left"><h1>Profissionais</h1><p>${DB.profissionais.length} profissionais cadastradas</p></div>
+  <div class="page-header" style="justify-content:flex-end">
     <div class="page-header-right">
       <button class="btn btn-primary" onclick="showToast('Em desenvolvimento','warning')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -762,9 +752,7 @@ function renderPDV() {
   };
 
   return `
-  <div class="page-header">
-    <div class="page-header-left"><h1>PDV — Vendas</h1><p>Ponto de venda rápido</p></div>
-  </div>
+  
 
   <div class="pdv-layout">
     <div class="pdv-products">
@@ -870,8 +858,7 @@ function renderEstoque() {
   }).join('');
 
   return `
-  <div class="page-header">
-    <div class="page-header-left"><h1>Estoque</h1><p>${low.length} produtos abaixo do mínimo</p></div>
+  <div class="page-header" style="justify-content:flex-end">
     <div class="page-header-right">
       <button class="btn btn-outline" onclick="showToast('Em desenvolvimento','warning')">Relatório</button>
       <button class="btn btn-primary" onclick="openNewProduto()">
@@ -932,8 +919,7 @@ function renderFinanceiro() {
     </tr>`).join('');
 
   return `
-  <div class="page-header">
-    <div class="page-header-left"><h1>Financeiro</h1><p>Controle de entradas e saídas</p></div>
+  <div class="page-header" style="justify-content:flex-end">
     <div class="page-header-right">
       <button class="btn btn-outline" onclick="openNovaTransacao('saida')">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg> Lançar saída
@@ -1044,8 +1030,7 @@ function renderRelatorios() {
   const topPro = DB.profissionais.sort((a,b)=>b.faturamentoMes-a.faturamentoMes);
 
   return `
-  <div class="page-header">
-    <div class="page-header-left"><h1>Relatórios</h1><p>Análise de desempenho do salão</p></div>
+  <div class="page-header" style="justify-content:flex-end">
     <div class="page-header-right">
       <select class="form-control" style="width:auto">
         <option>Setembro 2025</option><option>Agosto 2025</option><option>Julho 2025</option>
@@ -1137,8 +1122,7 @@ function renderAtendimento() {
   const finalizados = DB.agendamentos.filter(a=>a.status==='finalizado');
 
   return `
-  <div class="page-header">
-    <div class="page-header-left"><h1>Atendimento</h1><p>Controle dos atendimentos do dia</p></div>
+  <div class="page-header" style="justify-content:flex-end">
     <div class="page-header-right">
       <button class="btn btn-primary" onclick="openNewAppointment()">+ Novo agendamento</button>
     </div>
@@ -1190,9 +1174,7 @@ function renderAtendimento() {
 /* ===================== CONFIGURAÇÕES ===================== */
 function renderConfiguracoes() {
   return `
-  <div class="page-header" id="configPageHeader">
-    <div class="page-header-left"><h1>Configurações</h1><p>Gerencie as configurações do sistema</p></div>
-  </div>
+  <div id="configPageHeader">
 
   <div class="config-tabs" id="configTabsBar">
     <button class="config-tab active" onclick="switchConfigTab('dados')">Dados do Salão</button>
