@@ -163,8 +163,9 @@ class Usuario(db.Model):
     nome     = db.Column(db.String(120), nullable=False)
     usuario  = db.Column(db.String(60), unique=True, nullable=False)
     senha    = db.Column(db.String(200), nullable=False)  # bcrypt hash
-    role     = db.Column(db.String(30), default='profissional')
-    ativo    = db.Column(db.Boolean, default=True)
+    role          = db.Column(db.String(30), default='profissional')
+    ativo         = db.Column(db.Boolean, default=True)
+    senha_padrao  = db.Column(db.Boolean, default=True)  # força troca no primeiro login
 
     def to_dict(self):
         return {'id': self.id, 'nome': self.nome,
@@ -230,7 +231,8 @@ def seed():
         ])
     if Usuario.query.count() == 0:
         senha_hash = bcrypt.hashpw(b'admin123', bcrypt.gensalt()).decode()
-        db.session.add(Usuario(nome='Admin', usuario='admin', senha=senha_hash, role='gerente'))
+        db.session.add(Usuario(nome='Admin', usuario='admin', senha=senha_hash,
+                               role='gerente', senha_padrao=True))
         db.session.commit()
 
 
@@ -275,7 +277,12 @@ def login():
     if not u or not bcrypt.checkpw(senha, u.senha.encode()):
         return jsonify({'erro': 'Usuário ou senha incorretos'}), 401
     token = secrets.token_hex(32)
-    return jsonify({'ok': True, 'token': token, 'usuario': u.to_dict()})
+    return jsonify({
+        'ok': True,
+        'token': token,
+        'usuario': u.to_dict(),
+        'trocar_senha': bool(u.senha_padrao),  # True = exigir troca
+    })
 
 
 @app.route('/api/usuarios', methods=['GET'])
@@ -310,8 +317,10 @@ def change_senha(id):
     if len(nova) < 6:
         return jsonify({'erro': 'Senha muito curta (mínimo 6 caracteres)'}), 400
     u.senha = bcrypt.hashpw(nova.encode(), bcrypt.gensalt()).decode()
+    u.senha_padrao = False  # remove flag de troca obrigatória
     db.session.commit()
-    return jsonify({'ok': True})
+    token = secrets.token_hex(32)
+    return jsonify({'ok': True, 'token': token, 'usuario': u.to_dict()})
 
 
 # ═══════════════════════════════════════════════════════
