@@ -269,6 +269,43 @@ async function checkoutPDV() {
   }
 }
 
+// ── Atualiza avatar da topbar com foto do usuário logado ──
+function atualizarTopbarUsuario() {
+  try {
+    const u = JSON.parse(sessionStorage.getItem('belezza_user') || '{}');
+    const avatarEl   = document.getElementById('topbarAvatar');
+    const nomeEl     = document.getElementById('topbarUserName');
+    const roleEl     = document.getElementById('topbarUserRole');
+    if (!avatarEl) return;
+
+    // Nome e role
+    if (u.nome && nomeEl) nomeEl.textContent = u.nome;
+    if (u.role && roleEl) {
+      const roles = { gerente:'Gerente', administrador:'Administrador', profissional:'Profissional', recepcionista:'Recepcionista', caixa:'Caixa' };
+      roleEl.textContent = roles[u.role] || u.role;
+    }
+
+    // Foto: buscar do banco via API e atualizar
+    if (u.id) {
+      fetch(`/api/usuarios`)
+        .then(r => r.json())
+        .then(lista => {
+          const me = lista.find(x => x.id === u.id);
+          if (me && me.foto) {
+            avatarEl.innerHTML = `<img src="${me.foto}?t=${Date.now()}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`;
+          } else if (u.nome) {
+            avatarEl.textContent = u.nome[0].toUpperCase();
+          }
+        })
+        .catch(() => {
+          if (u.nome) avatarEl.textContent = u.nome[0].toUpperCase();
+        });
+    } else if (u.nome) {
+      avatarEl.textContent = u.nome[0].toUpperCase();
+    }
+  } catch(e) {}
+}
+
 // ── Init: carrega dados antes de renderizar ───────────────
 // Substitui o navigate inicial do app.js
 document.addEventListener('DOMContentLoaded', async () => {
@@ -277,5 +314,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch(e) {
     console.warn('Falha ao carregar API, usando dados locais:', e);
   }
+  atualizarTopbarUsuario();
   navigate('dashboard');
 });
