@@ -410,3 +410,32 @@ body {
   }
   .left-brand { margin-bottom: 16px; }
 }
+
+/* ── Painel troca de senha ── */
+.trocar-senha-wrap {
+  display: none;
+  flex-direction: column;
+}
+.trocar-senha-wrap.ativo {
+  display: flex;
+}
+.trocar-icon {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+}
+
+/* Mensagem de sucesso */
+.success-msg {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 0.83rem;
+  color: #15803d;
+  margin-bottom: 20px;
+}
+.success-msg.show { display: flex; }
+.success-msg svg { flex-shrink: 0; width: 16px; height: 16px; }
