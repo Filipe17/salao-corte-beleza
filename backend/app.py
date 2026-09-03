@@ -32,6 +32,19 @@ def _find_base():
 
 BASE_DIR = _find_base()
 
+# ── Diretório de uploads ──────────────────────────────────
+# No Railway: use Volume montado em /data para persistência entre deploys
+# Defina o Volume no Railway com Mount Path: /data
+_VOLUME_PATH = '/data/uploads'
+if os.path.isdir('/data'):
+    UPLOAD_DIR = _VOLUME_PATH
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    print(f"📁 Upload dir (volume): {UPLOAD_DIR}")
+else:
+    UPLOAD_DIR = os.path.join(BASE_DIR, 'static', 'uploads')
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    print(f"📁 Upload dir (local): {UPLOAD_DIR}")
+
 app = Flask(
     __name__,
     static_folder=os.path.join(BASE_DIR, 'static'),
@@ -295,6 +308,11 @@ def index():
 def serve_static(path):
     return send_from_directory(os.path.join(BASE_DIR, 'static'), path)
 
+@app.route('/uploads/<path:path>')
+def serve_uploads(path):
+    """Serve arquivos do volume de uploads (Railway) ou static/uploads local."""
+    return send_from_directory(UPLOAD_DIR, path)
+
 
 # ═══════════════════════════════════════════════════════
 # API — AUTENTICAÇÃO
@@ -382,14 +400,14 @@ def upload_foto_usuario(id):
     ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
     if ext not in allowed:
         return jsonify({'erro': 'Formato não suportado. Use JPG, PNG, GIF ou WEBP'}), 400
-    # Salvar em static/uploads/usuarios/
-    upload_dir = os.path.join(BASE_DIR, 'static', 'uploads', 'usuarios')
+    # Salvar no UPLOAD_DIR (volume Railway ou static/uploads local)
+    upload_dir = os.path.join(UPLOAD_DIR, 'usuarios')
     os.makedirs(upload_dir, exist_ok=True)
     filename = f"usuario_{id}.{ext}"
     filepath = os.path.join(upload_dir, filename)
     file.save(filepath)
-    # Salvar URL relativa no banco
-    u.foto = f"/static/uploads/usuarios/{filename}"
+    # URL para servir a foto
+    u.foto = f"/uploads/usuarios/{filename}"
     db.session.commit()
     return jsonify({'ok': True, 'foto': u.foto})
 
