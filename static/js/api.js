@@ -269,40 +269,40 @@ async function checkoutPDV() {
   }
 }
 
-// ── Atualiza avatar da topbar com foto do usuário logado ──
+
+// ── Atualiza topbar com dados frescos do banco ────────────
 function atualizarTopbarUsuario() {
   try {
     const u = JSON.parse(sessionStorage.getItem('belezza_user') || '{}');
-    const avatarEl   = document.getElementById('topbarAvatar');
-    const nomeEl     = document.getElementById('topbarUserName');
-    const roleEl     = document.getElementById('topbarUserRole');
-    if (!avatarEl) return;
+    if (!u.id) return;
 
-    // Nome e role
-    if (u.nome && nomeEl) nomeEl.textContent = u.nome;
-    if (u.role && roleEl) {
-      const roles = { gerente:'Gerente', administrador:'Administrador', profissional:'Profissional', recepcionista:'Recepcionista', caixa:'Caixa' };
-      roleEl.textContent = roles[u.role] || u.role;
-    }
+    const avatarEl = document.getElementById('topbarAvatar');
+    const nomeEl   = document.getElementById('topbarUserName');
+    const roleEl   = document.getElementById('topbarUserRole');
+    const roles    = { gerente:'Gerente', administrador:'Administrador', profissional:'Profissional', recepcionista:'Recepcionista', caixa:'Caixa' };
 
-    // Foto: buscar do banco via API e atualizar
-    if (u.id) {
-      fetch(`/api/usuarios`)
-        .then(r => r.json())
-        .then(lista => {
-          const me = lista.find(x => x.id === u.id);
-          if (me && me.foto) {
+    fetch('/api/usuarios')
+      .then(r => r.json())
+      .then(lista => {
+        const me = lista.find(x => x.id === u.id);
+        if (!me) return;
+        // Atualizar sessionStorage com dados frescos do banco
+        sessionStorage.setItem('belezza_user', JSON.stringify(me));
+        if (nomeEl) nomeEl.textContent = me.nome;
+        if (roleEl) roleEl.textContent = roles[me.role] || me.role;
+        if (avatarEl) {
+          if (me.foto) {
             avatarEl.innerHTML = `<img src="${me.foto}?t=${Date.now()}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`;
-          } else if (u.nome) {
-            avatarEl.textContent = u.nome[0].toUpperCase();
+          } else {
+            avatarEl.textContent = me.nome[0].toUpperCase();
           }
-        })
-        .catch(() => {
-          if (u.nome) avatarEl.textContent = u.nome[0].toUpperCase();
-        });
-    } else if (u.nome) {
-      avatarEl.textContent = u.nome[0].toUpperCase();
-    }
+        }
+      })
+      .catch(() => {
+        if (nomeEl && u.nome) nomeEl.textContent = u.nome;
+        if (roleEl && u.role) roleEl.textContent = roles[u.role] || u.role;
+        if (avatarEl && u.nome) avatarEl.textContent = u.nome[0].toUpperCase();
+      });
   } catch(e) {}
 }
 
