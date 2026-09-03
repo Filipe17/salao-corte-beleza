@@ -1251,112 +1251,48 @@ function switchConfigTab(tab) {
 }
 
 // ── Tela de Usuários ─────────────────────────────────────────────────────────
-let _usuarios = [];
+let _usuarios   = [];
 let _usuarioEditando = null;
+
+const PERMISSOES_LISTA = [
+  { key:'dashboard',     label:'Dashboard'     },
+  { key:'agenda',        label:'Agenda'        },
+  { key:'clientes',      label:'Clientes'      },
+  { key:'servicos',      label:'Serviços'      },
+  { key:'profissionais', label:'Profissionais' },
+  { key:'atendimentos',  label:'Atendimentos'  },
+  { key:'pdv',           label:'PDV / Vendas'  },
+  { key:'estoque',       label:'Estoque'       },
+  { key:'financeiro',    label:'Financeiro'    },
+  { key:'relatorios',    label:'Relatórios'    },
+  { key:'configuracoes', label:'Configurações' },
+];
 
 async function loadUsuarios() {
   try {
     const res = await fetch('/api/usuarios');
     _usuarios = await res.json();
-  } catch(e) {
-    _usuarios = [];
-  }
+  } catch(e) { _usuarios = []; }
   renderTabelaUsuarios();
 }
 
-// Monta a estrutura fixa (header + form + tabela) apenas uma vez
-function renderUsuariosArea(filtro) {
+// ── Aba principal: lista de usuários ─────────────────────
+function renderUsuariosArea() {
   const area = document.getElementById('usuariosArea');
   if (!area) return;
+
   area.innerHTML = `
-    <div class="usuarios-header">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
       <div>
-        <h2 class="usuarios-title">Usuários do Sistema</h2>
-        <p class="usuarios-sub" id="usuariosCount">Carregando...</p>
+        <h2 style="font-size:1.1rem;font-weight:600;color:var(--gray-800)">Usuários do Sistema</h2>
+        <p style="font-size:0.8rem;color:var(--gray-400)" id="usuariosCount">Carregando...</p>
       </div>
-      <button class="btn btn-primary" onclick="abrirFormUsuario()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <button class="btn btn-primary" onclick="abrirCadastroUsuario()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Novo Usuário
       </button>
     </div>
 
-    <!-- Formulário (oculto por padrão) -->
-    <div class="usuario-form-card" id="usuarioFormCard" style="display:none">
-      <div class="card-header">
-        <div class="card-title" id="usuarioFormTitulo">Novo Usuário</div>
-        <button class="modal-close" onclick="fecharFormUsuario()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
-      <div class="card-body">
-        <div class="error-msg" id="usuarioFormErro" style="display:none;margin-bottom:16px">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <span id="usuarioFormErroTxt"></span>
-        </div>
-        <div class="grid grid-2">
-          <div class="form-group">
-            <label class="form-label">Nome completo <span class="text-danger">*</span></label>
-            <input type="text" id="uNome" class="form-control" placeholder="Digite o nome completo" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Login (usuário) <span class="text-danger">*</span></label>
-            <input type="text" id="uLogin" class="form-control" placeholder="ex: camila.rocha" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Perfil de acesso <span class="text-danger">*</span></label>
-            <select id="uRole" class="form-control">
-              <option value="">Selecione...</option>
-              <option value="gerente">Gerente</option>
-              <option value="profissional">Profissional</option>
-              <option value="recepcionista">Recepcionista</option>
-              <option value="caixa">Caixa</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Status</label>
-            <select id="uAtivo" class="form-control">
-              <option value="true">Ativo</option>
-              <option value="false">Inativo</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label" id="uSenhaLabel">Senha <span class="text-danger">*</span></label>
-            <div style="position:relative">
-              <input type="password" id="uSenha" class="form-control" placeholder="Mínimo 8 caracteres" style="padding-right:42px" />
-              <button type="button" onclick="toggleUSenha('uSenha','eyeUSenha')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--gray-400);display:flex">
-                <svg id="eyeUSenha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="17" height="17"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              </button>
-            </div>
-            <span id="uSenhaHint" class="form-hint" style="display:none;margin-top:4px">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12.01" y2="16"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
-              Deixe em branco para manter a senha atual
-            </span>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Confirmar senha <span class="text-danger" id="uConfirmarAsteristico">*</span></label>
-            <div style="position:relative">
-              <input type="password" id="uConfirmar" class="form-control" placeholder="Repita a senha" style="padding-right:42px" />
-              <button type="button" onclick="toggleUSenha('uConfirmar','eyeUConfirmar')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--gray-400);display:flex">
-                <svg id="eyeUConfirmar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="17" height="17"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              </button>
-            </div>
-          </div>
-        </div>
-        <div style="display:flex;gap:10px;margin-top:16px">
-          <button class="btn btn-primary" id="btnSalvarUsuario" onclick="salvarUsuario()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-            Salvar Usuário
-          </button>
-          <button class="btn btn-outline" onclick="fecharFormUsuario()">Cancelar</button>
-          <button class="btn btn-outline" onclick="limparFormUsuario()" style="margin-left:auto">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
-            Limpar
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tabela -->
     <div class="card">
       <div class="card-header">
         <div class="card-title">Usuários Cadastrados</div>
@@ -1370,17 +1306,15 @@ function renderUsuariosArea(filtro) {
       </div>
     </div>`;
 
-  // Agora carrega os dados
   loadUsuarios();
 }
 
-// Atualiza APENAS o tbody — sem recriar o formulário
 function renderTabelaUsuarios(filtro = '') {
   const wrap = document.getElementById('usuariosTabelaWrap');
   if (!wrap) return;
 
-  const roles = { gerente:'Gerente', profissional:'Profissional', recepcionista:'Recepcionista', caixa:'Caixa' };
-  const roleColor = { gerente:'badge-purple', profissional:'badge-blue', recepcionista:'badge-amber', caixa:'badge-green' };
+  const roles = { gerente:'Gerente', profissional:'Profissional', recepcionista:'Recepcionista', caixa:'Caixa', administrador:'Administrador' };
+  const roleColor = { gerente:'badge-purple', profissional:'badge-blue', recepcionista:'badge-amber', caixa:'badge-green', administrador:'badge-pink' };
 
   const lista = filtro
     ? _usuarios.filter(u => u.nome.toLowerCase().includes(filtro.toLowerCase()) || u.usuario.toLowerCase().includes(filtro.toLowerCase()))
@@ -1391,32 +1325,23 @@ function renderTabelaUsuarios(filtro = '') {
 
   wrap.innerHTML = `
     <table class="table">
-      <thead>
-        <tr>
-          <th>Usuário</th>
-          <th>Login</th>
-          <th>Perfil</th>
-          <th>Status</th>
-          <th>Ações</th>
-        </tr>
-      </thead>
+      <thead><tr>
+        <th>Foto</th><th>Nome</th><th>Login</th><th>Perfil</th><th>Status</th><th>Data de Cadastro</th><th>Ações</th>
+      </tr></thead>
       <tbody>
         ${lista.length === 0
-          ? `<tr><td colspan="5" style="text-align:center;color:var(--gray-400);padding:32px">Nenhum usuário encontrado</td></tr>`
+          ? `<tr><td colspan="7" style="text-align:center;color:var(--gray-400);padding:32px">Nenhum usuário encontrado</td></tr>`
           : lista.map((u, i) => `
             <tr>
-              <td>
-                <div style="display:flex;align-items:center;gap:10px">
-                  ${avatarHtml(u.nome, 'avatar-sm', i)}
-                  <span style="font-weight:500">${u.nome}</span>
-                </div>
-              </td>
+              <td>${avatarHtml(u.nome, 'avatar-sm', i)}</td>
+              <td style="font-weight:500">${u.nome}</td>
               <td class="text-gray">${u.usuario}</td>
               <td><span class="badge ${roleColor[u.role]||'badge-gray'}">${roles[u.role]||u.role}</span></td>
               <td>${u.ativo ? '<span class="badge badge-green">Ativo</span>' : '<span class="badge badge-gray">Inativo</span>'}</td>
+              <td class="text-gray">${u.data_cadastro ? formatDate(u.data_cadastro) : '—'}</td>
               <td>
                 <div style="display:flex;gap:6px">
-                  <button class="btn-icon-sm btn-icon-edit" onclick="editarUsuario(${u.id})" title="Editar">
+                  <button class="btn-icon-sm btn-icon-edit" onclick="abrirCadastroUsuario(${u.id})" title="Editar">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   </button>
                   <button class="btn-icon-sm btn-icon-delete" onclick="confirmarDesativarUsuario(${u.id},'${u.nome}')" title="${u.ativo?'Desativar':'Reativar'}">
@@ -1427,6 +1352,175 @@ function renderTabelaUsuarios(filtro = '') {
             </tr>`).join('')}
       </tbody>
     </table>`;
+}
+
+// ── Tela de cadastro / edição (substitui a aba inteira) ──
+function abrirCadastroUsuario(id) {
+  _usuarioEditando = id ? _usuarios.find(u => u.id === id) : null;
+  const isEdicao   = !!_usuarioEditando;
+  const u          = _usuarioEditando || {};
+  const permsAtivas = isEdicao ? (u.permissoes || []) : PERMISSOES_LISTA.map(p => p.key);
+
+  const area = document.getElementById('usuariosArea');
+  area.innerHTML = `
+    <!-- Breadcrumb -->
+    <div class="u-breadcrumb">
+      <span onclick="voltarListaUsuarios()" style="cursor:pointer;color:var(--gray-500)">Configurações</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>
+      <span onclick="voltarListaUsuarios()" style="cursor:pointer;color:var(--gray-500)">Usuários</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>
+      <span style="color:var(--primary);font-weight:500">${isEdicao ? 'Editar Usuário' : 'Novo Usuário'}</span>
+    </div>
+
+    <h1 style="font-family:var(--font-display);font-size:1.6rem;font-weight:600;margin-bottom:24px">
+      ${isEdicao ? 'Editar Usuário' : 'Cadastro de Usuário'}
+    </h1>
+
+    <div class="error-msg" id="uFormErro" style="display:none;margin-bottom:16px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span id="uFormErroTxt"></span>
+    </div>
+
+    <div class="u-cadastro-grid">
+
+      <!-- Card Dados do Usuário -->
+      <div class="card u-dados-card">
+        <div class="card-header">
+          <div class="card-title" style="display:flex;align-items:center;gap:8px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="18" height="18"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Dados do Usuário
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="u-foto-area">
+            <div class="u-foto-wrap">
+              <div class="u-foto-avatar" id="uFotoPreview">${avatarHtml(u.nome||'?','',0)}</div>
+              <button class="u-foto-btn" onclick="document.getElementById('uFotoInput').click()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                Alterar Foto
+              </button>
+              <input type="file" id="uFotoInput" accept="image/*" style="display:none" onchange="previewFoto(event)" />
+              <p style="font-size:0.72rem;color:var(--gray-400);text-align:center;margin-top:6px">JPG, PNG ou GIF<br>Máx. 2MB</p>
+            </div>
+
+            <div class="u-campos-grid">
+              <div class="form-group">
+                <label class="form-label">Nome completo <span style="color:var(--danger)">*</span></label>
+                <input type="text" id="uNome" class="form-control" placeholder="Digite o nome completo" value="${u.nome||''}" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Nome de usuário (login) <span style="color:var(--danger)">*</span></label>
+                <input type="text" id="uLogin" class="form-control" placeholder="Digite o nome de usuário" value="${u.usuario||''}" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">E-mail <span style="color:var(--danger)">*</span></label>
+                <input type="email" id="uEmail" class="form-control" placeholder="Digite o e-mail" value="${u.email||''}" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Telefone</label>
+                <input type="tel" id="uTelefone" class="form-control" placeholder="(00) 00000-0000" value="${u.telefone||''}" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Senha ${isEdicao ? '' : '<span style="color:var(--danger)">*</span>'}</label>
+                <div style="position:relative">
+                  <input type="password" id="uSenha" class="form-control" placeholder="${isEdicao ? 'Deixe em branco para manter' : 'Digite a senha'}" style="padding-right:42px" />
+                  <button type="button" onclick="toggleUSenha('uSenha','eyeUS1')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--gray-400);display:flex">
+                    <svg id="eyeUS1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Confirmar senha ${isEdicao ? '' : '<span style="color:var(--danger)">*</span>'}</label>
+                <div style="position:relative">
+                  <input type="password" id="uConfirmar" class="form-control" placeholder="Confirme a senha" style="padding-right:42px" />
+                  <button type="button" onclick="toggleUSenha('uConfirmar','eyeUS2')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--gray-400);display:flex">
+                    <svg id="eyeUS2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Perfil de acesso <span style="color:var(--danger)">*</span></label>
+                <select id="uRole" class="form-control">
+                  <option value="">Selecione o perfil</option>
+                  <option value="administrador" ${u.role==='administrador'?'selected':''}>Administrador</option>
+                  <option value="gerente"       ${u.role==='gerente'?'selected':''}>Gerente</option>
+                  <option value="recepcionista"  ${u.role==='recepcionista'?'selected':''}>Recepcionista</option>
+                  <option value="profissional"   ${u.role==='profissional'?'selected':''}>Profissional</option>
+                  <option value="caixa"          ${u.role==='caixa'?'selected':''}>Caixa</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Status <span style="color:var(--danger)">*</span></label>
+                <select id="uAtivo" class="form-control">
+                  <option value="true"  ${u.ativo!==false?'selected':''}>Ativo</option>
+                  <option value="false" ${u.ativo===false?'selected':''}>Inativo</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card Permissões -->
+      <div class="card u-perms-card">
+        <div class="card-header">
+          <div class="card-title" style="display:flex;align-items:center;gap:8px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="18" height="18"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Permissões de Acesso
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="u-perms-lista">
+            ${PERMISSOES_LISTA.map(p => `
+              <label class="u-perm-item">
+                <input type="checkbox" class="u-perm-check" value="${p.key}"
+                  ${permsAtivas.includes(p.key) ? 'checked' : ''} />
+                <span>${p.label}</span>
+              </label>`).join('')}
+          </div>
+          <div style="display:flex;gap:16px;margin-top:16px;padding-top:14px;border-top:1px solid var(--gray-100)">
+            <button class="u-perm-link" onclick="marcarTodasPerms(true)">Marcar todas</button>
+            <button class="u-perm-link u-perm-link-off" onclick="marcarTodasPerms(false)">Desmarcar todas</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Botões de ação -->
+    <div class="u-acoes-bar">
+      <button class="btn btn-primary" id="btnSalvarU" onclick="salvarUsuario()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Salvar Usuário
+      </button>
+      <button class="btn btn-outline" onclick="voltarListaUsuarios()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Cancelar
+      </button>
+      <button class="btn btn-outline" onclick="limparFormU()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+        Limpar
+      </button>
+    </div>`;
+}
+
+function voltarListaUsuarios() {
+  _usuarioEditando = null;
+  renderUsuariosArea();
+}
+
+function previewFoto(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('uFotoPreview').innerHTML =
+      `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function marcarTodasPerms(marcar) {
+  document.querySelectorAll('.u-perm-check').forEach(cb => cb.checked = marcar);
 }
 
 function toggleUSenha(inputId, iconId) {
@@ -1440,110 +1534,76 @@ function toggleUSenha(inputId, iconId) {
     : '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';
 }
 
-function abrirFormUsuario() {
-  _usuarioEditando = null;
-  limparFormUsuario();
-  document.getElementById('usuarioFormTitulo').textContent = 'Novo Usuário';
-  document.getElementById('uSenhaHint').style.display = 'none';
-  const card = document.getElementById('usuarioFormCard');
-  card.style.display = '';
-  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-function fecharFormUsuario() {
-  const card = document.getElementById('usuarioFormCard');
-  if (card) card.style.display = 'none';
-  _usuarioEditando = null;
-}
-
-function limparFormUsuario() {
-  ['uNome','uLogin','uRole','uSenha','uConfirmar'].forEach(id => {
+function limparFormU() {
+  ['uNome','uLogin','uEmail','uTelefone','uSenha','uConfirmar'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
-  const ativo = document.getElementById('uAtivo');
-  if (ativo) ativo.value = 'true';
-  const erro = document.getElementById('usuarioFormErro');
+  document.getElementById('uRole').value  = '';
+  document.getElementById('uAtivo').value = 'true';
+  marcarTodasPerms(true);
+  const erro = document.getElementById('uFormErro');
   if (erro) erro.style.display = 'none';
-}
-
-function editarUsuario(id) {
-  const u = _usuarios.find(x => x.id === id);
-  if (!u) return;
-  _usuarioEditando = u;
-
-  document.getElementById('usuarioFormTitulo').textContent = 'Editar Usuário';
-  document.getElementById('uNome').value  = u.nome;
-  document.getElementById('uLogin').value = u.usuario;
-  document.getElementById('uRole').value  = u.role;
-  document.getElementById('uAtivo').value = u.ativo ? 'true' : 'false';
-  document.getElementById('uSenha').value    = '';
-  document.getElementById('uConfirmar').value = '';
-  document.getElementById('uSenhaHint').style.display = '';
-  document.getElementById('usuarioFormErro').style.display = 'none';
-
-  const card = document.getElementById('usuarioFormCard');
-  card.style.display = '';
-  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 async function salvarUsuario() {
   const nome      = document.getElementById('uNome').value.trim();
   const login     = document.getElementById('uLogin').value.trim();
+  const email     = document.getElementById('uEmail').value.trim();
+  const telefone  = document.getElementById('uTelefone').value.trim();
   const role      = document.getElementById('uRole').value;
   const ativo     = document.getElementById('uAtivo').value === 'true';
   const senha     = document.getElementById('uSenha').value;
   const confirmar = document.getElementById('uConfirmar').value;
-  const btn       = document.getElementById('btnSalvarUsuario');
+  const permissoes = [...document.querySelectorAll('.u-perm-check:checked')].map(cb => cb.value);
+  const btn = document.getElementById('btnSalvarU');
 
-  if (!nome || !login || !role) { mostrarErroForm('Preencha todos os campos obrigatórios.'); return; }
-  if (!_usuarioEditando && !senha) { mostrarErroForm('Informe uma senha para o novo usuário.'); return; }
-  if (senha && senha.length < 8) { mostrarErroForm('A senha deve ter no mínimo 8 caracteres.'); return; }
-  if (senha && senha !== confirmar) { mostrarErroForm('As senhas não coincidem.'); return; }
+  // Validações
+  if (!nome || !login || !role) { mostrarErroU('Preencha nome, login e perfil.'); return; }
+  if (!_usuarioEditando && !senha) { mostrarErroU('Informe uma senha para o novo usuário.'); return; }
+  if (senha && senha.length < 8) { mostrarErroU('A senha deve ter no mínimo 8 caracteres.'); return; }
+  if (senha && senha !== confirmar) { mostrarErroU('As senhas não coincidem.'); return; }
 
   btn.disabled = true;
   btn.innerHTML = '<div class="spinner-sm"></div> Salvando...';
 
   try {
+    const body = { nome, usuario: login, email, telefone, role, ativo, permissoes };
+
     if (_usuarioEditando) {
       const res = await fetch(`/api/usuarios/${_usuarioEditando.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome, usuario: login, role, ativo }),
+        method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
       });
-      if (!res.ok) { const d = await res.json(); mostrarErroForm(d.erro || 'Erro ao salvar.'); return; }
+      if (!res.ok) { const d = await res.json(); mostrarErroU(d.erro || 'Erro ao salvar.'); return; }
       if (senha) {
         await fetch(`/api/usuarios/${_usuarioEditando.id}/senha`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ senha }),
+          method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ senha }),
         });
       }
       showToast('Usuário atualizado com sucesso!', 'success');
     } else {
       const res = await fetch('/api/usuarios', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome, usuario: login, senha, role, ativo }),
+        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({...body, senha}),
       });
-      if (!res.ok) { const d = await res.json(); mostrarErroForm(d.erro || 'Erro ao criar usuário.'); return; }
+      if (!res.ok) { const d = await res.json(); mostrarErroU(d.erro || 'Erro ao criar usuário.'); return; }
       showToast('Usuário criado com sucesso!', 'success');
     }
-    fecharFormUsuario();
     await loadUsuarios();
+    voltarListaUsuarios();
   } catch(e) {
-    mostrarErroForm('Erro de conexão. Tente novamente.');
+    mostrarErroU('Erro de conexão. Tente novamente.');
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Salvar Usuário';
   }
 }
 
-function mostrarErroForm(msg) {
-  const el = document.getElementById('usuarioFormErro');
+function mostrarErroU(msg) {
+  const el = document.getElementById('uFormErro');
   if (!el) return;
-  document.getElementById('usuarioFormErroTxt').textContent = msg;
+  document.getElementById('uFormErroTxt').textContent = msg;
   el.style.display = 'flex';
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function confirmarDesativarUsuario(id, nome) {
@@ -1552,14 +1612,11 @@ function confirmarDesativarUsuario(id, nome) {
   confirmDialog(`Deseja ${acao} o usuário <strong>${nome}</strong>?`, async () => {
     try {
       await fetch(`/api/usuarios/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'PUT', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ ativo: !(u && u.ativo) }),
       });
       showToast(`Usuário ${acao === 'desativar' ? 'desativado' : 'reativado'}!`, 'success');
       await loadUsuarios();
-    } catch(e) {
-      showToast('Erro ao atualizar usuário.', 'error');
-    }
+    } catch(e) { showToast('Erro ao atualizar usuário.', 'error'); }
   });
 }
