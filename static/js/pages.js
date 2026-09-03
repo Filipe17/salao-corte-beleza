@@ -1353,7 +1353,9 @@ function renderTabelaUsuarios(filtro = '') {
           ? `<tr><td colspan="7" style="text-align:center;color:var(--gray-400);padding:32px">Nenhum usuário encontrado</td></tr>`
           : lista.map((u, i) => `
             <tr>
-              <td>${avatarHtml(u.nome, 'avatar-sm', i)}</td>
+              <td>${u.foto
+                ? `<img src="${u.foto}?t=${Date.now()}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid var(--gray-200)" />`
+                : avatarHtml(u.nome, 'avatar-sm', i)}</td>
               <td style="font-weight:500">${u.nome}</td>
               <td class="text-gray">${u.usuario}</td>
               <td><span class="badge ${roleColor[u.role]||'badge-gray'}">${roles[u.role]||u.role}</span></td>
@@ -1376,6 +1378,7 @@ function renderTabelaUsuarios(filtro = '') {
 
 // ── Tela de cadastro / edição (substitui a aba inteira) ──
 function abrirCadastroUsuario(id) {
+  _fotoSelecionada = null;
   // Esconder abas e header de configurações
   const tabsBar = document.getElementById('configTabsBar');
   const header  = document.getElementById('configPageHeader');
@@ -1391,6 +1394,7 @@ function abrirCadastroUsuario(id) {
   const permsAtivas = isEdicao ? (u.permissoes || []) : PERMISSOES_LISTA.map(p => p.key);
 
   const area = document.getElementById('usuariosArea');
+  const fotoSalva = isEdicao && u.foto ? u.foto : null;
   area.innerHTML = `
     <h1 style="font-family:var(--font-display);font-size:1.6rem;font-weight:600;margin-bottom:8px">
       ${isEdicao ? 'Editar Usuário' : 'Cadastro de Usuário'}
@@ -1423,7 +1427,11 @@ function abrirCadastroUsuario(id) {
         <div class="card-body">
           <div class="u-foto-area">
             <div class="u-foto-wrap">
-              <div class="u-foto-avatar" id="uFotoPreview">${avatarHtml(u.nome||'?','',0)}</div>
+              <div class="u-foto-avatar" id="uFotoPreview">
+                ${fotoSalva
+                  ? `<img src="${fotoSalva}?t=${Date.now()}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`
+                  : avatarHtml(u.nome||'?','',0)}
+              </div>
               <button class="u-foto-btn" onclick="document.getElementById('uFotoInput').click()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
                 Alterar Foto
@@ -1549,6 +1557,12 @@ function voltarListaUsuarios() {
 function previewFoto(event) {
   const file = event.target.files[0];
   if (!file) return;
+  // Validar tamanho (máx 2MB)
+  if (file.size > 2 * 1024 * 1024) {
+    showToast('Arquivo muito grande. Máximo 2MB.', 'error');
+    return;
+  }
+  _fotoSelecionada = file;
   const reader = new FileReader();
   reader.onload = e => {
     document.getElementById('uFotoPreview').innerHTML =
@@ -1584,6 +1598,9 @@ function limparFormU() {
   if (erro) erro.style.display = 'none';
 }
 
+// Arquivo de foto selecionado
+let _fotoSelecionada = null;
+
 async function salvarUsuario() {
   const nome      = document.getElementById('uNome').value.trim();
   const login     = document.getElementById('uLogin').value.trim();
@@ -1607,6 +1624,7 @@ async function salvarUsuario() {
 
   try {
     const body = { nome, usuario: login, email, telefone, role, ativo, permissoes };
+    let usuarioId = _usuarioEditando ? _usuarioEditando.id : null;
 
     if (_usuarioEditando) {
       const res = await fetch(`/api/usuarios/${_usuarioEditando.id}`, {
@@ -1618,14 +1636,27 @@ async function salvarUsuario() {
           method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ senha }),
         });
       }
-      showToast('Usuário atualizado com sucesso!', 'success');
     } else {
       const res = await fetch('/api/usuarios', {
         method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({...body, senha}),
       });
       if (!res.ok) { const d = await res.json(); mostrarErroU(d.erro || 'Erro ao criar usuário.'); return; }
-      showToast('Usuário criado com sucesso!', 'success');
+      const criado = await res.json();
+      usuarioId = criado.id;
     }
+
+    // Enviar foto se foi selecionada
+    if (_fotoSelecionada && usuarioId) {
+      const formData = new FormData();
+      formData.append('foto', _fotoSelecionada);
+      await fetch(`/api/usuarios/${usuarioId}/foto`, {
+        method: 'POST',
+        body: formData,
+      });
+    }
+
+    showToast(_usuarioEditando ? 'Usuário atualizado com sucesso!' : 'Usuário criado com sucesso!', 'success');
+    _fotoSelecionada = null;
     await loadUsuarios();
     voltarListaUsuarios();
   } catch(e) {
