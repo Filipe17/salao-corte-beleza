@@ -1230,7 +1230,7 @@ function renderConfiguracoes() {
   </div>
 
   <div id="configTabUsuarios" class="config-tab-content" style="display:none">
-    <div id="usuariosArea"><div class="loading-box">Carregando...</div></div>
+    ${renderUsuariosTab()}
   </div>`;
 }
 
@@ -1253,6 +1253,10 @@ function switchConfigTab(tab) {
 // ── Tela de Usuários ─────────────────────────────────────────────────────────
 let _usuarios = [];
 let _usuarioEditando = null;
+
+async function renderUsuariosTab() {
+  return '<div id="usuariosArea"><div class="loading-box">Carregando...</div></div>';
+}
 
 async function loadUsuarios() {
   try {
@@ -1371,7 +1375,7 @@ function renderUsuariosArea(filtro = '') {
       <div class="card-header">
         <div class="card-title">Usuários Cadastrados</div>
         <div style="display:flex;gap:10px;align-items:center">
-          <div class="search-box">
+          <div class="search-input">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input type="text" placeholder="Buscar usuário..." oninput="renderUsuariosArea(this.value)" />
           </div>
