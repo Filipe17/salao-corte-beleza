@@ -119,6 +119,9 @@ function mostrarTrocarSenha(usuarioId) {
     eyeNova.innerHTML = isText ? eyeOpen : eyeClosed;
   });
 
+  // critérios em tempo real
+  novaPw.addEventListener('input', () => atualizarCriterios(novaPw.value));
+
   // toggle confirmar senha
   const confirmPw      = document.getElementById('confirmarSenha');
   const toggleConfirmar = document.getElementById('toggleConfirmar');
@@ -154,8 +157,8 @@ async function doTrocarSenha() {
     if (!confirmar) document.getElementById('confirmarSenha').classList.add('error');
     return;
   }
-  if (nova.length < 6) {
-    showErrorTrocar('A senha deve ter no mínimo 6 caracteres.');
+  if (!senhaForte(nova)) {
+    showErrorTrocar('A senha deve conter maiúscula, minúscula, número, caractere especial e mínimo 8 caracteres.');
     document.getElementById('novaSenha').classList.add('error');
     return;
   }
@@ -201,4 +204,63 @@ async function doTrocarSenha() {
 function showErrorTrocar(msg) {
   document.getElementById('errorTextTrocar').textContent = msg;
   document.getElementById('errorMsgTrocar').classList.add('show');
+}
+
+// ── Critérios de força de senha ───────────────────────
+function atualizarCriterios(valor) {
+  const criterios = {
+    cMaiuscula: /[A-Z]/.test(valor),
+    cMinuscula: /[a-z]/.test(valor),
+    cNumero:    /[0-9]/.test(valor),
+    cEspecial:  /[^A-Za-z0-9]/.test(valor),
+    cTamanho:   valor.length >= 8,
+  };
+
+  // Mostrar/ocultar blocos
+  const mostrar = valor.length > 0;
+  document.getElementById('forcaWrap').classList.toggle('visivel', mostrar);
+  document.getElementById('criterios').classList.toggle('visivel', mostrar);
+
+  // Atualizar cada critério
+  Object.entries(criterios).forEach(([id, ok]) => {
+    const el   = document.getElementById(id);
+    const icon = el.querySelector('.criterio-icon');
+    el.classList.toggle('ok', ok);
+    icon.textContent = ok ? '✓' : '○';
+  });
+
+  // Calcular pontuação (0-4)
+  const pontos = Object.values(criterios).filter(Boolean).length;
+
+  // Atualizar barra
+  const wrap = document.getElementById('forcaWrap');
+  wrap.className = 'forca-wrap visivel';
+
+  const segs   = ['fSeg1','fSeg2','fSeg3','fSeg4'];
+  const config = [
+    { classe: '',            label: '',        ativos: 0 },
+    { classe: 'forca-fraca', label: 'Fraca',   ativos: 1 },
+    { classe: 'forca-media', label: 'Média',   ativos: 2 },
+    { classe: 'forca-boa',   label: 'Boa',     ativos: 3 },
+    { classe: 'forca-forte', label: 'Forte',   ativos: 4 },
+  ];
+
+  const cfg = config[pontos];
+  if (cfg.classe) wrap.classList.add(cfg.classe);
+  document.getElementById('forcaLabel').textContent = cfg.label;
+
+  segs.forEach((id, i) => {
+    document.getElementById(id).classList.toggle('ativo', i < cfg.ativos);
+  });
+}
+
+// ── Checar se todos critérios estão ok ───────────────
+function senhaForte(valor) {
+  return (
+    /[A-Z]/.test(valor) &&
+    /[a-z]/.test(valor) &&
+    /[0-9]/.test(valor) &&
+    /[^A-Za-z0-9]/.test(valor) &&
+    valor.length >= 8
+  );
 }
