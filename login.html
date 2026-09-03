@@ -141,13 +141,43 @@
               <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
             </svg>
           </span>
-          <input type="password" id="novaSenha" class="form-control" placeholder="Mínimo 6 caracteres" />
+          <input type="password" id="novaSenha" class="form-control" placeholder="Crie uma senha forte" />
           <button type="button" class="toggle-pw" id="toggleNova" aria-label="Mostrar senha">
             <svg id="eyeNova" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
             </svg>
           </button>
         </div>
+
+        <!-- Barra de força -->
+        <div class="forca-wrap" id="forcaWrap">
+          <div class="forca-barra">
+            <div class="forca-seg" id="fSeg1"></div>
+            <div class="forca-seg" id="fSeg2"></div>
+            <div class="forca-seg" id="fSeg3"></div>
+            <div class="forca-seg" id="fSeg4"></div>
+          </div>
+          <span class="forca-label" id="forcaLabel"></span>
+        </div>
+
+        <!-- Critérios -->
+        <ul class="criterios" id="criterios">
+          <li class="criterio" id="cMaiuscula">
+            <span class="criterio-icon">○</span> Letra maiúscula (A-Z)
+          </li>
+          <li class="criterio" id="cMinuscula">
+            <span class="criterio-icon">○</span> Letra minúscula (a-z)
+          </li>
+          <li class="criterio" id="cNumero">
+            <span class="criterio-icon">○</span> Número (0-9)
+          </li>
+          <li class="criterio" id="cEspecial">
+            <span class="criterio-icon">○</span> Caractere especial (!@#$%...)
+          </li>
+          <li class="criterio" id="cTamanho">
+            <span class="criterio-icon">○</span> Mínimo 8 caracteres
+          </li>
+        </ul>
       </div>
 
       <!-- Confirmar senha -->
