@@ -624,3 +624,146 @@
   font-size: 0.83rem;
   color: #b91c1c;
 }
+
+/* ── Cadastro de Usuário ── */
+.u-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--gray-400);
+  margin-bottom: 12px;
+}
+
+.u-cadastro-grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 20px;
+  margin-bottom: 20px;
+  align-items: start;
+}
+
+.u-dados-card { grid-column: 1; }
+.u-perms-card { grid-column: 2; }
+
+.u-foto-area {
+  display: flex;
+  gap: 24px;
+}
+
+.u-foto-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.u-foto-avatar {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: var(--gray-100);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid var(--gray-200);
+}
+.u-foto-avatar .avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  font-size: 2.5rem;
+}
+
+.u-foto-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1.5px solid var(--primary);
+  border-radius: var(--radius-md);
+  color: var(--primary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  font-family: var(--font-body);
+  background: white;
+  cursor: pointer;
+  transition: all var(--t-fast);
+  white-space: nowrap;
+}
+.u-foto-btn:hover {
+  background: var(--rose-50);
+}
+
+.u-campos-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+  flex: 1;
+}
+
+/* Permissões */
+.u-perms-lista {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.u-perm-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--gray-700);
+  cursor: pointer;
+  user-select: none;
+}
+
+.u-perm-check {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.u-perm-link {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  padding: 0;
+  transition: color var(--t-fast);
+}
+.u-perm-link:hover { color: var(--primary-dark); }
+.u-perm-link-off { color: var(--gray-400); }
+.u-perm-link-off:hover { color: var(--danger); }
+
+/* Barra de ações */
+.u-acoes-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 16px 0;
+}
+
+.spinner-sm {
+  width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@media (max-width: 900px) {
+  .u-cadastro-grid { grid-template-columns: 1fr; }
+  .u-perms-card { grid-column: 1; }
+  .u-foto-area { flex-direction: column; }
+  .u-campos-grid { grid-template-columns: 1fr; }
+}
