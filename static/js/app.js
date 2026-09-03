@@ -82,8 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('3 alertas: estoque baixo em 3 produtos', 'warning');
   });
 
-  // Initial page
-  navigate('dashboard');
+  // Initial page — chamado pelo api.js após carregar dados
 });
 
 // Page fade animation

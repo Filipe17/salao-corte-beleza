@@ -261,6 +261,6 @@ async function checkoutPDV() {
 // ── Init: carrega dados antes de renderizar ───────────────
 // Substitui o navigate inicial do app.js
 document.addEventListener('DOMContentLoaded', async () => {
-  // Aguarda dados da API antes de navegar para o dashboard
   await loadAllFromAPI();
+  navigate('dashboard');
 });
