@@ -1261,25 +1261,18 @@ async function loadUsuarios() {
   } catch(e) {
     _usuarios = [];
   }
-  renderUsuariosArea();
+  renderTabelaUsuarios();
 }
 
-function renderUsuariosArea(filtro = '') {
-  const lista = filtro
-    ? _usuarios.filter(u => u.nome.toLowerCase().includes(filtro.toLowerCase()) || u.usuario.toLowerCase().includes(filtro.toLowerCase()))
-    : _usuarios;
-
+// Monta a estrutura fixa (header + form + tabela) apenas uma vez
+function renderUsuariosArea(filtro) {
   const area = document.getElementById('usuariosArea');
   if (!area) return;
-
-  const roles = { gerente:'Gerente', profissional:'Profissional', recepcionista:'Recepcionista', caixa:'Caixa' };
-  const roleColor = { gerente:'badge-purple', profissional:'badge-blue', recepcionista:'badge-amber', caixa:'badge-green' };
-
   area.innerHTML = `
     <div class="usuarios-header">
       <div>
         <h2 class="usuarios-title">Usuários do Sistema</h2>
-        <p class="usuarios-sub">${_usuarios.length} usuário(s) cadastrado(s)</p>
+        <p class="usuarios-sub" id="usuariosCount">Carregando...</p>
       </div>
       <button class="btn btn-primary" onclick="abrirFormUsuario()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -1300,7 +1293,6 @@ function renderUsuariosArea(filtro = '') {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           <span id="usuarioFormErroTxt"></span>
         </div>
-
         <div class="grid grid-2">
           <div class="form-group">
             <label class="form-label">Nome completo <span class="text-danger">*</span></label>
@@ -1327,17 +1319,21 @@ function renderUsuariosArea(filtro = '') {
               <option value="false">Inativo</option>
             </select>
           </div>
-          <div class="form-group" id="uSenhaGrupo">
-            <label class="form-label">Senha <span class="text-danger">*</span></label>
+          <div class="form-group">
+            <label class="form-label" id="uSenhaLabel">Senha <span class="text-danger">*</span></label>
             <div style="position:relative">
               <input type="password" id="uSenha" class="form-control" placeholder="Mínimo 8 caracteres" style="padding-right:42px" />
               <button type="button" onclick="toggleUSenha('uSenha','eyeUSenha')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--gray-400);display:flex">
                 <svg id="eyeUSenha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="17" height="17"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               </button>
             </div>
+            <span id="uSenhaHint" class="form-hint" style="display:none;margin-top:4px">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12.01" y2="16"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
+              Deixe em branco para manter a senha atual
+            </span>
           </div>
-          <div class="form-group" id="uConfirmarGrupo">
-            <label class="form-label">Confirmar senha <span class="text-danger">*</span></label>
+          <div class="form-group">
+            <label class="form-label">Confirmar senha <span class="text-danger" id="uConfirmarAsteristico">*</span></label>
             <div style="position:relative">
               <input type="password" id="uConfirmar" class="form-control" placeholder="Repita a senha" style="padding-right:42px" />
               <button type="button" onclick="toggleUSenha('uConfirmar','eyeUConfirmar')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--gray-400);display:flex">
@@ -1346,13 +1342,7 @@ function renderUsuariosArea(filtro = '') {
             </div>
           </div>
         </div>
-
-        <div id="uSenhaHint" class="form-hint" style="display:none;margin-top:-8px;margin-bottom:12px">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12.01" y2="16"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
-          Deixe em branco para manter a senha atual
-        </div>
-
-        <div style="display:flex;gap:10px;margin-top:8px">
+        <div style="display:flex;gap:10px;margin-top:16px">
           <button class="btn btn-primary" id="btnSalvarUsuario" onclick="salvarUsuario()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
             Salvar Usuário
@@ -1366,59 +1356,77 @@ function renderUsuariosArea(filtro = '') {
       </div>
     </div>
 
-    <!-- Busca + tabela -->
+    <!-- Tabela -->
     <div class="card">
       <div class="card-header">
         <div class="card-title">Usuários Cadastrados</div>
-        <div style="display:flex;gap:10px;align-items:center">
-          <div class="search-input">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" placeholder="Buscar usuário..." oninput="renderUsuariosArea(this.value)" />
-          </div>
+        <div class="search-input">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Buscar usuário..." oninput="renderTabelaUsuarios(this.value)" />
         </div>
       </div>
-      <div class="table-wrap">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Usuário</th>
-              <th>Login</th>
-              <th>Perfil</th>
-              <th>Status</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${lista.length === 0 ? `<tr><td colspan="5" style="text-align:center;color:var(--gray-400);padding:32px">Nenhum usuário encontrado</td></tr>` :
-              lista.map((u, i) => `
-              <tr>
-                <td>
-                  <div style="display:flex;align-items:center;gap:10px">
-                    ${avatarHtml(u.nome, 'avatar-sm', i)}
-                    <span style="font-weight:500">${u.nome}</span>
-                  </div>
-                </td>
-                <td class="text-gray">${u.usuario}</td>
-                <td><span class="badge ${roleColor[u.role]||'badge-gray'}">${roles[u.role]||u.role}</span></td>
-                <td>${u.ativo ? '<span class="badge badge-green">Ativo</span>' : '<span class="badge badge-gray">Inativo</span>'}</td>
-                <td>
-                  <div style="display:flex;gap:6px">
-                    <button class="btn-icon-sm btn-icon-edit" onclick="editarUsuario(${u.id})" title="Editar">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    </button>
-                    <button class="btn-icon-sm btn-icon-delete" onclick="confirmarDesativarUsuario(${u.id},'${u.nome}')" title="${u.ativo?'Desativar':'Reativar'}">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
-                    </button>
-                  </div>
-                </td>
-              </tr>`).join('')}
-          </tbody>
-        </table>
+      <div class="table-wrap" id="usuariosTabelaWrap">
+        <div style="text-align:center;padding:40px;color:var(--gray-400)">Carregando...</div>
       </div>
     </div>`;
 
-  // Carregar usuários assim que a aba for montada
-  setTimeout(loadUsuarios, 0);
+  // Agora carrega os dados
+  loadUsuarios();
+}
+
+// Atualiza APENAS o tbody — sem recriar o formulário
+function renderTabelaUsuarios(filtro = '') {
+  const wrap = document.getElementById('usuariosTabelaWrap');
+  if (!wrap) return;
+
+  const roles = { gerente:'Gerente', profissional:'Profissional', recepcionista:'Recepcionista', caixa:'Caixa' };
+  const roleColor = { gerente:'badge-purple', profissional:'badge-blue', recepcionista:'badge-amber', caixa:'badge-green' };
+
+  const lista = filtro
+    ? _usuarios.filter(u => u.nome.toLowerCase().includes(filtro.toLowerCase()) || u.usuario.toLowerCase().includes(filtro.toLowerCase()))
+    : _usuarios;
+
+  const count = document.getElementById('usuariosCount');
+  if (count) count.textContent = `${_usuarios.length} usuário(s) cadastrado(s)`;
+
+  wrap.innerHTML = `
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Usuário</th>
+          <th>Login</th>
+          <th>Perfil</th>
+          <th>Status</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${lista.length === 0
+          ? `<tr><td colspan="5" style="text-align:center;color:var(--gray-400);padding:32px">Nenhum usuário encontrado</td></tr>`
+          : lista.map((u, i) => `
+            <tr>
+              <td>
+                <div style="display:flex;align-items:center;gap:10px">
+                  ${avatarHtml(u.nome, 'avatar-sm', i)}
+                  <span style="font-weight:500">${u.nome}</span>
+                </div>
+              </td>
+              <td class="text-gray">${u.usuario}</td>
+              <td><span class="badge ${roleColor[u.role]||'badge-gray'}">${roles[u.role]||u.role}</span></td>
+              <td>${u.ativo ? '<span class="badge badge-green">Ativo</span>' : '<span class="badge badge-gray">Inativo</span>'}</td>
+              <td>
+                <div style="display:flex;gap:6px">
+                  <button class="btn-icon-sm btn-icon-edit" onclick="editarUsuario(${u.id})" title="Editar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button class="btn-icon-sm btn-icon-delete" onclick="confirmarDesativarUsuario(${u.id},'${u.nome}')" title="${u.ativo?'Desativar':'Reativar'}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>`).join('')}
+      </tbody>
+    </table>`;
 }
 
 function toggleUSenha(inputId, iconId) {
@@ -1436,8 +1444,6 @@ function abrirFormUsuario() {
   _usuarioEditando = null;
   limparFormUsuario();
   document.getElementById('usuarioFormTitulo').textContent = 'Novo Usuário';
-  document.getElementById('uSenhaGrupo').style.display = '';
-  document.getElementById('uConfirmarGrupo').style.display = '';
   document.getElementById('uSenhaHint').style.display = 'none';
   const card = document.getElementById('usuarioFormCard');
   card.style.display = '';
@@ -1445,7 +1451,8 @@ function abrirFormUsuario() {
 }
 
 function fecharFormUsuario() {
-  document.getElementById('usuarioFormCard').style.display = 'none';
+  const card = document.getElementById('usuarioFormCard');
+  if (card) card.style.display = 'none';
   _usuarioEditando = null;
 }
 
@@ -1454,7 +1461,8 @@ function limparFormUsuario() {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
-  document.getElementById('uAtivo').value = 'true';
+  const ativo = document.getElementById('uAtivo');
+  if (ativo) ativo.value = 'true';
   const erro = document.getElementById('usuarioFormErro');
   if (erro) erro.style.display = 'none';
 }
@@ -1469,9 +1477,8 @@ function editarUsuario(id) {
   document.getElementById('uLogin').value = u.usuario;
   document.getElementById('uRole').value  = u.role;
   document.getElementById('uAtivo').value = u.ativo ? 'true' : 'false';
-  document.getElementById('uSenha').value = '';
+  document.getElementById('uSenha').value    = '';
   document.getElementById('uConfirmar').value = '';
-  // Senha opcional na edição
   document.getElementById('uSenhaHint').style.display = '';
   document.getElementById('usuarioFormErro').style.display = 'none';
 
@@ -1481,50 +1488,30 @@ function editarUsuario(id) {
 }
 
 async function salvarUsuario() {
-  const nome     = document.getElementById('uNome').value.trim();
-  const login    = document.getElementById('uLogin').value.trim();
-  const role     = document.getElementById('uRole').value;
-  const ativo    = document.getElementById('uAtivo').value === 'true';
-  const senha    = document.getElementById('uSenha').value;
+  const nome      = document.getElementById('uNome').value.trim();
+  const login     = document.getElementById('uLogin').value.trim();
+  const role      = document.getElementById('uRole').value;
+  const ativo     = document.getElementById('uAtivo').value === 'true';
+  const senha     = document.getElementById('uSenha').value;
   const confirmar = document.getElementById('uConfirmar').value;
-  const btn      = document.getElementById('btnSalvarUsuario');
+  const btn       = document.getElementById('btnSalvarUsuario');
 
-  // Validação
-  if (!nome || !login || !role) {
-    mostrarErroForm('Preencha todos os campos obrigatórios.');
-    return;
-  }
-  if (!_usuarioEditando && !senha) {
-    mostrarErroForm('Informe uma senha para o novo usuário.');
-    return;
-  }
-  if (senha && senha.length < 8) {
-    mostrarErroForm('A senha deve ter no mínimo 8 caracteres.');
-    return;
-  }
-  if (senha && senha !== confirmar) {
-    mostrarErroForm('As senhas não coincidem.');
-    return;
-  }
+  if (!nome || !login || !role) { mostrarErroForm('Preencha todos os campos obrigatórios.'); return; }
+  if (!_usuarioEditando && !senha) { mostrarErroForm('Informe uma senha para o novo usuário.'); return; }
+  if (senha && senha.length < 8) { mostrarErroForm('A senha deve ter no mínimo 8 caracteres.'); return; }
+  if (senha && senha !== confirmar) { mostrarErroForm('As senhas não coincidem.'); return; }
 
   btn.disabled = true;
   btn.innerHTML = '<div class="spinner-sm"></div> Salvando...';
 
   try {
     if (_usuarioEditando) {
-      // Editar
-      const body = { nome, usuario: login, role, ativo };
       const res = await fetch(`/api/usuarios/${_usuarioEditando.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ nome, usuario: login, role, ativo }),
       });
-      if (!res.ok) {
-        const d = await res.json();
-        mostrarErroForm(d.erro || 'Erro ao salvar.');
-        return;
-      }
-      // Trocar senha se preenchida
+      if (!res.ok) { const d = await res.json(); mostrarErroForm(d.erro || 'Erro ao salvar.'); return; }
       if (senha) {
         await fetch(`/api/usuarios/${_usuarioEditando.id}/senha`, {
           method: 'PATCH',
@@ -1534,17 +1521,12 @@ async function salvarUsuario() {
       }
       showToast('Usuário atualizado com sucesso!', 'success');
     } else {
-      // Criar
       const res = await fetch('/api/usuarios', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nome, usuario: login, senha, role, ativo }),
       });
-      if (!res.ok) {
-        const d = await res.json();
-        mostrarErroForm(d.erro || 'Erro ao criar usuário.');
-        return;
-      }
+      if (!res.ok) { const d = await res.json(); mostrarErroForm(d.erro || 'Erro ao criar usuário.'); return; }
       showToast('Usuário criado com sucesso!', 'success');
     }
     fecharFormUsuario();
@@ -1559,6 +1541,7 @@ async function salvarUsuario() {
 
 function mostrarErroForm(msg) {
   const el = document.getElementById('usuarioFormErro');
+  if (!el) return;
   document.getElementById('usuarioFormErroTxt').textContent = msg;
   el.style.display = 'flex';
 }
