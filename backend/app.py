@@ -246,9 +246,16 @@ def today():
 
 # ── Serve frontend ────────────────────────────────────────
 @app.route('/')
-def index():
+def root():
     return send_from_directory(BASE_DIR, 'login.html')
 
+@app.route('/login.html')
+def login_page():
+    return send_from_directory(BASE_DIR, 'login.html')
+
+@app.route('/index.html')
+def index():
+    return send_from_directory(BASE_DIR, 'index.html')
 
 @app.route('/static/<path:path>')
 def serve_static(path):
