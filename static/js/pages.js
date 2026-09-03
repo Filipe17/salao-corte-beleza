@@ -1361,6 +1361,9 @@ function abrirCadastroUsuario(id) {
   const header  = document.getElementById('configPageHeader');
   if (tabsBar) tabsBar.style.display = 'none';
   if (header)  header.style.display  = 'none';
+  // Atualizar título da topbar
+  const topTitle = document.getElementById('pageTitle');
+  if (topTitle) topTitle.textContent = id ? 'Editar Usuário' : 'Cadastro de Usuário';
 
   _usuarioEditando = id ? _usuarios.find(u => u.id === id) : null;
   const isEdicao   = !!_usuarioEditando;
@@ -1515,6 +1518,9 @@ function voltarListaUsuarios() {
   const header  = document.getElementById('configPageHeader');
   if (tabsBar) tabsBar.style.display = '';
   if (header)  header.style.display  = '';
+  // Restaurar título da topbar
+  const topTitle = document.getElementById('pageTitle');
+  if (topTitle) topTitle.textContent = 'Configurações';
 
   _usuarioEditando = null;
   renderUsuariosArea();
