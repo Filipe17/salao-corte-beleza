@@ -102,21 +102,32 @@ async function saveCliente() {
 
 // ── AGENDAMENTOS ──────────────────────────────────────────
 async function saveNewAppointment() {
-  const cliId  = parseInt(document.getElementById('na_cli').value);
-  const proId  = parseInt(document.getElementById('na_pro').value);
-  const servId = parseInt(document.getElementById('na_serv').value);
-  const data   = document.getElementById('na_data').value;
-  const hora   = document.getElementById('na_hora').value;
-  const obs    = document.getElementById('na_obs').value;
+  const cliId   = parseInt(document.getElementById('na_cli').value);
+  const proId   = parseInt(document.getElementById('na_pro').value);
+  const servId  = parseInt(document.getElementById('na_serv').value);
+  const data    = document.getElementById('na_data').value;
+  const hora    = document.getElementById('na_hora').value;
+  const horaFim = document.getElementById('na_hora_fim')?.value || '';
+  const obs     = document.getElementById('na_obs').value;
 
   if (!cliId || !proId || !servId || !data || !hora) {
     showToast('Preencha todos os campos obrigatórios', 'error');
     return;
   }
+
+  // Calcular duração pela diferença início/fim
+  let duracao = 60;
+  if (hora && horaFim) {
+    const [h1, m1] = hora.split(':').map(Number);
+    const [h2, m2] = horaFim.split(':').map(Number);
+    const diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+    if (diff > 0) duracao = diff;
+  }
+
   try {
     await apiFetch('/api/agendamentos', {
       method: 'POST',
-      body: JSON.stringify({ clienteId:cliId, proId, servicoId:servId, data, hora, obs }),
+      body: JSON.stringify({ clienteId:cliId, proId, servicoId:servId, data, hora, hora_fim:horaFim, duracao, obs }),
     });
     closeModal();
     showToast('Agendamento criado com sucesso!', 'success');
@@ -261,6 +272,10 @@ async function checkoutPDV() {
 // ── Init: carrega dados antes de renderizar ───────────────
 // Substitui o navigate inicial do app.js
 document.addEventListener('DOMContentLoaded', async () => {
-  await loadAllFromAPI();
+  try {
+    await loadAllFromAPI();
+  } catch(e) {
+    console.warn('Falha ao carregar API, usando dados locais:', e);
+  }
   navigate('dashboard');
 });
