@@ -320,6 +320,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   padding-left: 36px;
   background: var(--gray-50);
   border-color: var(--gray-200);
+  border-radius: 99px;
 }
 .search-input svg {
   position: absolute;
