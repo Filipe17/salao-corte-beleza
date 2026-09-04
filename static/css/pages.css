@@ -802,9 +802,6 @@
   transition: background var(--t-fast);
   border: 1.5px solid transparent;
 }
-.perfil-item > * { pointer-events: none; }
-.perfil-item-menu { pointer-events: all !important; }
-.perfil-item-menu button { pointer-events: all; }
 .perfil-item:hover { background: var(--gray-50); }
 .perfil-item.ativo {
   background: var(--rose-50);
@@ -874,3 +871,51 @@
   .perfis-layout { grid-template-columns: 1fr; }
   .perfis-perms-wrap { grid-column: 1; }
 }
+
+/* ── Menu 3 pontinhos de perfil ── */
+.perfil-menu-btn {
+  width: 28px; height: 28px;
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: none; cursor: pointer;
+  color: var(--gray-400);
+  transition: all var(--t-fast);
+}
+.perfil-menu-btn:hover { background: var(--gray-100); color: var(--gray-600); }
+
+.perfil-dropdown {
+  display: none;
+  position: absolute;
+  right: 0; top: calc(100% + 4px);
+  background: white;
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08);
+  border: 1px solid var(--gray-200);
+  min-width: 190px;
+  z-index: 200;
+  overflow: hidden;
+}
+.perfil-dropdown.show { display: block; }
+
+.perfil-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 0.83rem;
+  color: var(--gray-700);
+  font-family: var(--font-body);
+  font-weight: 500;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background var(--t-fast);
+  text-align: left;
+}
+.perfil-dropdown-item:hover { background: var(--gray-50); }
+.perfil-dropdown-danger { color: var(--danger); }
+.perfil-dropdown-danger:hover { background: #fef2f2; }
+
+/* Garantir position relative no item-menu */
+.perfil-item-menu { position: relative; }
