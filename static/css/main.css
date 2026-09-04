@@ -94,8 +94,15 @@ body {
 }
 a { text-decoration: none; color: inherit; }
 button { cursor: pointer; border: none; background: none; font-family: inherit; }
-button svg, a svg, button span { pointer-events: none; }
+button:disabled { cursor: not-allowed; }
+button *, a * { pointer-events: none; cursor: pointer; }
+[onclick] { cursor: pointer; }
+[onclick] * { pointer-events: none; cursor: pointer; }
 input, select, textarea { font-family: inherit; }
+input[type="text"], input[type="email"], input[type="password"],
+input[type="tel"], input[type="number"], input[type="date"],
+input[type="time"], textarea { cursor: text; }
+select, input[type="checkbox"], input[type="radio"] { cursor: pointer; }
 img { max-width: 100%; display: block; }
 ul { list-style: none; }
 
