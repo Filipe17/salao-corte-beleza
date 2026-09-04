@@ -86,6 +86,13 @@
   margin: 0;
   padding: 0;
   cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* Permitir seleção só onde faz sentido */
+input, textarea, [contenteditable] {
+  user-select: text;
+  -webkit-user-select: text;
 }
 html { font-size: 15px; -webkit-text-size-adjust: 100%; }
 body {
@@ -97,17 +104,8 @@ body {
   display: flex;
   overflow-x: hidden;
 }
-a, button, [onclick],
-input[type="button"], input[type="submit"], input[type="reset"],
-input[type="checkbox"], input[type="radio"],
-select, label { cursor: pointer; }
-a *, button *, [onclick] * { cursor: pointer; }
-button:disabled { cursor: not-allowed; }
-input[type="text"], input[type="email"], input[type="password"],
-input[type="tel"], input[type="number"], input[type="date"],
-input[type="time"], input[type="search"], textarea { cursor: text; }
 a { text-decoration: none; color: inherit; }
-button { border: none; background: none; font-family: inherit; }
+button { cursor: pointer; border: none; background: none; font-family: inherit; }
 input, select, textarea { font-family: inherit; }
 img { max-width: 100%; display: block; }
 ul { list-style: none; }
