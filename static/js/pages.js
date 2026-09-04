@@ -1777,12 +1777,15 @@ async function loadPerfis() {
     const res = await fetch('/api/perfis');
     _perfis = await res.json();
   } catch(e) { _perfis = []; }
-  // Só re-renderiza se a área já existe (evita loop)
+
   const area = document.getElementById('perfisArea');
   if (area) {
     if (!_perfilSel && _perfis.length) _perfilSel = _perfis[0];
-    renderTabelaPerfis2();
+    // Atualizar contador
+    const sub = area.querySelector('p');
+    if (sub) sub.textContent = `${_perfis.length} perfis cadastrados`;
     renderListaPerfis();
+    renderTabelaPerfis2();
     renderPermissoesView();
   }
 }
@@ -1873,6 +1876,15 @@ function renderPerfisArea() {
   if (!area) return;
 
   if (!_perfilSel && _perfis.length) _perfilSel = _perfis[0];
+
+  // Carregar dados da API depois de montar a estrutura
+  const jaCarregado = area.dataset.carregado === '1';
+  if (!jaCarregado) {
+    area.dataset.carregado = '1';
+    setTimeout(async () => {
+      await loadPerfis();
+    }, 0);
+  }
 
   const iconesPerfil = { administrador:'🛡️', gerente:'💼', recepcionista:'🧑‍💼', profissional:'✂️', caixa:'💵' };
 
