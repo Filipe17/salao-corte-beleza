@@ -782,7 +782,7 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--gray-200);
-  overflow: hidden;
+  overflow: visible;
 }
 
 .perfis-lista {
@@ -790,7 +790,14 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  max-height: 420px;
+  overflow-y: auto;
+  overflow-x: visible;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gray-200) transparent;
 }
+.perfis-lista::-webkit-scrollbar { width: 4px; }
+.perfis-lista::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 4px; }
 
 .perfil-item {
   display: flex;
@@ -841,6 +848,9 @@
   gap: 4px;
   opacity: 0;
   transition: opacity 0.15s;
+  position: relative;
+  z-index: 10;
+  overflow: visible;
 }
 .perfil-item:hover .perfil-item-menu { opacity: 1; }
 
@@ -885,14 +895,13 @@
 
 .perfil-dropdown {
   display: none;
-  position: absolute;
-  right: 0; top: calc(100% + 4px);
+  position: fixed;
   background: white;
   border-radius: var(--radius-md);
   box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08);
   border: 1px solid var(--gray-200);
   min-width: 190px;
-  z-index: 200;
+  z-index: 500;
   overflow: hidden;
 }
 .perfil-dropdown.show { display: block; }
