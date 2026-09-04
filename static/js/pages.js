@@ -1973,6 +1973,43 @@ function renderPerfisAreaConteudo() {
 }
 
 // Atualiza só a tabela sem recriar tudo
+
+function renderTabelaPerfis(lista) {
+  if (!lista || !lista.length) return '<p style="text-align:center;color:var(--gray-400);padding:32px">Nenhum perfil encontrado</p>';
+  return `<table class="table">
+    <thead><tr>
+      <th>Perfil</th><th>Descrição</th><th>Usuários</th><th>Status</th><th>Ações</th>
+    </tr></thead>
+    <tbody>
+      ${lista.map(p => `<tr>
+        <td style="font-weight:500">${p.nome} ${p.padrao ? '<span class="badge badge-pink" style="font-size:0.65rem">Padrão</span>' : ''}</td>
+        <td class="text-gray">${p.descricao || ''}</td>
+        <td>${p.total_usuarios ?? 0}</td>
+        <td>${p.ativo ? '<span class="badge badge-green">Ativo</span>' : '<span class="badge badge-gray">Inativo</span>'}</td>
+        <td>
+          <div style="display:flex;gap:6px">
+            <button class="btn-icon-sm btn-icon-edit" onclick="editarPerfil(${p.id})" title="Editar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            ${!p.padrao ? `<button class="btn-icon-sm btn-icon-delete" onclick="confirmarExcluirPerfil(${p.id},'${p.nome}')" title="Excluir">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+            </button>` : ''}
+          </div>
+        </td>
+      </tr>`).join('')}
+    </tbody>
+  </table>`;
+}
+
+function filtrarPerfis(termo) {
+  const lista = termo ? _perfis.filter(p =>
+    p.nome.toLowerCase().includes(termo.toLowerCase()) ||
+    (p.descricao || '').toLowerCase().includes(termo.toLowerCase())
+  ) : _perfis;
+  const wrap = document.getElementById('perfisTabelaWrap');
+  if (wrap) wrap.innerHTML = renderTabelaPerfis(lista);
+}
+
 function renderTabelaPerfis2() {
   const wrap = document.getElementById('perfisTabelaWrap');
   if (wrap) wrap.innerHTML = renderTabelaPerfis(_perfis);
