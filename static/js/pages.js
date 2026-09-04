@@ -1533,7 +1533,7 @@ function renderAtendimento() {
             <div style="display:flex;gap:6px">
               <button class="btn-icon-sm" title="Ligar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8a19.79 19.79 0 01-3.07-8.67A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg></button>
               <button class="btn-icon-sm" title="WhatsApp"><svg viewBox="0 0 24 24" fill="none" stroke="#25D366" stroke-width="2" width="14" height="14"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg></button>
-              <button class="btn-icon-sm btn-icon-edit" title="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+              <button class="btn-icon-sm btn-icon-edit" title="Editar" onclick="editarAtendimento(${sel.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
             </div>
           </div>
         </div>
@@ -1835,6 +1835,110 @@ if (!document.getElementById('atdMiniMenuStyle')) {
     .atd-mini-menu button:hover { background: var(--gray-50); }
   `;
   document.head.appendChild(s);
+}
+
+function editarAtendimento(id) {
+  const a    = DB.agendamentos.find(x => x.id === id);
+  if (!a) return;
+  const cli  = getCliente(a.clienteId);
+  const pro  = getProfissional(a.proId);
+  const serv = getServico(a.servicoId);
+
+  // Pré-carregar serviço no formulário unificado
+  _naServicos = serv ? [{ id: serv.id, nome: serv.nome, preco: serv.preco || a.valor, duracao: serv.duracao || a.duracao }] : [];
+  _naModo = 'atendimento';
+
+  const cliOptions = DB.clientes.map(c => `<option value="${c.id}" ${c.id===a.clienteId?'selected':''}>${c.nome} — ${c.telefone||''}</option>`).join('');
+  const proOptions = DB.profissionais.filter(p=>p.ativo!==false).map(p => `<option value="${p.id}" ${p.id===a.proId?'selected':''}>${p.nome}</option>`).join('');
+  const servOptions = DB.servicos.filter(s=>s.ativo).map(s => `<option value="${s.id}" data-preco="${s.preco}" data-dur="${s.duracao}" ${s.id===a.servicoId?'selected':''}>${s.nome} — ${formatCurrency(s.preco)}</option>`).join('');
+
+  const statusOpts = `
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="na_status_edit" value="confirmado" ${a.status==='confirmado'?'checked':''} /> Agendado</label>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="na_status_edit" value="emandamento" ${a.status==='emandamento'?'checked':''} /> Em andamento</label>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="na_status_edit" value="finalizado" ${a.status==='finalizado'?'checked':''} /> Finalizado</label>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="na_status_edit" value="cancelado" ${a.status==='cancelado'?'checked':''} /> Cancelado</label>
+  `;
+
+  openModal({
+    title: 'Editar Atendimento #ATD-' + String(id).padStart(5,'0'),
+    size: 'lg',
+    body: `
+      <div class="grid grid-2" style="gap:12px">
+        <div class="form-group">
+          <label class="form-label">Cliente <span style="color:var(--danger)">*</span></label>
+          <select class="form-control" id="na_cli">${cliOptions}</select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Profissional <span style="color:var(--danger)">*</span></label>
+          <select class="form-control" id="na_pro">${proOptions}</select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data <span style="color:var(--danger)">*</span></label>
+          <input type="date" class="form-control" id="na_data" value="${a.data}" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Horário <span style="color:var(--danger)">*</span></label>
+          <input type="time" class="form-control" id="na_hora" value="${a.hora}" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Serviço</label>
+        <select class="form-control" id="na_serv_sel">
+          <option value="">Selecionar...</option>${servOptions}
+        </select>
+        <div id="na_servicos_lista" style="margin-top:8px"></div>
+        <div style="display:flex;justify-content:flex-end;margin-top:6px">
+          <span style="font-weight:700;color:var(--primary)">Total: <span id="na_total">${formatCurrency(a.valor)}</span></span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observações</label>
+        <textarea class="form-control" id="na_obs" rows="2">${a.obs||''}</textarea>
+      </div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:0.875rem">${statusOpts}</div>
+    `,
+    footer: `
+      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarEdicaoAtendimento(${id})">💾 Salvar Alterações</button>
+    `
+  });
+
+  setTimeout(() => naRenderServicos(), 100);
+}
+
+async function salvarEdicaoAtendimento(id) {
+  const cliId  = parseInt(document.getElementById('na_cli')?.value);
+  const proId  = parseInt(document.getElementById('na_pro')?.value);
+  const data   = document.getElementById('na_data')?.value;
+  const hora   = document.getElementById('na_hora')?.value;
+  const obs    = document.getElementById('na_obs')?.value || '';
+  const status = document.querySelector('input[name="na_status_edit"]:checked')?.value || 'confirmado';
+
+  if (!cliId || !proId || !data || !hora) { showToast('Preencha todos os campos', 'error'); return; }
+
+  const dur   = _naServicos.reduce((s,x)=>s+x.duracao,0) || 60;
+  const valor = _naServicos.reduce((s,x)=>s+x.preco,0) || 0;
+  const servPrincipal = _naServicos[0];
+
+  try {
+    if (typeof apiFetch === 'function') {
+      await apiFetch('/api/agendamentos/' + id, {
+        method: 'PUT',
+        body: JSON.stringify({
+          clienteId: cliId, proId,
+          servicoId: servPrincipal?.id,
+          data, hora, duracao: dur, valor, status, obs,
+        }),
+      });
+      await reloadAndNavigate('atendimento');
+    } else {
+      const a = DB.agendamentos.find(x=>x.id===id);
+      if (a) { a.clienteId=cliId; a.proId=proId; a.data=data; a.hora=hora; a.duracao=dur; a.valor=valor; a.status=status; a.obs=obs; if(servPrincipal) a.servicoId=servPrincipal.id; }
+      closeModal();
+      navigate('atendimento');
+    }
+    showToast('Atendimento atualizado!', 'success');
+  } catch(e) { showToast(e.message||'Erro ao salvar', 'error'); }
 }
 
 /* ===================== CONFIGURAÇÕES ===================== */
