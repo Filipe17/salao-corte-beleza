@@ -403,6 +403,7 @@ def update_perfil(id):
     if 'nome'       in body: p.nome       = body['nome']
     if 'descricao'  in body: p.descricao  = body['descricao']
     if 'ativo'      in body: p.ativo      = body['ativo']
+    if 'padrao'     in body: p.padrao     = body['padrao']
     if 'permissoes' in body: p.permissoes = json.dumps(body['permissoes'])
     db.session.commit()
     return jsonify(p.to_dict())
