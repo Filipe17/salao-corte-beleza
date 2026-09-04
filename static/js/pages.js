@@ -1309,6 +1309,9 @@ function navigateConfig(secao, e) {
   const content = document.getElementById('pageContent');
   content.innerHTML = `<div class="page-fade">${renderConfiguracoes(secao)}</div>`;
   content.scrollTop = 0;
+  // Carregar dados após HTML estar no DOM
+  if (secao === 'perfis') setTimeout(async () => { await loadPerfis(); }, 0);
+  if (secao === 'usuarios') setTimeout(() => { renderUsuariosArea(); }, 0);
 }
 
 // ── Tela de Usuários ─────────────────────────────────────────────────────────
