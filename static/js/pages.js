@@ -1186,58 +1186,296 @@ function renderRelatorios() {
 }
 
 /* ===================== ATENDIMENTO ===================== */
+
+// ── Estado da tela de atendimentos ──────────────────────
+let _atdFiltroTab    = 'todos';
+let _atdFiltroSit    = 'todos';
+let _atdFiltroPro    = 'todos';
+let _atdFiltroBusca  = '';
+let _atdPagina       = 1;
+const _atdPorPagina  = 8;
+let _atdSelecionado  = null;
+
 function renderAtendimento() {
-  const pendentes = DB.agendamentos.filter(a=>a.status==='confirmado'&&a.data===today());
-  const finalizados = DB.agendamentos.filter(a=>a.status==='finalizado');
+  const hoje = new Date().toISOString().slice(0,10);
+
+  // Gerar lista de atendimentos a partir dos agendamentos
+  const todos = DB.agendamentos.map((a, i) => {
+    const cli  = getCliente(a.clienteId);
+    const pro  = getProfissional(a.proId);
+    const serv = getServico(a.servicoId);
+    return { ...a, _cli: cli, _pro: pro, _serv: serv, _num: String(i+18).padStart(5,'0') };
+  }).reverse();
+
+  // Filtrar
+  let lista = todos;
+  if (_atdFiltroTab !== 'todos') {
+    const map = { emandamento: ['emandamento'], concluidos: ['finalizado'], cancelados: ['cancelado'] };
+    lista = lista.filter(a => (map[_atdFiltroTab]||[]).includes(a.status));
+  }
+  if (_atdFiltroSit !== 'todos') lista = lista.filter(a => a.status === _atdFiltroSit);
+  if (_atdFiltroPro !== 'todos') lista = lista.filter(a => String(a.proId) === _atdFiltroPro);
+  if (_atdFiltroBusca) {
+    const q = _atdFiltroBusca.toLowerCase();
+    lista = lista.filter(a =>
+      a._cli?.nome?.toLowerCase().includes(q) ||
+      a._pro?.nome?.toLowerCase().includes(q) ||
+      a._serv?.nome?.toLowerCase().includes(q)
+    );
+  }
+
+  const total    = lista.length;
+  const paginas  = Math.max(1, Math.ceil(total / _atdPorPagina));
+  if (_atdPagina > paginas) _atdPagina = 1;
+  const pagLista = lista.slice((_atdPagina-1)*_atdPorPagina, _atdPagina*_atdPorPagina);
+
+  const statusLabel = { confirmado:'Agendado', pendente:'Agendado', emandamento:'Em andamento', finalizado:'Concluído', cancelado:'Cancelado' };
+  const statusBadgeClass = { confirmado:'badge-blue', pendente:'badge-amber', emandamento:'badge-amber', finalizado:'badge-green', cancelado:'badge-gray' };
+
+  const proOptions = DB.profissionais.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+
+  // Painel de detalhes do atendimento selecionado
+  const sel = _atdSelecionado ? todos.find(a => a.id === _atdSelecionado) : null;
+  const painelDetalhes = sel ? `
+    <div class="atd-detalhe-painel">
+      <div class="atd-detalhe-header">
+        <div>
+          <div class="atd-detalhe-num">#ATD-${sel._num}</div>
+          <div style="font-size:0.78rem;color:rgba(255,255,255,0.7);margin-top:2px">
+            Iniciado às ${sel.hora} · ${formatDate(sel.data)}
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="badge ${statusBadgeClass[sel.status]||'badge-gray'}" style="font-size:0.72rem">${statusLabel[sel.status]||sel.status}</span>
+          <button onclick="_atdSelecionado=null;navigate('atendimento')" style="background:rgba(255,255,255,0.15);border:none;border-radius:6px;padding:4px 8px;color:white;cursor:pointer;font-size:1rem">✕</button>
+        </div>
+      </div>
+      <div class="atd-detalhe-body">
+        <!-- Cliente -->
+        <div class="atd-detalhe-section">
+          <div class="atd-detalhe-section-title">Cliente</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            ${avatarHtml(sel._cli?.nome||'?','',sel.clienteId)}
+            <div style="flex:1">
+              <div style="font-weight:600;font-size:0.875rem">${sel._cli?.nome||'—'}</div>
+              <div style="font-size:0.78rem;color:var(--gray-400)">${sel._cli?.telefone||''}</div>
+            </div>
+            <div style="display:flex;gap:6px">
+              <button class="btn-icon-sm" title="Ligar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8a19.79 19.79 0 01-3.07-8.67A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg></button>
+              <button class="btn-icon-sm" title="WhatsApp"><svg viewBox="0 0 24 24" fill="none" stroke="#25D366" stroke-width="2" width="14" height="14"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg></button>
+              <button class="btn-icon-sm btn-icon-edit" title="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+            </div>
+          </div>
+        </div>
+        <!-- Profissional -->
+        <div class="atd-detalhe-section">
+          <div class="atd-detalhe-section-title">Profissional</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            ${avatarHtml(sel._pro?.nome||'?','',sel.proId)}
+            <div style="flex:1">
+              <div style="font-weight:600;font-size:0.875rem">${sel._pro?.nome||'—'}</div>
+              <div style="font-size:0.78rem;color:var(--gray-400)">${sel._pro?.especialidade||sel._pro?.cargo||'Profissional'}</div>
+            </div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="color:var(--gray-300)"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </div>
+        <!-- Serviços -->
+        <div class="atd-detalhe-section">
+          <div class="atd-detalhe-section-title">Serviços</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;justify-content:space-between;font-size:0.82rem">
+              <span style="color:var(--gray-700)">• ${sel._serv?.nome||'Serviço'}</span>
+              <span style="font-weight:500">${formatCurrency(sel.valor)}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-top:1px solid var(--gray-100);padding-top:6px;margin-top:2px">
+              <span style="font-size:0.82rem;font-weight:600;color:var(--gray-700)">Total dos serviços</span>
+              <span style="font-weight:700;color:var(--primary)">${formatCurrency(sel.valor)}</span>
+            </div>
+          </div>
+        </div>
+        <!-- Informações -->
+        <div class="atd-detalhe-section">
+          <div class="atd-detalhe-section-title">Informações</div>
+          <div style="display:flex;flex-direction:column;gap:8px;font-size:0.82rem">
+            <div style="display:flex;justify-content:space-between">
+              <span style="color:var(--gray-500)">Forma de pagamento</span>
+              <span style="font-weight:500">Cartão de Crédito</span>
+            </div>
+            <div style="display:flex;justify-content:space-between">
+              <span style="color:var(--gray-500)">Status do pagamento</span>
+              <span class="badge badge-green" style="font-size:0.72rem">Pago</span>
+            </div>
+            <div style="display:flex;justify-content:space-between">
+              <span style="color:var(--gray-500)">Observações</span>
+              <span style="color:var(--gray-400)">${sel.obs||'—'}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Botões -->
+      <div class="atd-detalhe-footer">
+        <button class="btn btn-outline" style="width:100%;font-size:0.82rem" onclick="window.print()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Imprimir Comanda
+        </button>
+        ${sel.status !== 'finalizado' && sel.status !== 'cancelado' ? `
+        <button class="btn btn-primary" style="width:100%;font-size:0.82rem" onclick="finalizeAppointment(${sel.id});_atdSelecionado=null;navigate('atendimento')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
+          Finalizar Atendimento
+        </button>` : ''}
+      </div>
+    </div>` : '';
 
   return `
   <div class="page-header">
-    <div class="page-header-left"><h1>Relatórios</h1><p>Análise de desempenho do salão</p></div>
+    <div class="page-header-left"><h1>Atendimentos</h1></div>
     <div class="page-header-right">
-      <button class="btn btn-primary" onclick="openNewAppointment()">+ Novo agendamento</button>
+      <button class="btn btn-primary" onclick="openNewAppointment()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Novo Atendimento
+      </button>
     </div>
   </div>
 
-  <div class="grid grid-2">
-    <div class="card">
-      <div class="card-header"><div class="card-title">Aguardando atendimento</div><span class="badge badge-amber">${pendentes.length}</span></div>
-      <div class="card-body" style="padding-top:8px">
-        ${pendentes.length ? pendentes.map(a=>{
-          const cli = getCliente(a.clienteId);
-          const serv = getServico(a.servicoId);
-          const pro = getProfissional(a.proId);
-          return `<div class="schedule-item" style="padding:12px 0">
-            <span class="schedule-time">${a.hora}</span>
-            <div class="schedule-info">
-              <div class="schedule-name">${cli?.nome}</div>
-              <div class="schedule-service">${serv?.nome} · ${pro?.nome?.split(' ')[0]}</div>
-            </div>
-            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
-              <strong style="color:var(--primary)">${formatCurrency(a.valor)}</strong>
-              <button class="btn btn-sm btn-success" onclick="finalizeAppointment(${a.id});navigate('atendimento')">Finalizar</button>
-            </div>
-          </div>`;
-        }).join('') : '<div class="empty-state" style="padding:24px"><p>Nenhum atendimento pendente</p></div>'}
+  <div class="atd-layout ${sel ? 'com-detalhe' : ''}">
+    <div class="atd-main">
+      <!-- Abas de filtro -->
+      <div class="atd-tabs">
+        ${[
+          {key:'todos',      label:'Todos'},
+          {key:'emandamento',label:'Em andamento'},
+          {key:'concluidos', label:'Concluídos'},
+          {key:'cancelados', label:'Cancelados'},
+        ].map(t => `<button class="atd-tab ${_atdFiltroTab===t.key?'active':''}" onclick="_atdFiltroTab='${t.key}';_atdPagina=1;navigate('atendimento')">${t.label}</button>`).join('')}
+      </div>
+
+      <!-- Filtros -->
+      <div class="atd-filtros">
+        <div class="search-input" style="flex:1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Buscar atendimento, cliente ou profissional..."
+            value="${_atdFiltroBusca}"
+            oninput="_atdFiltroBusca=this.value;_atdPagina=1;navigate('atendimento')" />
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:0.78rem;color:var(--gray-500)">Situação</span>
+          <select class="form-control" style="width:130px;font-size:0.82rem" onchange="_atdFiltroSit=this.value;_atdPagina=1;navigate('atendimento')">
+            <option value="todos" ${_atdFiltroSit==='todos'?'selected':''}>Todos</option>
+            <option value="confirmado" ${_atdFiltroSit==='confirmado'?'selected':''}>Agendado</option>
+            <option value="emandamento" ${_atdFiltroSit==='emandamento'?'selected':''}>Em andamento</option>
+            <option value="finalizado" ${_atdFiltroSit==='finalizado'?'selected':''}>Concluído</option>
+            <option value="cancelado" ${_atdFiltroSit==='cancelado'?'selected':''}>Cancelado</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:0.78rem;color:var(--gray-500)">Profissional</span>
+          <select class="form-control" style="width:140px;font-size:0.82rem" onchange="_atdFiltroPro=this.value;_atdPagina=1;navigate('atendimento')">
+            <option value="todos" ${_atdFiltroPro==='todos'?'selected':''}>Todos</option>
+            ${proOptions}
+          </select>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:0.78rem;color:var(--gray-500)">Período</span>
+          <div class="input-wrap" style="position:relative">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--gray-400)"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <input type="date" class="form-control" style="padding-left:32px;width:150px;font-size:0.82rem" value="${hoje}" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabela -->
+      <div class="card">
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Atendimento</th>
+                <th>Cliente</th>
+                <th>Profissional</th>
+                <th>Serviços</th>
+                <th>Horário</th>
+                <th>Valor</th>
+                <th>Situação</th>
+                <th style="text-align:center">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${pagLista.length === 0
+                ? `<tr><td colspan="8" style="text-align:center;color:var(--gray-400);padding:40px">Nenhum atendimento encontrado</td></tr>`
+                : pagLista.map(a => `
+                <tr class="${_atdSelecionado===a.id?'atd-row-sel':''}" onclick="_atdSelecionado=${a.id};navigate('atendimento')" style="cursor:pointer">
+                  <td>
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <div style="width:32px;height:32px;border-radius:8px;background:var(--rose-50);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="14" height="14"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                      </div>
+                      <div>
+                        <div style="font-weight:600;font-size:0.82rem;color:var(--primary)">#ATD-${a._num}</div>
+                        <div style="font-size:0.72rem;color:var(--gray-400)">${formatDate(a.data)}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:8px">
+                      ${avatarHtml(a._cli?.nome||'?','avatar-sm',a.clienteId)}
+                      <div>
+                        <div style="font-weight:500;font-size:0.82rem">${a._cli?.nome||'—'}</div>
+                        <div style="font-size:0.72rem;color:var(--gray-400)">${a._cli?.telefone||''}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:8px">
+                      ${avatarHtml(a._pro?.nome||'?','avatar-sm',a.proId)}
+                      <div>
+                        <div style="font-weight:500;font-size:0.82rem">${a._pro?.nome||'—'}</div>
+                        <div style="font-size:0.72rem;color:var(--gray-400)">${a._pro?.especialidade||a._pro?.cargo||'Profissional'}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div style="font-size:0.82rem;font-weight:500;color:var(--primary)">1 serviço</div>
+                    <div style="font-size:0.72rem;color:var(--gray-500);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a._serv?.nome||'—'}</div>
+                  </td>
+                  <td style="font-size:0.82rem;white-space:nowrap">
+                    <div style="font-weight:500">${a.hora}</div>
+                    <div style="color:var(--gray-400)">– ${a.hora_fim||''}</div>
+                  </td>
+                  <td style="font-weight:600;font-size:0.875rem">${formatCurrency(a.valor)}</td>
+                  <td><span class="badge ${statusBadgeClass[a.status]||'badge-gray'}" style="font-size:0.72rem">${statusLabel[a.status]||a.status}</span></td>
+                  <td onclick="event.stopPropagation()">
+                    <div style="display:flex;gap:4px;justify-content:center">
+                      <button class="btn-icon-sm btn-icon-edit" onclick="_atdSelecionado=${a.id};navigate('atendimento')" title="Ver detalhes">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      </button>
+                      <button class="btn-icon-sm" title="Mais opções">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Paginação -->
+        <div class="atd-paginacao">
+          <span style="font-size:0.8rem;color:var(--gray-400)">Mostrando ${Math.min((_atdPagina-1)*_atdPorPagina+1,total)} a ${Math.min(_atdPagina*_atdPorPagina,total)} de ${total} atendimentos</span>
+          <div style="display:flex;gap:4px;align-items:center">
+            <button class="pag-btn" onclick="_atdPagina=1;navigate('atendimento')" ${_atdPagina===1?'disabled':''}>«</button>
+            <button class="pag-btn" onclick="_atdPagina=Math.max(1,_atdPagina-1);navigate('atendimento')" ${_atdPagina===1?'disabled':''}>‹</button>
+            ${Array.from({length:paginas},(_,i)=>i+1).filter(p=>Math.abs(p-_atdPagina)<3).map(p=>
+              `<button class="pag-btn ${p===_atdPagina?'active':''}" onclick="_atdPagina=${p};navigate('atendimento')">${p}</button>`
+            ).join('')}
+            <button class="pag-btn" onclick="_atdPagina=Math.min(paginas,_atdPagina+1);navigate('atendimento')" ${_atdPagina===paginas?'disabled':''}>›</button>
+            <button class="pag-btn" onclick="_atdPagina=${paginas};navigate('atendimento')" ${_atdPagina===paginas?'disabled':''}>»</button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-header"><div class="card-title">Finalizados hoje</div><span class="badge badge-green">${finalizados.length}</span></div>
-      <div class="card-body" style="padding-top:8px">
-        ${finalizados.length ? finalizados.map(a=>{
-          const cli = getCliente(a.clienteId);
-          const serv = getServico(a.servicoId);
-          return `<div class="schedule-item">
-            <span class="schedule-time">${a.hora}</span>
-            <div class="schedule-info">
-              <div class="schedule-name">${cli?.nome}</div>
-              <div class="schedule-service">${serv?.nome}</div>
-            </div>
-            <strong style="color:var(--success)">${formatCurrency(a.valor)}</strong>
-          </div>`;
-        }).join('') : '<div class="empty-state" style="padding:24px"><p>Nenhum atendimento finalizado</p></div>'}
-      </div>
-    </div>
+    <!-- Painel de detalhes -->
+    ${painelDetalhes}
   </div>`;
 }
 
