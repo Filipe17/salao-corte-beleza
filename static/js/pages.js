@@ -427,7 +427,7 @@ function renderAgenda() {
   const dayStr  = agendaDate.toISOString().slice(0,10);
   const dateLabel = agendaDate.toLocaleDateString('pt-BR', {day:'numeric', month:'long', year:'numeric'});
   const weekLabel = agendaDate.toLocaleDateString('pt-BR', {weekday:'long'});
-  const hours   = ['08','09','10','11','12','13','14','15','16','17','18','19'];
+  const hours   = ['08','09','10','11','12','13','14','15','16','17','18','19','20'];
   const dayApts = DB.agendamentos.filter(a => a.data === dayStr);
   const uLogado  = getUsuarioLogado();
   const todosPos = DB.profissionais.filter(p => p.ativo !== false);
