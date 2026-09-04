@@ -2736,6 +2736,7 @@ function abrirFormFP() {
   document.getElementById('fpFormErro').style.display = 'none';
   const wrap = document.getElementById('fpFormWrap');
   if (wrap) wrap.style.display = '';
+  document.querySelector('.fp-layout')?.classList.add('form-aberto');
 }
 
 function editarFP(id) {
@@ -2761,6 +2762,7 @@ function fecharFormFP() {
   _fpFormAberto = false;
   const wrap = document.getElementById('fpFormWrap');
   if (wrap) wrap.style.display = 'none';
+  document.querySelector('.fp-layout')?.classList.remove('form-aberto');
 }
 
 async function salvarFP() {
