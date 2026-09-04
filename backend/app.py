@@ -406,6 +406,10 @@ def today():
 def root():
     return send_from_directory(BASE_DIR, 'index.html')
 
+@app.route('/pdv.html')
+def serve_pdv():
+    return send_from_directory(BASE_DIR, 'pdv.html')
+
 @app.route('/login.html')
 def login_page():
     return send_from_directory(BASE_DIR, 'login.html')
