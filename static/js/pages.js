@@ -2560,7 +2560,7 @@ function renderFormasPagArea() {
       </div>
     </div>
 
-    <div class="fp-layout">
+    <div class="fp-layout" id="fpLayout">
       <!-- Tabela -->
       <div class="card fp-tabela-wrap">
         <div class="card-header">
@@ -2762,7 +2762,8 @@ function fecharFormFP() {
   _fpFormAberto = false;
   const wrap = document.getElementById('fpFormWrap');
   if (wrap) wrap.style.display = 'none';
-  document.querySelector('.fp-layout')?.classList.remove('form-aberto');
+  const layout = document.getElementById('fpLayout');
+  if (layout) layout.classList.remove('form-aberto');
 }
 
 async function salvarFP() {

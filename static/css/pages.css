@@ -1057,10 +1057,10 @@
   grid-template-columns: 1fr;
   gap: 20px;
   margin-bottom: 20px;
-  transition: grid-template-columns 0.2s;
+  align-items: start;
 }
 .fp-layout.form-aberto {
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: 1fr 320px;
 }
 
 .fp-tabela-wrap { overflow: visible; }
