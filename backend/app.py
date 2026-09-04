@@ -156,6 +156,7 @@ class Agendamento(db.Model):
     servico_id  = db.Column(db.Integer, db.ForeignKey('servicos.id'), nullable=False)
     data        = db.Column(db.String(10), nullable=False)
     hora        = db.Column(db.String(5), nullable=False)
+    hora_fim    = db.Column(db.String(5), default='')
     duracao     = db.Column(db.Integer, default=60)
     status      = db.Column(db.String(20), default='confirmado')
     valor       = db.Column(db.Float, default=0)
@@ -165,8 +166,8 @@ class Agendamento(db.Model):
         return {
             'id': self.id, 'clienteId': self.cliente_id, 'proId': self.pro_id,
             'servicoId': self.servico_id, 'data': self.data, 'hora': self.hora,
-            'duracao': self.duracao, 'status': self.status,
-            'valor': self.valor, 'obs': self.obs,
+            'hora_fim': self.hora_fim or '', 'duracao': self.duracao,
+            'status': self.status, 'valor': self.valor, 'obs': self.obs,
         }
 
 
@@ -357,6 +358,14 @@ def migrate():
                 conn.execute(db.text(f"ALTER TABLE usuarios ADD COLUMN {col} {definition}"))
                 conn.commit()
                 print(f"✅ Migration usuarios: coluna {col} adicionada.")
+            except Exception:
+                conn.rollback()
+
+        for col, definition in cols_agendamentos:
+            try:
+                conn.execute(db.text(f"ALTER TABLE agendamentos ADD COLUMN {col} {definition}"))
+                conn.commit()
+                print(f"✅ Migration agendamentos: {col}")
             except Exception:
                 conn.rollback()
 
@@ -824,8 +833,10 @@ def create_agendamento():
         servico_id=body['servicoId'],
         data=body['data'],
         hora=body['hora'],
-        duracao=serv.duracao if serv else 60,
-        valor=serv.preco if serv else 0,
+        hora_fim=body.get('hora_fim', ''),
+        duracao=body.get('duracao', serv.duracao if serv else 60),
+        valor=body.get('valor', serv.preco if serv else 0),
+        status=body.get('status', 'confirmado'),
         obs=body.get('obs', ''),
     )
     db.session.add(a)
