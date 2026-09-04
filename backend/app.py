@@ -352,9 +352,6 @@ def migrate():
     cols_perfis = [
         ("data_criacao", "VARCHAR(20) DEFAULT ''"),
     ]
-    cols_agendamentos = [
-        ("hora_fim", "VARCHAR(5) DEFAULT ''"),
-    ]
     with db.engine.connect() as conn:
         for col, definition in cols_usuarios:
             try:
@@ -846,6 +843,24 @@ def create_agendamento():
     db.session.commit()
     return jsonify(_enrich(a)), 201
 
+
+
+@app.route('/api/agendamentos/<int:id>', methods=['PUT'])
+def update_agendamento(id):
+    a    = Agendamento.query.get_or_404(id)
+    body = request.get_json()
+    if 'clienteId'  in body: a.cliente_id  = body['clienteId']
+    if 'proId'      in body: a.pro_id      = body['proId']
+    if 'servicoId'  in body: a.servico_id  = body['servicoId']
+    if 'data'       in body: a.data        = body['data']
+    if 'hora'       in body: a.hora        = body['hora']
+    if 'hora_fim'   in body: a.hora_fim    = body['hora_fim']
+    if 'duracao'    in body: a.duracao     = body['duracao']
+    if 'valor'      in body: a.valor       = body['valor']
+    if 'status'     in body: a.status      = body['status']
+    if 'obs'        in body: a.obs         = body['obs']
+    db.session.commit()
+    return jsonify(_enrich(a))
 
 @app.route('/api/agendamentos/<int:id>/status', methods=['PATCH'])
 def update_status(id):
