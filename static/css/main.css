@@ -411,43 +411,40 @@ ul { list-style: none; }
   }
 }
 
-/* ── Sidebar colapsada (hambúrguer) ── */
-.sidebar.collapsed {
-  width: 64px;
+/* ── Painel Atendimentos de hoje na sidebar ── */
+.sidebar-hoje {
+  margin: 12px 10px;
+  background: rgba(255,255,255,0.06);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,0.08);
 }
-.sidebar.collapsed .sidebar-brand-text,
-.sidebar.collapsed .nav-label,
-.sidebar.collapsed .nav-item span,
-.sidebar.collapsed .nav-arrow,
-.sidebar.collapsed .nav-subitem,
-.sidebar.collapsed .nav-submenu,
-.sidebar.collapsed .sidebar-section-title {
-  display: none !important;
+.sidebar-hoje-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 12px;
 }
-.sidebar.collapsed .nav-item {
-  justify-content: center;
-  padding: 10px;
+.sidebar-hoje-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
-.sidebar.collapsed .nav-icon {
-  margin: 0;
+.sidebar-hoje-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
-.sidebar.collapsed .sidebar-brand {
-  justify-content: center;
-  padding: 20px 0;
+.sidebar-hoje-label {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.45);
 }
-.sidebar.collapsed .nav-item-parent {
-  justify-content: center;
+.sidebar-hoje-num {
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
 }
-
-/* Main content ajusta margem quando sidebar colapsa */
-.main-content.sidebar-collapsed {
-  margin-left: 64px;
-}
-
-/* Transição suave */
-.sidebar {
-  transition: width 0.25s ease;
-}
-.main-content {
-  transition: margin-left 0.25s ease;
-}
+/* Esconder quando sidebar colapsada */
+.sidebar.collapsed .sidebar-hoje { display: none; }

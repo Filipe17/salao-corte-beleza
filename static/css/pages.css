@@ -1126,7 +1126,7 @@
 /* Layout 3 colunas: painel-hoje | grade | sidebar */
 .agenda-nova-layout {
   display: grid;
-  grid-template-columns: 190px 1fr 260px;
+  grid-template-columns: 1fr 260px;
   gap: 16px;
   align-items: start;
 }

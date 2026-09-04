@@ -315,5 +315,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.warn('Falha ao carregar API, usando dados locais:', e);
   }
   atualizarTopbarUsuario();
+  if (typeof atualizarSidebarHoje === 'function') atualizarSidebarHoje();
   navigate('dashboard');
 });
