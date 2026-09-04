@@ -1348,7 +1348,6 @@ function renderUsuariosArea() {
   area.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
       <div>
-        <h2 style="font-size:1.1rem;font-weight:600;color:var(--gray-800)">Usuários do Sistema</h2>
         <p style="font-size:0.8rem;color:var(--gray-400)" id="usuariosCount">Carregando...</p>
       </div>
       <button class="btn btn-primary" onclick="abrirCadastroUsuario()">
@@ -1891,7 +1890,6 @@ function renderPerfisArea() {
   area.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
       <div>
-        <h2 style="font-size:1.1rem;font-weight:600;color:var(--gray-800)">Perfis de Acesso</h2>
         <p style="font-size:0.8rem;color:var(--gray-400)">${_perfis.length} perfis cadastrados</p>
       </div>
       <button class="btn btn-primary" onclick="abrirNovoPerfil()">
