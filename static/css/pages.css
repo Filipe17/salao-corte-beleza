@@ -1253,3 +1253,23 @@
   .agenda-nova-layout { grid-template-columns: 1fr; }
   .agenda-nova-sidebar { position: static; }
 }
+
+/* ── Colunas bloqueadas na agenda (outros profissionais) ── */
+.agenda-pro-body-col.col-bloqueada {
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 8px,
+    rgba(0,0,0,0.015) 8px,
+    rgba(0,0,0,0.015) 16px
+  );
+  cursor: not-allowed;
+}
+.agenda-pro-body-col.col-bloqueada .apt-block {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.agenda-pro-header-cell.col-bloqueada {
+  opacity: 0.6;
+  background: var(--gray-50);
+}
