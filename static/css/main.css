@@ -81,7 +81,12 @@
 }
 
 /* Reset */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  cursor: default;
+}
 html { font-size: 15px; -webkit-text-size-adjust: 100%; }
 body {
   font-family: var(--font-body);
@@ -92,17 +97,18 @@ body {
   display: flex;
   overflow-x: hidden;
 }
-a { text-decoration: none; color: inherit; }
-button { cursor: pointer; border: none; background: none; font-family: inherit; }
+a, button, [onclick],
+input[type="button"], input[type="submit"], input[type="reset"],
+input[type="checkbox"], input[type="radio"],
+select, label { cursor: pointer; }
+a *, button *, [onclick] * { cursor: pointer; }
 button:disabled { cursor: not-allowed; }
-button *, a * { pointer-events: none; cursor: pointer; }
-[onclick] { cursor: pointer; }
-[onclick] * { pointer-events: none; cursor: pointer; }
-input, select, textarea { font-family: inherit; }
 input[type="text"], input[type="email"], input[type="password"],
 input[type="tel"], input[type="number"], input[type="date"],
-input[type="time"], textarea { cursor: text; }
-select, input[type="checkbox"], input[type="radio"] { cursor: pointer; }
+input[type="time"], input[type="search"], textarea { cursor: text; }
+a { text-decoration: none; color: inherit; }
+button { border: none; background: none; font-family: inherit; }
+input, select, textarea { font-family: inherit; }
 img { max-width: 100%; display: block; }
 ul { list-style: none; }
 
