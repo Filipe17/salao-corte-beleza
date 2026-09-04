@@ -103,7 +103,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 20px 14px;
+  padding: 16px 20px 16px;
+  min-height: 60px;
 }
 .card-title {
   font-size: 0.95rem;
