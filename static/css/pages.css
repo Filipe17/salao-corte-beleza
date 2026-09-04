@@ -1061,10 +1061,11 @@
 }
 .fp-layout.form-aberto {
   grid-template-columns: 1fr 320px;
+  align-items: stretch;
 }
 
 .fp-tabela-wrap { overflow: visible; }
-.fp-form-wrap { overflow: visible; }
+.fp-form-wrap { overflow: visible; height: 100%; }
 
 .fp-sobre {
   background: #fdf2f8;
