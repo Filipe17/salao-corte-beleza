@@ -183,9 +183,6 @@ function renderDashboard() {
 }
 
 /* ===================== AGENDA ===================== */
-let agendaView = 'day';
-let agendaDate = new Date();
-
 function renderAgenda() {
   const dateStr = agendaDate.toLocaleDateString('pt-BR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
   const hours = ['08','09','10','11','12','13','14','15','16','17','18'];
@@ -1773,27 +1770,204 @@ let _perfilEditando = null;
 
 async function loadPerfis() {
   try {
-    const res = await fetch('/api/perfis');
+    const base = (typeof API_BASE !== 'undefined') ? API_BASE : '';
+    const res = await fetch(base + '/api/perfis');
+    if (!res.ok) throw new Error('Erro ' + res.status);
     _perfis = await res.json();
-  } catch(e) { _perfis = []; }
+  } catch(e) {
+    console.warn('Erro ao carregar perfis:', e);
+    _perfis = [];
+  }
+
+  if (!_perfilSel && _perfis.length) _perfilSel = _perfis[0];
 
   const area = document.getElementById('perfisArea');
-  if (area) {
-    if (!_perfilSel && _perfis.length) _perfilSel = _perfis[0];
-    // Atualizar contador
-    const sub = area.querySelector('p');
-    if (sub) sub.textContent = `${_perfis.length} perfis cadastrados`;
-    renderListaPerfis();
-    renderTabelaPerfis2();
-    renderPermissoesView();
-  }
-}
-  // Carregar dados da API (só na primeira vez)
-  if (!area.dataset.carregado) {
-    area.dataset.carregado = '1';
-    setTimeout(async () => { await loadPerfis(); }, 0);
-  }
+  if (!area) return;
 
+  // Re-renderizar a área inteira com os dados carregados
+  _perfisCarregados = true;
+  renderPerfisAreaConteudo();
+}
+
+let _perfisCarregados = false;
+
+function renderPerfisAreaConteudo() {
+  const area = document.getElementById('perfisArea');
+  if (!area) return;
+
+  const iconesPerfil = { administrador:'🛡️', gerente:'💼', recepcionista:'🧑‍💼', profissional:'✂️', caixa:'💵' };
+  const ACOES_V = ['visualizar','incluir','editar','excluir','imprimir','exportar'];
+  const MODS = [
+    {key:'dashboard',label:'Dashboard',icon:'▦'},{key:'agenda',label:'Agenda',icon:'📅'},
+    {key:'clientes',label:'Clientes',icon:'👥'},{key:'servicos',label:'Serviços',icon:'✦'},
+    {key:'profissionais',label:'Profissionais',icon:'👤'},{key:'atendimentos',label:'Atendimentos',icon:'📋'},
+    {key:'pdv',label:'PDV / Vendas',icon:'🛒'},{key:'estoque',label:'Estoque',icon:'📦'},
+    {key:'financeiro',label:'Financeiro',icon:'💰'},{key:'relatorios',label:'Relatórios',icon:'📊'},
+    {key:'configuracoes',label:'Configurações',icon:'⚙️'},
+  ];
+
+  area.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div>
+        <p style="font-size:0.8rem;color:var(--gray-400)">${_perfis.length} perfis cadastrados</p>
+      </div>
+      <button class="btn btn-primary" onclick="abrirNovoPerfil()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Novo Perfil
+      </button>
+    </div>
+
+    <div class="perfis-layout">
+      <div class="perfis-lista-wrap">
+        <div class="card-header" style="padding:16px 20px;border-bottom:1px solid var(--gray-100)">
+          <div class="card-title">Perfis Cadastrados</div>
+        </div>
+        <div class="perfis-lista">
+          ${_perfis.length === 0 ? '<p style="padding:20px;text-align:center;color:var(--gray-400)">Nenhum perfil</p>' :
+          _perfis.map(p => {
+            const isSel = _perfilSel && p.id === _perfilSel.id;
+            const icon  = iconesPerfil[p.nome.toLowerCase()] || '👤';
+            return `
+            <div class="perfil-item ${isSel ? 'ativo' : ''}" onclick="selecionarPerfil(${p.id})">
+              <div class="perfil-item-icon">${icon}</div>
+              <div class="perfil-item-info">
+                <div class="perfil-item-nome">
+                  ${p.nome}
+                  ${p.padrao ? '<span class="badge badge-pink" style="font-size:0.65rem;padding:2px 8px">Padrão</span>' : ''}
+                </div>
+                <div class="perfil-item-desc">${p.descricao}</div>
+              </div>
+              <div class="perfil-item-menu" onclick="event.stopPropagation()">
+                <button class="perfil-menu-btn" onclick="togglePerfilMenu(event,${p.id})" title="Opções">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                </button>
+                <div class="perfil-dropdown" id="perfilMenu_${p.id}">
+                  <button class="perfil-dropdown-item" onclick="closePerfilMenus();editarPerfil(${p.id})">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Editar perfil
+                  </button>
+                  <button class="perfil-dropdown-item" onclick="closePerfilMenus();duplicarPerfil(${p.id})">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                    Duplicar perfil
+                  </button>
+                  <button class="perfil-dropdown-item" onclick="closePerfilMenus();definirPadrao(${p.id})">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    Definir como padrão
+                  </button>
+                  <button class="perfil-dropdown-item" onclick="closePerfilMenus();selecionarPerfil(${p.id})">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    Visualizar permissões
+                  </button>
+                  ${!p.padrao ? `<button class="perfil-dropdown-item perfil-dropdown-danger" onclick="closePerfilMenus();confirmarExcluirPerfil(${p.id},'${p.nome}')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                    Excluir perfil
+                  </button>` : ''}
+                </div>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+
+      <div class="card perfis-perms-wrap">
+        <div class="card-header">
+          <div class="card-title">
+            Permissões do Perfil:
+            <span style="color:var(--primary)" id="perfisPermsTitle">${_perfilSel ? _perfilSel.nome : '—'}</span>
+          </div>
+          ${_perfilSel ? `<button class="btn btn-outline" style="font-size:0.8rem;padding:6px 14px" onclick="editarPerfil(${_perfilSel.id})">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Editar Permissões
+          </button>` : ''}
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Módulo</th>
+                ${ACOES_V.map(a => `<th style="text-align:center;text-transform:capitalize">${a.charAt(0).toUpperCase()+a.slice(1)}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${_perfilSel ? MODS.map(m => {
+                const perms = (_perfilSel.permissoes && _perfilSel.permissoes[m.key]) || {};
+                return `<tr>
+                  <td><span style="display:flex;align-items:center;gap:8px">${m.icon} ${m.label}</span></td>
+                  ${ACOES_V.map(a => `<td style="text-align:center">
+                    ${perms[a]
+                      ? '<svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" width="16" height="16"><polyline points="20 6 9 17 4 12"/></svg>'
+                      : '<svg viewBox="0 0 24 24" fill="none" stroke="#e4e4e7" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'}
+                  </td>`).join('')}
+                </tr>`;
+              }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--gray-400);padding:32px">Selecione um perfil</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px">
+      <div class="card-header">
+        <div class="card-title">Todos os Perfis</div>
+        <div class="search-input">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Buscar perfil..." oninput="filtrarPerfis(this.value)" />
+        </div>
+      </div>
+      <div class="table-wrap" id="perfisTabelaWrap">
+        ${renderTabelaPerfis(_perfis)}
+      </div>
+    </div>
+
+    <div class="perfil-form-modal" id="perfilFormModal" style="display:none">
+      <div class="perfil-form-card">
+        <div class="card-header">
+          <div class="card-title" id="perfilFormTitulo">Novo Perfil</div>
+          <button class="modal-close" onclick="fecharFormPerfil()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="error-msg" id="perfilFormErro" style="display:none;margin-bottom:16px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/></svg>
+            <span id="perfilFormErroTxt"></span>
+          </div>
+          <div class="grid grid-2" style="margin-bottom:16px">
+            <div class="form-group">
+              <label class="form-label">Nome do perfil <span style="color:var(--danger)">*</span></label>
+              <input type="text" id="pNome" class="form-control" placeholder="Ex: Gerente" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Descrição</label>
+              <input type="text" id="pDesc" class="form-control" placeholder="Breve descrição" />
+            </div>
+          </div>
+          <div style="font-weight:600;font-size:0.85rem;color:var(--gray-700);margin-bottom:10px">Permissões por módulo</div>
+          <div style="overflow-x:auto">
+            <table class="table" style="font-size:0.82rem">
+              <thead>
+                <tr>
+                  <th>Módulo</th>
+                  ${ACOES_V.map(a => `<th style="text-align:center;min-width:80px">
+                    ${a.charAt(0).toUpperCase()+a.slice(1)}
+                    <br><button onclick="marcarColuna('${a}',true)" style="font-size:0.6rem;color:var(--primary);background:none;border:none;cursor:pointer">todos</button>
+                  </th>`).join('')}
+                </tr>
+              </thead>
+              <tbody id="perfilPermsTbody"></tbody>
+            </table>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:16px">
+            <button class="btn btn-primary" id="btnSalvarPerfil" onclick="salvarPerfil()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              Salvar Perfil
+            </button>
+            <button class="btn btn-outline" onclick="fecharFormPerfil()">Cancelar</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
 
 // Atualiza só a tabela sem recriar tudo
 function renderTabelaPerfis2() {
@@ -1879,394 +2053,15 @@ function renderPermissoesView() {
 function renderPerfisArea() {
   const area = document.getElementById('perfisArea');
   if (!area) return;
-
-  if (!_perfilSel && _perfis.length) _perfilSel = _perfis[0];
-
-  const iconesPerfil = { administrador:'🛡️', gerente:'💼', recepcionista:'🧑‍💼', profissional:'✂️', caixa:'💵' };
-
-  area.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-      <div>
-        <p style="font-size:0.8rem;color:var(--gray-400)">${_perfis.length} perfis cadastrados</p>
-      </div>
-      <button class="btn btn-primary" onclick="abrirNovoPerfil()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Novo Perfil
-      </button>
-    </div>
-
-    <!-- Layout de duas colunas -->
-    <div class="perfis-layout">
-
-      <!-- Lista de perfis -->
-      <div class="perfis-lista-wrap">
-        <div class="card-header" style="padding:16px 20px;border-bottom:1px solid var(--gray-100)">
-          <div class="card-title">Perfis Cadastrados</div>
-        </div>
-        <div class="perfis-lista" id="perfisListaInner">
-          ${_perfis.map(p => {
-            const isSel = _perfilSel && p.id === _perfilSel.id;
-            const icon  = iconesPerfil[p.nome.toLowerCase()] || '👤';
-            return `
-            <div class="perfil-item ${isSel ? 'ativo' : ''}" onclick="selecionarPerfil(${p.id})">
-              <div class="perfil-item-icon">${icon}</div>
-              <div class="perfil-item-info">
-                <div class="perfil-item-nome">
-                  ${p.nome}
-                  ${p.padrao ? '<span class="badge badge-pink" style="font-size:0.65rem;padding:2px 8px">Padrão</span>' : ''}
-                </div>
-                <div class="perfil-item-desc">${p.descricao}</div>
-              </div>
-              <div class="perfil-item-menu" onclick="event.stopPropagation()">
-                <button class="perfil-menu-btn" onclick="togglePerfilMenu(event,${p.id})" title="Opções">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-                </button>
-                <div class="perfil-dropdown" id="perfilMenu_${p.id}">
-                  <button class="perfil-dropdown-item" onclick="closePerfilMenus();editarPerfil(${p.id})">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    Editar perfil
-                  </button>
-                  <button class="perfil-dropdown-item" onclick="closePerfilMenus();duplicarPerfil(${p.id})">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                    Duplicar perfil
-                  </button>
-                  <button class="perfil-dropdown-item" onclick="closePerfilMenus();definirPadrao(${p.id})" ${p.padrao ? 'disabled style="opacity:0.45"' : ''}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                    Definir como padrão ${p.padrao ? '(atual)' : ''}
-                  </button>
-                  <button class="perfil-dropdown-item" onclick="closePerfilMenus();selecionarPerfil(${p.id})">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    Visualizar permissões
-                  </button>
-                  ${!p.padrao ? `<button class="perfil-dropdown-item perfil-dropdown-danger" onclick="closePerfilMenus();confirmarExcluirPerfil(${p.id},'${p.nome}')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
-                    Excluir perfil
-                  </button>` : ''}
-                </div>
-              </div>
-            </div>`;
-          }).join('')}
-        </div>
-      </div>
-
-      <!-- Permissões do perfil selecionado -->
-      <div class="card perfis-perms-wrap">
-        <div class="card-header">
-          <div class="card-title">
-            Permissões do Perfil:
-            <span style="color:var(--primary)" id="perfisPermsTitle">${_perfilSel ? _perfilSel.nome : '—'}</span>
-          </div>
-          ${_perfilSel ? `<button class="btn btn-outline" style="font-size:0.8rem;padding:6px 14px" onclick="editarPerfil(${_perfilSel.id})">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            Editar Permissões
-          </button>` : ''}
-        </div>
-        <div class="table-wrap">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Módulo</th>
-                ${ACOES.map(a => `<th style="text-align:center;text-transform:capitalize">${a.charAt(0).toUpperCase()+a.slice(1)}</th>`).join('')}
-              </tr>
-            </thead>
-            <tbody>
-              <tbody id="perfisPermsView">${_perfilSel ? MODULOS.map(m => {
-                const perms = _perfilSel.permissoes[m.key] || {};
-                return `<tr>
-                  <td><span style="display:flex;align-items:center;gap:8px">${m.icon} ${m.label}</span></td>
-                  ${ACOES.map(a => `<td style="text-align:center">
-                    ${perms[a]
-                      ? '<svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" width="16" height="16"><polyline points="20 6 9 17 4 12"/></svg>'
-                      : '<svg viewBox="0 0 24 24" fill="none" stroke="#e4e4e7" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'}
-                  </td>`).join('')}
-                </tr>`;
-              }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--gray-400);padding:32px">Selecione um perfil</td></tr>'}</tbody>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tabela todos os perfis -->
-    <div class="card" style="margin-top:20px">
-      <div class="card-header">
-        <div class="card-title">Todos os Perfis</div>
-        <div class="search-input">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" placeholder="Buscar perfil..." oninput="filtrarPerfis(this.value)" />
-        </div>
-      </div>
-      <div class="table-wrap" id="perfisTabelaWrap">
-        ${renderTabelaPerfis(_perfis)}
-      </div>
-    </div>
-
-    <!-- Modal novo/editar perfil (oculto) -->
-    <div class="perfil-form-modal" id="perfilFormModal" style="display:none">
-      <div class="perfil-form-card">
-        <div class="card-header">
-          <div class="card-title" id="perfilFormTitulo">Novo Perfil</div>
-          <button class="modal-close" onclick="fecharFormPerfil()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
-        <div class="card-body">
-          <div class="error-msg" id="perfilFormErro" style="display:none;margin-bottom:16px">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/></svg>
-            <span id="perfilFormErroTxt"></span>
-          </div>
-          <div class="grid grid-2" style="margin-bottom:16px">
-            <div class="form-group">
-              <label class="form-label">Nome do perfil <span style="color:var(--danger)">*</span></label>
-              <input type="text" id="pNome" class="form-control" placeholder="Ex: Gerente" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Descrição</label>
-              <input type="text" id="pDesc" class="form-control" placeholder="Breve descrição" />
-            </div>
-          </div>
-
-          <!-- Tabela de permissões editável -->
-          <div style="font-weight:600;font-size:0.85rem;color:var(--gray-700);margin-bottom:10px">Permissões por módulo</div>
-          <div style="overflow-x:auto">
-            <table class="table" style="font-size:0.82rem">
-              <thead>
-                <tr>
-                  <th>Módulo</th>
-                  ${ACOES.map(a => `<th style="text-align:center;min-width:80px">
-                    ${a.charAt(0).toUpperCase()+a.slice(1)}
-                    <br><button onclick="marcarColuna('${a}',true)" style="font-size:0.6rem;color:var(--primary);background:none;border:none;cursor:pointer">todos</button>
-                  </th>`).join('')}
-                </tr>
-              </thead>
-              <tbody id="perfilPermsTbody">
-              </tbody>
-            </table>
-          </div>
-
-          <div style="display:flex;gap:10px;margin-top:16px">
-            <button class="btn btn-primary" id="btnSalvarPerfil" onclick="salvarPerfil()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-              Salvar Perfil
-            </button>
-            <button class="btn btn-outline" onclick="fecharFormPerfil()">Cancelar</button>
-          </div>
-        </div>
-      </div>
-    </div>`;
-
+  _perfisCarregados = false;
+  _perfilSel = null;
+  // Mostrar loading e carregar da API
+  area.innerHTML = '<div class="loading-box" style="padding:40px;text-align:center;color:var(--gray-400)">Carregando perfis...</div>';
+  setTimeout(async () => { await loadPerfis(); }, 0);
 }
 
-function renderTabelaPerfis(lista) {
-  if (!lista.length) return '<p style="text-align:center;color:var(--gray-400);padding:32px">Nenhum perfil encontrado</p>';
-  return `<table class="table">
-    <thead><tr>
-      <th>Perfil</th><th>Descrição</th><th>Usuários</th><th>Status</th><th>Ações</th>
-    </tr></thead>
-    <tbody>
-      ${lista.map(p => `<tr>
-        <td style="font-weight:500">${p.nome} ${p.padrao ? '<span class="badge badge-pink" style="font-size:0.65rem">Padrão</span>' : ''}</td>
-        <td class="text-gray">${p.descricao}</td>
-        <td>${p.total_usuarios ?? 0}</td>
-        <td>${p.ativo ? '<span class="badge badge-green">Ativo</span>' : '<span class="badge badge-gray">Inativo</span>'}</td>
-        <td>
-          <div style="display:flex;gap:6px">
-            <button class="btn-icon-sm btn-icon-edit" onclick="editarPerfil(${p.id})" title="Editar">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            </button>
-            ${!p.padrao ? `<button class="btn-icon-sm btn-icon-delete" onclick="confirmarExcluirPerfil(${p.id},'${p.nome}')" title="Excluir">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
-            </button>` : ''}
-          </div>
-        </td>
-      </tr>`).join('')}
-    </tbody>
-  </table>`;
-}
+/* ===========================
+   BELEZZA — PAGE RENDERERS
+=========================== */
 
-function filtrarPerfis(termo) {
-  const lista = termo ? _perfis.filter(p => p.nome.toLowerCase().includes(termo.toLowerCase()) || p.descricao.toLowerCase().includes(termo.toLowerCase())) : _perfis;
-  const wrap = document.getElementById('perfisTabelaWrap');
-  if (wrap) wrap.innerHTML = renderTabelaPerfis(lista);
-}
-
-function selecionarPerfil(id) {
-  _perfilSel = _perfis.find(p => p.id === id);
-  renderListaPerfis();
-  renderPermissoesView();
-  // Atualizar título
-  const titulo = document.getElementById('perfisPermsTitle');
-  if (titulo && _perfilSel) titulo.textContent = _perfilSel.nome;
-}
-
-function abrirNovoPerfil() {
-  _perfilEditando = null;
-  document.getElementById('perfilFormTitulo').textContent = 'Novo Perfil';
-  document.getElementById('pNome').value = '';
-  document.getElementById('pDesc').value = '';
-  document.getElementById('perfilFormErro').style.display = 'none';
-  renderPermsTbody({});
-  document.getElementById('perfilFormModal').style.display = 'flex';
-}
-
-function editarPerfil(id) {
-  _perfilEditando = _perfis.find(p => p.id === id);
-  if (!_perfilEditando) return;
-  document.getElementById('perfilFormTitulo').textContent = 'Editar Perfil';
-  document.getElementById('pNome').value = _perfilEditando.nome;
-  document.getElementById('pDesc').value = _perfilEditando.descricao;
-  document.getElementById('perfilFormErro').style.display = 'none';
-  renderPermsTbody(_perfilEditando.permissoes || {});
-  document.getElementById('perfilFormModal').style.display = 'flex';
-}
-
-function fecharFormPerfil() {
-  document.getElementById('perfilFormModal').style.display = 'none';
-}
-
-function renderPermsTbody(permsAtivas) {
-  const tbody = document.getElementById('perfilPermsTbody');
-  if (!tbody) return;
-  tbody.innerHTML = MODULOS.map(m => `
-    <tr>
-      <td><strong>${m.label}</strong></td>
-      ${ACOES.map(a => {
-        const checked = permsAtivas[m.key]?.[a] ? 'checked' : '';
-        return `<td style="text-align:center">
-          <input type="checkbox" class="perm-check" data-mod="${m.key}" data-acao="${a}" ${checked}
-            style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer" />
-        </td>`;
-      }).join('')}
-    </tr>`).join('');
-}
-
-function marcarColuna(acao, valor) {
-  document.querySelectorAll(`.perm-check[data-acao="${acao}"]`).forEach(cb => cb.checked = valor);
-}
-
-function coletarPermissoes() {
-  const perms = {};
-  document.querySelectorAll('.perm-check').forEach(cb => {
-    const mod  = cb.dataset.mod;
-    const acao = cb.dataset.acao;
-    if (!perms[mod]) perms[mod] = {};
-    perms[mod][acao] = cb.checked;
-  });
-  return perms;
-}
-
-async function salvarPerfil() {
-  const nome  = document.getElementById('pNome').value.trim();
-  const desc  = document.getElementById('pDesc').value.trim();
-  const perms = coletarPermissoes();
-  const btn   = document.getElementById('btnSalvarPerfil');
-
-  if (!nome) {
-    document.getElementById('perfilFormErroTxt').textContent = 'Informe o nome do perfil.';
-    document.getElementById('perfilFormErro').style.display = 'flex';
-    return;
-  }
-
-  btn.disabled = true;
-  btn.innerHTML = '<div class="spinner-sm"></div> Salvando...';
-
-  try {
-    const body = { nome, descricao: desc, permissoes: perms };
-    if (_perfilEditando) {
-      const res = await fetch(`/api/perfis/${_perfilEditando.id}`, {
-        method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
-      });
-      if (!res.ok) throw new Error((await res.json()).erro || 'Erro ao salvar');
-      showToast('Perfil atualizado!', 'success');
-    } else {
-      const res = await fetch('/api/perfis', {
-        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
-      });
-      if (!res.ok) throw new Error((await res.json()).erro || 'Erro ao criar');
-      showToast('Perfil criado!', 'success');
-    }
-    fecharFormPerfil();
-    await loadPerfis();
-  } catch(e) {
-    document.getElementById('perfilFormErroTxt').textContent = e.message;
-    document.getElementById('perfilFormErro').style.display = 'flex';
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Salvar Perfil';
-  }
-}
-
-
-function togglePerfilMenu(e, id) {
-  e.stopPropagation();
-  const menu = document.getElementById(`perfilMenu_${id}`);
-  const isOpen = menu.classList.contains('show');
-  closePerfilMenus();
-  if (!isOpen) {
-    // Posicionar com fixed baseado na posição do botão
-    const btn = e.currentTarget;
-    const rect = btn.getBoundingClientRect();
-    menu.style.top  = (rect.bottom + 4) + 'px';
-    menu.style.left = (rect.right - 190) + 'px';
-    menu.classList.add('show');
-    setTimeout(() => {
-      document.addEventListener('click', closePerfilMenus, { once: true });
-    }, 0);
-  }
-}
-
-function closePerfilMenus() {
-  document.querySelectorAll('.perfil-dropdown.show').forEach(m => m.classList.remove('show'));
-}
-
-async function duplicarPerfil(id) {
-  const p = _perfis.find(x => x.id === id);
-  if (!p) return;
-  try {
-    const res = await fetch('/api/perfis', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        nome: p.nome + ' (cópia)',
-        descricao: p.descricao,
-        permissoes: p.permissoes,
-        ativo: true,
-      }),
-    });
-    if (!res.ok) throw new Error('Erro ao duplicar');
-    showToast('Perfil duplicado!', 'success');
-    await loadPerfis();
-  } catch(e) { showToast(e.message, 'error'); }
-}
-
-async function definirPadrao(id) {
-  try {
-    // Remove padrão de todos e define no selecionado
-    for (const p of _perfis) {
-      if (p.padrao && p.id !== id) {
-        await fetch(`/api/perfis/${p.id}`, {
-          method: 'PUT', headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({ padrao: false }),
-        });
-      }
-    }
-    await fetch(`/api/perfis/${id}`, {
-      method: 'PUT', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ padrao: true }),
-    });
-    showToast('Perfil definido como padrão!', 'success');
-    await loadPerfis();
-  } catch(e) { showToast('Erro ao definir padrão', 'error'); }
-}
-
-function confirmarExcluirPerfil(id, nome) {
-  confirmDialog(`Deseja excluir o perfil <strong>${nome}</strong>?`, async () => {
-    try {
-      const res = await fetch(`/api/perfis/${id}`, { method: 'DELETE' });
-      if (!res.ok) { const d = await res.json(); showToast(d.erro || 'Erro', 'error'); return; }
-      showToast('Perfil excluído!', 'success');
-      if (_perfilSel?.id === id) _perfilSel = null;
-      await loadPerfis();
-    } catch(e) { showToast('Erro ao excluir', 'error'); }
-  });
-}
+/* ===================== DASHBOARD ===================== */
