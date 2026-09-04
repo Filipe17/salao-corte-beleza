@@ -587,6 +587,7 @@
   transition: all var(--t-fast);
   color: var(--gray-500);
 }
+.btn-icon-sm svg, .btn-icon-sm * { pointer-events: none; }
 .btn-icon-edit:hover  { background: var(--plum-50); border-color: var(--plum-300); color: var(--accent); }
 .btn-icon-delete:hover { background: #fef2f2; border-color: #fecaca; color: var(--danger); }
 
@@ -871,3 +872,13 @@
   .perfis-layout { grid-template-columns: 1fr; }
   .perfis-perms-wrap { grid-column: 1; }
 }
+
+/* ── Evitar piscar cursor em botões com SVG ── */
+.btn svg, .btn span,
+.btn-login svg,
+.quick-action-btn svg,
+.nav-item svg,
+.nav-subitem svg,
+.topbar-btn svg,
+.topbar-user svg,
+[onclick] > svg { pointer-events: none; }
