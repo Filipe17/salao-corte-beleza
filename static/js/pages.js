@@ -1314,6 +1314,7 @@ function navigateConfig(secao, e) {
   content.scrollTop = 0;
   // Carregar dados após HTML estar no DOM
   if (secao === 'perfis') setTimeout(async () => { await loadPerfis(); }, 0);
+  if (secao === 'permissoes') setTimeout(async () => { await loadPermissoes(); }, 0);
   if (secao === 'usuarios') setTimeout(() => { renderUsuariosArea(); }, 0);
 }
 
