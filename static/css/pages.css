@@ -1118,3 +1118,222 @@
   .agenda-nova-layout { grid-template-columns: 1fr; }
   .agenda-nova-sidebar { position: static; }
 }
+
+/* ══════════════════════════════════════
+   AGENDA NOVA — Layout completo
+══════════════════════════════════════ */
+
+/* Layout 3 colunas: painel-hoje | grade | sidebar */
+.agenda-nova-layout {
+  display: grid;
+  grid-template-columns: 190px 1fr 260px;
+  gap: 16px;
+  align-items: start;
+}
+.agenda-nova-main { min-width: 0; overflow: hidden; }
+
+/* Toolbar */
+.agenda-nova-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ── Painel Atendimentos de hoje ── */
+.agenda-painel-hoje {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+  position: sticky;
+  top: 16px;
+}
+.hoje-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--gray-100);
+}
+.hoje-stat:last-child { border-bottom: none; }
+.hoje-num {
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+/* ── Grade de profissionais ── */
+.agenda-pro-grid-wrap {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  overflow: auto;
+  box-shadow: var(--shadow-sm);
+  max-height: calc(100vh - 220px);
+}
+
+/* Header com nomes dos profissionais */
+.agenda-pro-grid-header {
+  display: flex;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 10;
+  border-bottom: 2px solid var(--gray-100);
+  min-width: max-content;
+}
+.agenda-time-label-header {
+  width: 72px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--gray-100);
+}
+.agenda-pro-header-cell {
+  width: 180px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-right: 1px solid var(--gray-100);
+}
+.agenda-pro-header-cell .avatar {
+  width: 34px;
+  height: 34px;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+/* Corpo da grade */
+.agenda-pro-grid-body {
+  display: flex;
+  min-width: max-content;
+}
+.agenda-time-col {
+  width: 72px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--gray-100);
+}
+.agenda-time-cell {
+  height: 64px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 6px 8px 0 0;
+  font-size: 0.72rem;
+  color: var(--gray-400);
+  border-bottom: 1px solid var(--gray-50);
+}
+.agenda-pro-body-col {
+  width: 180px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--gray-100);
+}
+.agenda-body-slot {
+  height: 64px;
+  border-bottom: 1px solid var(--gray-50);
+  position: relative;
+}
+
+/* Bloco de agendamento */
+.apt-block {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  border-radius: 6px;
+  padding: 3px 6px;
+  cursor: pointer;
+  overflow: hidden;
+  z-index: 2;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.apt-block:hover { opacity: 0.88; transform: scale(1.01); }
+.col-bloqueada .apt-block { cursor: not-allowed; opacity: 0.6; }
+.agenda-pro-body-col.col-bloqueada {
+  background: repeating-linear-gradient(45deg,transparent,transparent 8px,rgba(0,0,0,0.018) 8px,rgba(0,0,0,0.018) 16px);
+}
+
+/* ── Sidebar direita ── */
+.agenda-nova-sidebar {
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Mini calendário ── */
+.mini-cal {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding: 12px;
+  box-shadow: var(--shadow-sm);
+}
+.mini-cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.mini-cal-header button {
+  background: none; border: none;
+  font-size: 0.95rem; cursor: pointer;
+  color: var(--gray-500); padding: 2px 8px;
+  border-radius: 4px; line-height: 1;
+}
+.mini-cal-header button:hover { background: var(--gray-100); }
+.mini-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+}
+.mini-cal-wday {
+  text-align: center;
+  font-size: 0.66rem;
+  color: var(--gray-400);
+  font-weight: 600;
+  padding: 2px 0 4px;
+}
+.mini-cal-day {
+  text-align: center;
+  font-size: 0.76rem;
+  padding: 4px 2px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--gray-700);
+  position: relative;
+  transition: background 0.1s;
+  line-height: 1.4;
+}
+.mini-cal-day:hover { background: var(--gray-100); }
+.mini-cal-day.hoje  { font-weight: 700; color: var(--primary); }
+.mini-cal-day.sel   { background: var(--primary); color: white !important; }
+.mini-cal-day.has-apt::after {
+  content: '';
+  position: absolute;
+  bottom: 1px; left: 50%;
+  transform: translateX(-50%);
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+.mini-cal-day.sel::after { background: white; }
+
+/* Responsivo */
+@media (max-width: 1280px) {
+  .agenda-nova-layout { grid-template-columns: 160px 1fr 220px; }
+  .agenda-pro-header-cell, .agenda-pro-body-col { width: 150px; }
+}
+@media (max-width: 1024px) {
+  .agenda-nova-layout { grid-template-columns: 1fr 200px; }
+  .agenda-painel-hoje { display: none; }
+}
+@media (max-width: 768px) {
+  .agenda-nova-layout { grid-template-columns: 1fr; }
+  .agenda-nova-sidebar { position: static; }
+}

@@ -410,3 +410,44 @@ ul { list-style: none; }
     padding: 0 16px;
   }
 }
+
+/* ── Sidebar colapsada (hambúrguer) ── */
+.sidebar.collapsed {
+  width: 64px;
+}
+.sidebar.collapsed .sidebar-brand-text,
+.sidebar.collapsed .nav-label,
+.sidebar.collapsed .nav-item span,
+.sidebar.collapsed .nav-arrow,
+.sidebar.collapsed .nav-subitem,
+.sidebar.collapsed .nav-submenu,
+.sidebar.collapsed .sidebar-section-title {
+  display: none !important;
+}
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+  padding: 10px;
+}
+.sidebar.collapsed .nav-icon {
+  margin: 0;
+}
+.sidebar.collapsed .sidebar-brand {
+  justify-content: center;
+  padding: 20px 0;
+}
+.sidebar.collapsed .nav-item-parent {
+  justify-content: center;
+}
+
+/* Main content ajusta margem quando sidebar colapsa */
+.main-content.sidebar-collapsed {
+  margin-left: 64px;
+}
+
+/* Transição suave */
+.sidebar {
+  transition: width 0.25s ease;
+}
+.main-content {
+  transition: margin-left 0.25s ease;
+}

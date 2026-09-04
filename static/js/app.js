@@ -45,8 +45,15 @@ function navigate(page) {
 
 // Sidebar toggle
 function toggleSidebar() {
-  document.getElementById('sidebar').classList.toggle('open');
-  document.getElementById('sidebarOverlay').classList.toggle('show');
+  const sidebar  = document.getElementById('sidebar');
+  const mainWrap = document.getElementById('mainContent');
+  if (window.innerWidth > 768) {
+    const collapsed = sidebar.classList.toggle('collapsed');
+    if (mainWrap) mainWrap.classList.toggle('sidebar-collapsed', collapsed);
+  } else {
+    sidebar.classList.toggle('open');
+    document.getElementById('sidebarOverlay').classList.toggle('show');
+  }
 }
 function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
