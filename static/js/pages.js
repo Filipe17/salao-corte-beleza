@@ -187,229 +187,253 @@ function renderDashboard() {
 
 /* ===================== AGENDA ===================== */
 function renderAgenda() {
-  const dateStr = agendaDate.toLocaleDateString('pt-BR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
-  const hours = ['08','09','10','11','12','13','14','15','16','17','18'];
-  const dayStr = agendaDate.toISOString().slice(0,10);
+  const dayStr  = agendaDate.toISOString().slice(0,10);
+  const dateLabel = agendaDate.toLocaleDateString('pt-BR', {day:'numeric', month:'long', year:'numeric'});
+  const weekLabel = agendaDate.toLocaleDateString('pt-BR', {weekday:'long'});
+  const hours   = ['08','09','10','11','12','13','14','15','16','17','18','19'];
   const dayApts = DB.agendamentos.filter(a => a.data === dayStr);
+  const pros    = DB.profissionais.filter(p => p.ativo !== false);
 
-  const timeSlots = hours.map(h => {
-    const slotApts = dayApts.filter(a => a.hora.startsWith(h));
-    const apptBlocks = slotApts.map(a => {
-      const cli = getCliente(a.clienteId);
-      const serv = getServico(a.servicoId);
-      const topPx = (parseInt(a.hora.split(':')[1]) / 60) * 60;
-      const heightPx = (a.duracao / 60) * 60 - 2;
-      return `<div class="appointment-block ${a.status}" style="top:${topPx}px;height:${heightPx}px" onclick="openAppointmentDetail(${a.id})">
-        <div class="appt-client">${cli?.nome?.split(' ')[0] || ''} ${cli?.nome?.split(' ')[1] || ''}</div>
-        <div class="appt-service">${serv?.nome || ''}</div>
+  // Mini calendário
+  function miniCal() {
+    const m = agendaDate.getMonth(), y = agendaDate.getFullYear();
+    const mesNome = agendaDate.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+    const first = new Date(y,m,1).getDay();
+    const days  = new Date(y,m+1,0).getDate();
+    const hoje  = new Date().toISOString().slice(0,10);
+    let cells = '';
+    for(let i=0;i<first;i++) cells += '<div></div>';
+    for(let d=1;d<=days;d++){
+      const ds = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const isHoje = ds===hoje, isSel = ds===dayStr;
+      const hasApt = DB.agendamentos.some(a=>a.data===ds);
+      cells += `<div class="mini-cal-day ${isHoje?'hoje':''} ${isSel?'sel':''} ${hasApt?'has-apt':''}"
+        onclick="agendaDate=new Date('${ds}T12:00');navigate('agenda')">${d}</div>`;
+    }
+    return `<div class="mini-cal">
+      <div class="mini-cal-header">
+        <button onclick="agendaDate=new Date(agendaDate.getFullYear(),agendaDate.getMonth()-1,1);navigate('agenda')">‹</button>
+        <span style="text-transform:capitalize;font-weight:600;font-size:0.82rem">${mesNome}</span>
+        <button onclick="agendaDate=new Date(agendaDate.getFullYear(),agendaDate.getMonth()+1,1);navigate('agenda')">›</button>
+      </div>
+      <div class="mini-cal-grid">
+        ${['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(d=>`<div class="mini-cal-wday">${d}</div>`).join('')}
+        ${cells}
+      </div>
+    </div>`;
+  }
+
+  // Colunas dos profissionais
+  function colsPros() {
+    return pros.map((pro, pi) => {
+      const proApts = dayApts.filter(a => a.proId === pro.id);
+      const slots = hours.map(h => {
+        const slotApts = proApts.filter(a => a.hora && a.hora.startsWith(h+':'));
+        const blocks = slotApts.map(a => {
+          const cli  = getCliente(a.clienteId);
+          const serv = getServico(a.servicoId);
+          const topPx  = (parseInt((a.hora.split(':')[1]||'0')) / 60) * 64;
+          const durMin = a.duracao || 60;
+          const heightPx = Math.max((durMin / 60) * 64 - 2, 28);
+          const statusColors = {confirmado:'#c084fc',pendente:'#fbbf24',finalizado:'#34d399',cancelado:'#f87171',emandamento:'#60a5fa'};
+          const cor = statusColors[a.status] || '#c084fc';
+          return `<div class="apt-block" style="top:${topPx}px;height:${heightPx}px;border-left:3px solid ${cor};background:${cor}18"
+            onclick="openAppointmentDetail(${a.id})">
+            <div style="font-weight:600;font-size:0.75rem;color:var(--gray-800);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${cli?.nome?.split(' ').slice(0,2).join(' ')||''}</div>
+            <div style="font-size:0.7rem;color:var(--gray-500);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${serv?.nome||''}</div>
+            <div style="font-size:0.68rem;color:${cor};font-weight:500">${a.hora} - ${a.hora_fim||''}</div>
+            <button class="apt-menu-btn" onclick="event.stopPropagation()">⋮</button>
+          </div>`;
+        }).join('');
+        return `<div class="agenda-pro-slot" style="height:64px;position:relative;border-bottom:1px solid var(--gray-100)">${blocks}</div>`;
+      }).join('');
+      return `<div class="agenda-pro-col">
+        <div class="agenda-pro-header">
+          ${avatarHtml(pro.nome,'',pi)}
+          <div>
+            <div style="font-weight:600;font-size:0.82rem">${pro.nome}</div>
+            <div style="font-size:0.72rem;color:var(--gray-400)">${pro.especialidade||pro.cargo||'Profissional'}</div>
+          </div>
+        </div>
+        ${slots}
       </div>`;
     }).join('');
-    return `
-      <div class="time-slot">${h}:00</div>
-      <div class="agenda-slot" style="position:relative">${apptBlocks}</div>`;
-  }).join('');
+  }
 
   return `
   <div class="page-header">
-    <div class="page-header-left"><h1>Agenda</h1><p>Gerencie seus agendamentos</p></div>
+    <div class="page-header-left"><h1>Agenda</h1></div>
     <div class="page-header-right">
       <button class="btn btn-primary" onclick="openNewAppointment()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Novo agendamento
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Novo Agendamento
       </button>
     </div>
   </div>
 
-  <div class="agenda-toolbar">
-    <div class="agenda-nav">
-      <button class="agenda-nav-btn" onclick="agendaBack()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-      </button>
-      <span class="agenda-date-label">${dateStr}</span>
-      <button class="agenda-nav-btn" onclick="agendaNext()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-      <button class="btn btn-sm btn-outline" onclick="agendaToday()">Hoje</button>
-    </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-      <div style="display:flex;gap:8px;font-size:.78rem">
-        <span class="badge badge-purple">Confirmado</span>
-        <span class="badge badge-amber">Pendente</span>
-        <span class="badge badge-green">Finalizado</span>
-        <span class="badge badge-gray">Cancelado</span>
-      </div>
-      <div class="view-toggle">
-        <button class="view-toggle-btn ${agendaView==='day'?'active':''}" onclick="setAgendaView('day')">Dia</button>
-        <button class="view-toggle-btn ${agendaView==='week'?'active':''}" onclick="setAgendaView('week')">Semana</button>
-        <button class="view-toggle-btn ${agendaView==='month'?'active':''}" onclick="setAgendaView('month')">Mês</button>
-      </div>
-    </div>
+  <!-- Breadcrumb -->
+  <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:var(--gray-400);margin-bottom:16px">
+    <span>Home</span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="9 18 15 12 9 6"/></svg>
+    <span style="color:var(--primary);font-weight:500">Agenda</span>
   </div>
 
-  <div class="agenda-day">
-    <div class="time-col">
-      <div class="time-slot"></div>
-      ${timeSlots.split('\n').filter(l=>l.includes('time-slot')).join('')}
+  <div class="agenda-nova-layout">
+    <!-- Área principal -->
+    <div class="agenda-nova-main">
+      <!-- Toolbar -->
+      <div class="agenda-nova-toolbar">
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="agenda-nav-btn" onclick="agendaBack()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <button class="btn btn-sm btn-outline" onclick="agendaToday()" style="padding:6px 14px">Hoje</button>
+          <button class="agenda-nav-btn" onclick="agendaNext()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          <div style="margin-left:8px">
+            <div style="font-weight:700;font-size:1rem;color:var(--gray-800)">${dateLabel}</div>
+            <div style="font-size:0.78rem;color:var(--gray-400);text-transform:capitalize">${weekLabel}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="view-toggle">
+            <button class="view-toggle-btn ${agendaView==='day'?'active':''}" onclick="setAgendaView('day')">Dia</button>
+            <button class="view-toggle-btn ${agendaView==='week'?'active':''}" onclick="setAgendaView('week')">Semana</button>
+            <button class="view-toggle-btn ${agendaView==='month'?'active':''}" onclick="setAgendaView('month')">Mês</button>
+          </div>
+          <select class="form-control" style="width:auto;font-size:0.82rem;padding:7px 12px">
+            <option>Todos os profissionais</option>
+            ${pros.map(p=>`<option>${p.nome}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      <!-- Grade de horários com colunas por profissional -->
+      <div class="agenda-pro-grid-wrap">
+        <!-- Header profissionais -->
+        <div class="agenda-pro-grid-header">
+          <div class="agenda-time-label-header"></div>
+          ${pros.map((pro,pi)=>`
+            <div class="agenda-pro-header-cell">
+              ${avatarHtml(pro.nome,'avatar-sm',pi)}
+              <div>
+                <div style="font-weight:600;font-size:0.82rem">${pro.nome}</div>
+                <div style="font-size:0.72rem;color:var(--gray-400)">${pro.especialidade||pro.cargo||'Profissional'}</div>
+              </div>
+            </div>`).join('')}
+        </div>
+
+        <!-- Corpo com horários -->
+        <div class="agenda-pro-grid-body">
+          <!-- Coluna de horas -->
+          <div class="agenda-time-col">
+            ${hours.map(h=>`<div class="agenda-time-cell">${h}:00</div>`).join('')}
+          </div>
+          <!-- Colunas dos profissionais -->
+          ${pros.map((pro,pi) => {
+            const proApts = dayApts.filter(a => a.proId === pro.id);
+            return `<div class="agenda-pro-body-col">
+              ${hours.map(h => {
+                const slotApts = proApts.filter(a => a.hora && a.hora.startsWith(h+':'));
+                const blocks = slotApts.map(a => {
+                  const cli  = getCliente(a.clienteId);
+                  const serv = getServico(a.servicoId);
+                  const topPx    = (parseInt((a.hora.split(':')[1]||'0')) / 60) * 64;
+                  const durMin   = a.duracao || 60;
+                  const heightPx = Math.max((durMin / 60) * 64 - 2, 30);
+                  const statusColors = {confirmado:'#c084fc',pendente:'#fbbf24',finalizado:'#34d399',cancelado:'#f87171',emandamento:'#60a5fa',confirmado:'#a78bfa'};
+                  const cor = statusColors[a.status] || '#a78bfa';
+                  return `<div class="apt-block" style="top:${topPx}px;height:${heightPx}px;border-left:3px solid ${cor};background:${cor}20"
+                    onclick="openAppointmentDetail(${a.id})">
+                    <div style="font-weight:600;font-size:0.74rem;color:var(--gray-800);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${cli?.nome?.split(' ').slice(0,2).join(' ')||'—'}</div>
+                    <div style="font-size:0.7rem;color:var(--gray-500);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${serv?.nome||''}</div>
+                    <div style="font-size:0.68rem;color:${cor};font-weight:500">${a.hora}${a.hora_fim?' - '+a.hora_fim:''}</div>
+                  </div>`;
+                }).join('');
+                return `<div class="agenda-body-slot" style="position:relative">${blocks}</div>`;
+              }).join('')}
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
     </div>
-    <div class="agenda-col">
-      ${hours.map(h => {
-        const slotApts = dayApts.filter(a => a.hora.startsWith(h));
-        const apptBlocks = slotApts.map(a => {
-          const cli = getCliente(a.clienteId);
-          const serv = getServico(a.servicoId);
-          const topPx = (parseInt(a.hora.split(':')[1]) / 60) * 60;
-          const heightPx = Math.max((a.duracao / 60) * 60 - 2, 24);
-          return `<div class="appointment-block ${a.status}" style="top:${topPx}px;height:${heightPx}px" onclick="openAppointmentDetail(${a.id})">
-            <div class="appt-client">${cli?.nome?.split(' ').slice(0,2).join(' ') || ''}</div>
-            <div class="appt-service">${serv?.nome || ''} — ${formatCurrency(a.valor)}</div>
-          </div>`;
-        }).join('');
-        return `<div class="agenda-slot" style="position:relative">${apptBlocks}</div>`;
-      }).join('')}
+
+    <!-- Painel lateral direito -->
+    <div class="agenda-nova-sidebar">
+      <!-- Mini calendário -->
+      ${miniCal()}
+
+      <!-- Filtros -->
+      <div class="card" style="margin-top:16px">
+        <div class="card-header" style="padding:14px 16px 10px">
+          <div class="card-title" style="font-size:0.9rem">Filtros</div>
+          <button style="font-size:0.78rem;color:var(--primary);background:none;border:none;cursor:pointer">Limpar filtros</button>
+        </div>
+        <div class="card-body" style="padding:0 16px 16px">
+          <div class="form-group">
+            <label class="form-label" style="font-size:0.78rem">Profissional</label>
+            <select class="form-control" style="font-size:0.82rem">
+              <option>Todos os profissionais</option>
+              ${pros.map(p=>`<option>${p.nome}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-size:0.78rem">Serviço</label>
+            <select class="form-control" style="font-size:0.82rem">
+              <option>Todos os serviços</option>
+              ${DB.servicos.filter(s=>s.ativo).map(s=>`<option>${s.nome}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-size:0.78rem">Situação</label>
+            <select class="form-control" style="font-size:0.82rem">
+              <option>Todas</option>
+              <option>Agendado</option>
+              <option>Confirmado</option>
+              <option>Em andamento</option>
+              <option>Concluído</option>
+              <option>Cancelado</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label" style="font-size:0.78rem">Período</label>
+            <select class="form-control" style="font-size:0.82rem">
+              <option>Dia inteiro</option>
+              <option>Manhã</option>
+              <option>Tarde</option>
+              <option>Noite</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Legenda -->
+      <div class="card" style="margin-top:16px">
+        <div class="card-header" style="padding:14px 16px 10px"><div class="card-title" style="font-size:0.9rem">Legenda</div></div>
+        <div class="card-body" style="padding:0 16px 14px;display:flex;flex-direction:column;gap:8px">
+          ${[
+            {cor:'#a78bfa',label:'Agendado'},
+            {cor:'#34d399',label:'Confirmado'},
+            {cor:'#60a5fa',label:'Em andamento'},
+            {cor:'#6ee7b7',label:'Concluído'},
+            {cor:'#f87171',label:'Cancelado'},
+          ].map(l=>`<div style="display:flex;align-items:center;gap:8px;font-size:0.8rem;color:var(--gray-600)">
+            <div style="width:12px;height:12px;border-radius:50%;background:${l.cor};flex-shrink:0"></div>
+            ${l.label}
+          </div>`).join('')}
+        </div>
+      </div>
+
+      <!-- Imprimir -->
+      <button class="btn btn-outline" style="width:100%;margin-top:16px;font-size:0.82rem" onclick="window.print()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Imprimir Agenda
+      </button>
     </div>
   </div>`;
 }
 
-function agendaBack() {
-  agendaDate.setDate(agendaDate.getDate() - 1);
-  navigate('agenda');
-}
-function agendaNext() {
-  agendaDate.setDate(agendaDate.getDate() + 1);
-  navigate('agenda');
-}
-function agendaToday() { agendaDate = new Date(); navigate('agenda'); }
-function setAgendaView(v) { agendaView = v; navigate('agenda'); }
-
-function openAppointmentDetail(id) {
-  const a = DB.agendamentos.find(x => x.id === id);
-  if (!a) return;
-  const cli = getCliente(a.clienteId);
-  const pro = getProfissional(a.proId);
-  const serv = getServico(a.servicoId);
-  openModal({
-    title: 'Detalhe do Agendamento',
-    body: `
-      <div style="display:flex;gap:16px;margin-bottom:16px">
-        ${avatarHtml(cli?.nome,'avatar-lg',a.clienteId)}
-        <div>
-          <div style="font-weight:600;font-size:1rem">${cli?.nome}</div>
-          <div style="color:var(--gray-500);font-size:.85rem">${cli?.telefone}</div>
-        </div>
-      </div>
-      <div class="grid grid-2" style="gap:10px;margin-bottom:16px">
-        <div class="card" style="padding:12px 16px">
-          <div class="text-xs text-gray">Serviço</div>
-          <div style="font-weight:600;margin-top:4px">${serv?.nome}</div>
-        </div>
-        <div class="card" style="padding:12px 16px">
-          <div class="text-xs text-gray">Profissional</div>
-          <div style="font-weight:600;margin-top:4px">${pro?.nome}</div>
-        </div>
-        <div class="card" style="padding:12px 16px">
-          <div class="text-xs text-gray">Data / Hora</div>
-          <div style="font-weight:600;margin-top:4px">${formatDate(a.data)} às ${a.hora}</div>
-        </div>
-        <div class="card" style="padding:12px 16px">
-          <div class="text-xs text-gray">Valor</div>
-          <div style="font-weight:600;color:var(--primary);font-size:1.05rem;margin-top:4px">${formatCurrency(a.valor)}</div>
-        </div>
-      </div>
-      <div style="margin-bottom:12px">${statusBadge(a.status)}</div>
-      ${a.obs ? `<div class="alert alert-info" style="font-size:.82rem">💬 ${a.obs}</div>` : ''}`,
-    footer: `
-      <button class="btn btn-outline" onclick="closeModal()">Fechar</button>
-      <button class="btn btn-success" onclick="finalizeAppointment(${id})">Finalizar</button>
-      <button class="btn btn-danger" onclick="cancelAppointment(${id})">Cancelar</button>`
-  });
-}
-
-function finalizeAppointment(id) {
-  const a = DB.agendamentos.find(x=>x.id===id);
-  if (a) { a.status = 'finalizado'; closeModal(); showToast('Atendimento finalizado!','success'); navigate('agenda'); }
-}
-function cancelAppointment(id) {
-  closeModal();
-  confirmDialog('Deseja cancelar este agendamento?', () => {
-    const a = DB.agendamentos.find(x=>x.id===id);
-    if (a) { a.status = 'cancelado'; showToast('Agendamento cancelado','warning'); navigate('agenda'); }
-  });
-}
-
-function openNewAppointment() {
-  const clientesOptions = DB.clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
-  const proOptions = DB.profissionais.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
-  const servOptions = DB.servicos.filter(s=>s.ativo).map(s => `<option value="${s.id}">${s.nome} — ${formatCurrency(s.preco)}</option>`).join('');
-  openModal({
-    title: 'Novo Agendamento',
-    body: `
-      <div class="form-group"><label class="form-label">Cliente</label>
-        <select class="form-control" id="na_cli"><option value="">Selecionar...</option>${clientesOptions}</select></div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Data</label>
-          <input type="date" class="form-control" id="na_data" value="${today()}"></div>
-        <div class="form-group"><label class="form-label">Início</label>
-          <input type="time" class="form-control" id="na_hora" value="09:00" oninput="calcularHoraFim()"></div>
-        <div class="form-group"><label class="form-label">Fim</label>
-          <input type="time" class="form-control" id="na_hora_fim" value="10:00"></div>
-      </div>
-      <div class="form-group"><label class="form-label">Serviço</label>
-        <select class="form-control" id="na_serv" onchange="calcularHoraFim()"><option value="">Selecionar...</option>${servOptions}</select></div>
-      <div class="form-group"><label class="form-label">Profissional</label>
-        <select class="form-control" id="na_pro"><option value="">Selecionar...</option>${proOptions}</select></div>
-      <div class="form-group"><label class="form-label">Observações</label>
-        <textarea class="form-control" id="na_obs" rows="2" placeholder="Alguma observação?"></textarea></div>`,
-    footer: `
-      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveNewAppointment()">Agendar</button>`
-  });
-}
-
-function calcularHoraFim() {
-  const inicio = document.getElementById('na_hora')?.value;
-  const servId = parseInt(document.getElementById('na_serv')?.value);
-  if (!inicio) return;
-  const serv = getServico(servId);
-  const durMin = serv ? serv.duracao : 60;
-  const [h, m] = inicio.split(':').map(Number);
-  const totalMin = h * 60 + m + durMin;
-  const fimH = String(Math.floor(totalMin / 60) % 24).padStart(2, '0');
-  const fimM = String(totalMin % 60).padStart(2, '0');
-  const fimEl = document.getElementById('na_hora_fim');
-  if (fimEl) fimEl.value = `${fimH}:${fimM}`;
-}
-
-function saveNewAppointment() {
-  const cliId  = parseInt(document.getElementById('na_cli').value);
-  const proId  = parseInt(document.getElementById('na_pro').value);
-  const servId = parseInt(document.getElementById('na_serv').value);
-  const data   = document.getElementById('na_data').value;
-  const hora   = document.getElementById('na_hora').value;
-  const horaFim = document.getElementById('na_hora_fim').value;
-  const obs    = document.getElementById('na_obs').value;
-
-  if (!cliId || !proId || !servId || !data || !hora) {
-    showToast('Preencha todos os campos obrigatórios', 'error'); return;
-  }
-
-  // Calcular duração em minutos pela diferença início/fim
-  let duracao = 60;
-  if (hora && horaFim) {
-    const [h1, m1] = hora.split(':').map(Number);
-    const [h2, m2] = horaFim.split(':').map(Number);
-    const diff = (h2 * 60 + m2) - (h1 * 60 + m1);
-    if (diff > 0) duracao = diff;
-  }
-
-  const serv = getServico(servId);
-  DB.agendamentos.push({
-    id: generateId(DB.agendamentos), clienteId:cliId, proId, servicoId:servId,
-    data, hora, hora_fim: horaFim, duracao, status:'confirmado', valor:serv.preco, obs
-  });
-  closeModal();
-  showToast('Agendamento criado com sucesso!', 'success');
-  navigate('agenda');
-}
 
 /* ===================== CLIENTES ===================== */
 let clienteSearch = '';
