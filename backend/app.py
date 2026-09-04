@@ -352,6 +352,9 @@ def migrate():
     cols_perfis = [
         ("data_criacao", "VARCHAR(20) DEFAULT ''"),
     ]
+    cols_agendamentos = [
+        ("hora_fim", "VARCHAR(5) DEFAULT ''"),
+    ]
     with db.engine.connect() as conn:
         for col, definition in cols_usuarios:
             try:
