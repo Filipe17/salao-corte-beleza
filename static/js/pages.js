@@ -3,6 +3,9 @@
 =========================== */
 
 /* ===================== DASHBOARD ===================== */
+let agendaView = 'day';
+let agendaDate = new Date();
+
 function renderDashboard() {
   const low = getLowStock();
   const schedule = getTodaySchedule();
