@@ -6,6 +6,24 @@
 let agendaView = 'day';
 let agendaDate = new Date();
 
+// ── Usuário logado e permissões da agenda ────────────────
+function getUsuarioLogado() {
+  try { return JSON.parse(sessionStorage.getItem('belezza_user') || '{}'); } catch(e) { return {}; }
+}
+function podeEditarAgenda(proId) {
+  const u = getUsuarioLogado();
+  if (!u.role) return true; // sem login = dev mode
+  if (['administrador','gerente','recepcionista'].includes(u.role)) return true;
+  // Profissional só edita a própria coluna
+  // Compara pelo nome do usuário com o nome do profissional
+  const pro = DB.profissionais.find(p => p.id === proId);
+  return pro && u.nome && pro.nome.toLowerCase().includes(u.nome.split(' ')[0].toLowerCase());
+}
+function isAdmin() {
+  const u = getUsuarioLogado();
+  return !u.role || ['administrador','gerente'].includes(u.role);
+}
+
 function renderDashboard() {
   const low = getLowStock();
   const schedule = getTodaySchedule();
@@ -192,7 +210,12 @@ function renderAgenda() {
   const weekLabel = agendaDate.toLocaleDateString('pt-BR', {weekday:'long'});
   const hours   = ['08','09','10','11','12','13','14','15','16','17','18','19'];
   const dayApts = DB.agendamentos.filter(a => a.data === dayStr);
-  const pros    = DB.profissionais.filter(p => p.ativo !== false);
+  const uLogado  = getUsuarioLogado();
+  const todosPos = DB.profissionais.filter(p => p.ativo !== false);
+  // Profissional só vê a própria coluna
+  const pros = (uLogado.role === 'profissional')
+    ? todosPos.filter(p => uLogado.nome && p.nome.toLowerCase().includes(uLogado.nome.split(' ')[0].toLowerCase())) || todosPos
+    : todosPos;
 
   // Mini calendário
   function miniCal() {
@@ -315,12 +338,13 @@ function renderAgenda() {
         <div class="agenda-pro-grid-header">
           <div class="agenda-time-label-header"></div>
           ${pros.map((pro,pi)=>`
-            <div class="agenda-pro-header-cell">
+            <div class="agenda-pro-header-cell ${!isAdmin() && !podeEditarAgenda(pro.id) ? 'col-bloqueada' : ''}">
               ${avatarHtml(pro.nome,'avatar-sm',pi)}
               <div>
                 <div style="font-weight:600;font-size:0.82rem">${pro.nome}</div>
                 <div style="font-size:0.72rem;color:var(--gray-400)">${pro.especialidade||pro.cargo||'Profissional'}</div>
               </div>
+              ${!isAdmin() && !podeEditarAgenda(pro.id) ? '<svg viewBox="0 0 24 24" fill="none" stroke="var(--gray-300)" stroke-width="2" width="14" height="14" style="margin-left:auto"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>' : ''}
             </div>`).join('')}
         </div>
 
@@ -333,7 +357,8 @@ function renderAgenda() {
           <!-- Colunas dos profissionais -->
           ${pros.map((pro,pi) => {
             const proApts = dayApts.filter(a => a.proId === pro.id);
-            return `<div class="agenda-pro-body-col">
+            const bloqueada = !isAdmin() && !podeEditarAgenda(pro.id);
+            return `<div class="agenda-pro-body-col ${bloqueada ? 'col-bloqueada' : ''}">
               ${hours.map(h => {
                 const slotApts = proApts.filter(a => a.hora && a.hora.startsWith(h+':'));
                 const blocks = slotApts.map(a => {
@@ -345,7 +370,8 @@ function renderAgenda() {
                   const statusColors = {confirmado:'#c084fc',pendente:'#fbbf24',finalizado:'#34d399',cancelado:'#f87171',emandamento:'#60a5fa',confirmado:'#a78bfa'};
                   const cor = statusColors[a.status] || '#a78bfa';
                   return `<div class="apt-block" style="top:${topPx}px;height:${heightPx}px;border-left:3px solid ${cor};background:${cor}20"
-                    onclick="openAppointmentDetail(${a.id})">
+                    onclick="${bloqueada ? '' : 'openAppointmentDetail('+a.id+')'}"
+                    title="${bloqueada ? 'Sem permissão para editar' : ''}">
                     <div style="font-weight:600;font-size:0.74rem;color:var(--gray-800);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${cli?.nome?.split(' ').slice(0,2).join(' ')||'—'}</div>
                     <div style="font-size:0.7rem;color:var(--gray-500);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${serv?.nome||''}</div>
                     <div style="font-size:0.68rem;color:${cor};font-weight:500">${a.hora}${a.hora_fim?' - '+a.hora_fim:''}</div>
