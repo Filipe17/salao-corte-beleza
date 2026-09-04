@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDV — Belezza</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="pdv.css" />
+</head>
+<body>
+
+  <!-- ── Topbar ── -->
+  <header class="pdv-topbar">
+    <div class="pdv-topbar-left">
+      <div class="pdv-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+        Belezza
+      </div>
+      <span class="pdv-topbar-title">PDV — Vendas</span>
+    </div>
+    <div class="pdv-topbar-right">
+      <div class="pdv-venda-num" id="pdvVendaNum">Venda #PDV-000001</div>
+      <button class="pdv-btn-icon" title="Notificações">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+      </button>
+      <div class="pdv-user" id="pdvUser">
+        <div class="pdv-avatar" id="pdvAvatar">A</div>
+        <div class="pdv-user-info">
+          <span id="pdvUserName">Administrador</span>
+          <small id="pdvUserRole">admin@salao.com</small>
+        </div>
+      </div>
+      <a href="index.html" class="pdv-btn-voltar" title="Voltar ao sistema">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6"/></svg>
+        Admin
+      </a>
+    </div>
+  </header>
+
+  <!-- ── Layout principal ── -->
+  <main class="pdv-main">
+
+    <!-- ── Coluna esquerda: produtos ── -->
+    <section class="pdv-left">
+
+      <!-- Busca e código de barras -->
+      <div class="pdv-search-bar">
+        <div class="pdv-search-input">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="pdvSearch" placeholder="Buscar produto, serviço ou cliente..." oninput="pdvRender()" />
+        </div>
+        <button class="pdv-barcode-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="3" y1="4" x2="3" y2="20"/><line x1="7" y1="4" x2="7" y2="20"/><line x1="11" y1="4" x2="11" y2="20"/><line x1="15" y1="4" x2="15" y2="20"/><line x1="19" y1="4" x2="19" y2="20"/></svg>
+          Código de barras
+        </button>
+        <button class="pdv-nova-venda" onclick="novaVenda()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nova Venda
+        </button>
+      </div>
+
+      <!-- Abas Serviços / Produtos -->
+      <div class="pdv-tabs">
+        <button class="pdv-tab active" id="tabServicos" onclick="setTab('servicos')">Serviços</button>
+        <button class="pdv-tab" id="tabProdutos" onclick="setTab('produtos')">Produtos</button>
+      </div>
+
+      <!-- Filtros de categoria -->
+      <div class="pdv-cats" id="pdvCats"></div>
+
+      <!-- Grid de itens -->
+      <div class="pdv-grid" id="pdvGrid">
+        <div class="pdv-loading">Carregando...</div>
+      </div>
+
+      <!-- Clientes frequentes -->
+      <div class="pdv-clientes-freq">
+        <div class="pdv-clientes-freq-header">
+          <span>Clientes frequentes</span>
+          <button onclick="abrirModalCliente()" class="pdv-link">+ Novo cliente</button>
+        </div>
+        <div class="pdv-clientes-list" id="pdvClientesList"></div>
+      </div>
+
+      <!-- Steps -->
+      <div class="pdv-steps">
+        <div class="pdv-step">
+          <div class="pdv-step-icon">🛒</div>
+          <div><strong>1. Selecionar itens</strong><br/><small>Adicione serviços ou produtos ao caixa</small></div>
+        </div>
+        <div class="pdv-step-arrow">→</div>
+        <div class="pdv-step">
+          <div class="pdv-step-icon">📋</div>
+          <div><strong>2. Conferir</strong><br/><small>Revise os itens, profissionais e valores</small></div>
+        </div>
+        <div class="pdv-step-arrow">→</div>
+        <div class="pdv-step">
+          <div class="pdv-step-icon">💳</div>
+          <div><strong>3. Pagamento</strong><br/><small>Escolha a forma de pagamento</small></div>
+        </div>
+        <div class="pdv-step-arrow">→</div>
+        <div class="pdv-step">
+          <div class="pdv-step-icon">✅</div>
+          <div><strong>4. Finalizar</strong><br/><small>Venda registrada com sucesso!</small></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Coluna direita: caixa ── -->
+    <aside class="pdv-right">
+
+      <!-- Abas Caixa / Comanda -->
+      <div class="pdv-caixa-tabs">
+        <button class="pdv-caixa-tab active" id="tabCaixa" onclick="setCaixaTab('caixa')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+          Caixa
+        </button>
+        <button class="pdv-caixa-tab" id="tabComanda" onclick="setCaixaTab('comanda')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Comanda
+        </button>
+        <span class="pdv-venda-badge" id="pdvVendaBadge">Venda #PDV-000001</span>
+      </div>
+
+      <!-- Cliente selecionado -->
+      <div class="pdv-cliente-sel" id="pdvClienteSel">
+        <div class="pdv-cliente-avatar" id="pdvClienteAvatar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <div class="pdv-cliente-info">
+          <span id="pdvClienteNome">Nenhum cliente selecionado</span>
+          <small id="pdvClienteTel"></small>
+        </div>
+        <button class="pdv-btn-sel-cliente" onclick="abrirModalCliente()">Selecionar cliente</button>
+        <button class="pdv-btn-whats" id="pdvBtnWhats" style="display:none" title="WhatsApp">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.99 2C6.472 2 2 6.473 2 11.99c0 1.87.487 3.622 1.337 5.144L2 22l5.003-1.312A9.962 9.962 0 0011.99 22C17.508 22 22 17.527 22 12.01 22 6.473 17.508 2 11.99 2z"/></svg>
+        </button>
+      </div>
+
+      <!-- Itens do carrinho -->
+      <div class="pdv-cart-header">
+        <span>Item</span>
+        <span>Profissional</span>
+        <span>Qtd.</span>
+        <span>Unitário</span>
+        <span>Total</span>
+        <span>Ações</span>
+      </div>
+      <div class="pdv-cart-items" id="pdvCartItems">
+        <div class="pdv-cart-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+          <p>Carrinho vazio</p>
+          <small>Adicione serviços ou produtos</small>
+        </div>
+      </div>
+
+      <!-- Observação -->
+      <button class="pdv-obs-btn" onclick="toggleObs()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Adicionar observação
+        <span style="margin-left:auto">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>
+        </span>
+      </button>
+      <textarea id="pdvObs" class="pdv-obs-area" placeholder="Observações da venda..." style="display:none"></textarea>
+
+      <!-- Totais -->
+      <div class="pdv-totais">
+        <div class="pdv-total-row">
+          <span>Subtotal</span>
+          <span id="pdvSubtotal">R$ 0,00</span>
+        </div>
+        <div class="pdv-total-row">
+          <span>Desconto</span>
+          <div class="pdv-desconto-input">
+            <span>R$</span>
+            <input type="number" id="pdvDesconto" value="0" min="0" oninput="atualizarTotais()" />
+            <button class="pdv-chevron">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="pdv-total-row">
+          <span>Acréscimo</span>
+          <div class="pdv-desconto-input">
+            <span>R$</span>
+            <input type="number" id="pdvAcrescimo" value="0" min="0" oninput="atualizarTotais()" />
+            <button class="pdv-chevron">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="pdv-total-row total">
+          <span>Total</span>
+          <span id="pdvTotal" class="pdv-total-val">R$ 0,00</span>
+        </div>
+      </div>
+
+      <!-- Formas de pagamento -->
+      <div class="pdv-pgto-label">Forma de pagamento</div>
+      <div class="pdv-pgto-grid" id="pdvPgtoGrid"></div>
+
+      <!-- Valor recebido / troco -->
+      <div class="pdv-troco-area" id="pdvTrocoArea" style="display:none">
+        <div class="pdv-total-row">
+          <span>Valor recebido</span>
+          <input type="number" id="pdvValorRecebido" class="pdv-recebido-input" placeholder="0,00" oninput="calcTroco()" />
+        </div>
+        <div class="pdv-total-row">
+          <span>Troco</span>
+          <span id="pdvTroco" class="pdv-troco-val">R$ 0,00</span>
+        </div>
+      </div>
+
+      <!-- Botões finais -->
+      <div class="pdv-acoes">
+        <button class="pdv-btn-cancelar" onclick="cancelarVenda()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Cancelar
+        </button>
+        <button class="pdv-btn-finalizar" onclick="finalizarVenda()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          Finalizar Venda
+        </button>
+      </div>
+
+      <!-- Resumo do dia -->
+      <div class="pdv-resumo-dia">
+        <div class="pdv-resumo-titulo">Resumo do dia</div>
+        <div class="pdv-resumo-data" id="pdvResumoData"></div>
+        <div class="pdv-resumo-item vendas">
+          <span>Vendas</span>
+          <strong id="pdvResumoVendas">R$ 0,00</strong>
+        </div>
+        <div class="pdv-resumo-item atendimentos">
+          <span>Atendimentos</span>
+          <strong id="pdvResumoAtend">0</strong>
+        </div>
+        <div class="pdv-resumo-item ticket">
+          <span>Ticket médio</span>
+          <strong id="pdvResumoTicket">R$ 0,00</strong>
+        </div>
+      </div>
+
+    </aside>
+  </main>
+
+  <!-- ── Modal seleção de cliente ── -->
+  <div class="pdv-modal-overlay" id="modalClienteOverlay" onclick="fecharModalCliente()">
+    <div class="pdv-modal" onclick="event.stopPropagation()">
+      <div class="pdv-modal-header">
+        <h3>Selecionar Cliente</h3>
+        <button onclick="fecharModalCliente()">✕</button>
+      </div>
+      <input type="text" id="modalClienteSearch" class="pdv-modal-search" placeholder="Buscar cliente..." oninput="renderModalClientes()" />
+      <div class="pdv-modal-list" id="modalClienteList"></div>
+    </div>
+  </div>
+
+  <!-- ── Toast ── -->
+  <div class="pdv-toast" id="pdvToast"></div>
+
+  <script src="pdv.js"></script>
+</body>
+</html>
