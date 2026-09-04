@@ -129,6 +129,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         </div>
         <div class="pdv-cliente-info">
+          <span class="pdv-cliente-label">Cliente</span>
           <span id="pdvClienteNome">Nenhum cliente selecionado</span>
           <small id="pdvClienteTel"></small>
         </div>
@@ -155,54 +156,62 @@
         </div>
       </div>
 
-      <!-- Observação -->
-      <button class="pdv-obs-btn" onclick="toggleObs()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Adicionar observação
-        <span style="margin-left:auto">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>
-        </span>
-      </button>
+      <!-- Observação + Limpar caixa -->
+      <div class="pdv-obs-limpar">
+        <button class="pdv-obs-btn" onclick="toggleObs()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Adicionar observação
+        </button>
+        <button class="pdv-limpar-btn" onclick="cancelarVenda()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+          Limpar caixa
+        </button>
+      </div>
       <textarea id="pdvObs" class="pdv-obs-area" placeholder="Observações da venda..." style="display:none"></textarea>
 
-      <!-- Totais -->
-      <div class="pdv-totais">
-        <div class="pdv-total-row">
-          <span>Subtotal</span>
-          <span id="pdvSubtotal">R$ 0,00</span>
-        </div>
-        <div class="pdv-total-row">
-          <span>Desconto</span>
-          <div class="pdv-desconto-input">
-            <span>R$</span>
-            <input type="number" id="pdvDesconto" value="0" min="0" oninput="atualizarTotais()" />
-            <button class="pdv-chevron">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>
-            </button>
+      <!-- Totais + Pagamento lado a lado -->
+      <div class="pdv-totais-pgto">
+        <!-- Totais -->
+        <div class="pdv-totais">
+          <div class="pdv-total-row">
+            <span>Subtotal</span>
+            <span id="pdvSubtotal">R$ 0,00</span>
+          </div>
+          <div class="pdv-total-row">
+            <span>Desconto</span>
+            <div class="pdv-desconto-input">
+              <span>R$</span>
+              <input type="number" id="pdvDesconto" value="0" min="0" oninput="atualizarTotais()" />
+              <button class="pdv-chevron">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="pdv-total-row">
+            <span>Acréscimo</span>
+            <div class="pdv-desconto-input">
+              <span>R$</span>
+              <input type="number" id="pdvAcrescimo" value="0" min="0" oninput="atualizarTotais()" />
+              <button class="pdv-chevron">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="pdv-total-row total">
+            <span>Total</span>
+            <span id="pdvTotal" class="pdv-total-val">R$ 0,00</span>
           </div>
         </div>
-        <div class="pdv-total-row">
-          <span>Acréscimo</span>
-          <div class="pdv-desconto-input">
-            <span>R$</span>
-            <input type="number" id="pdvAcrescimo" value="0" min="0" oninput="atualizarTotais()" />
-            <button class="pdv-chevron">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>
-            </button>
-          </div>
-        </div>
-        <div class="pdv-total-row total">
-          <span>Total</span>
-          <span id="pdvTotal" class="pdv-total-val">R$ 0,00</span>
+
+        <!-- Formas de pagamento -->
+        <div>
+          <div class="pdv-pgto-label">Forma de pagamento</div>
+          <div class="pdv-pgto-grid" id="pdvPgtoGrid"></div>
         </div>
       </div>
 
-      <!-- Formas de pagamento -->
-      <div class="pdv-pgto-label">Forma de pagamento</div>
-      <div class="pdv-pgto-grid" id="pdvPgtoGrid"></div>
-
-      <!-- Valor recebido / troco -->
-      <div class="pdv-troco-area" id="pdvTrocoArea" style="display:none">
+      <!-- Valor recebido / troco — sempre visível -->
+      <div class="pdv-troco-area">
         <div class="pdv-total-row">
           <span>Valor recebido</span>
           <input type="number" id="pdvValorRecebido" class="pdv-recebido-input" placeholder="0,00" oninput="calcTroco()" />
@@ -217,11 +226,11 @@
       <div class="pdv-acoes">
         <button class="pdv-btn-cancelar" onclick="cancelarVenda()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          Cancelar
+          Cancelar (F7)
         </button>
         <button class="pdv-btn-finalizar" onclick="finalizarVenda()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-          Finalizar Venda
+          Finalizar Venda (F6)
         </button>
       </div>
 

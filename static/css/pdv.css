@@ -6,9 +6,9 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --primary:    #c026d3;
-  --primary-lt: #fdf4ff;
-  --primary-dk: #a21caf;
+  --primary:    #e91e8c;
+  --primary-lt: #fff0f7;
+  --primary-dk: #c2185b;
   --pink:       #f472b6;
   --success:    #16a34a;
   --success-lt: #dcfce7;
@@ -355,9 +355,14 @@ body {
 }
 .pdv-obs-area:focus { border-color: var(--primary); }
 
-/* Totais */
-.pdv-totais { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--gray-100); padding-top: 10px; }
-.pdv-total-row {
+/* Totais + Pagamento lado a lado */
+.pdv-totais-pgto {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+.pdv-totais { display: flex; flex-direction: column; gap: 8px; }
   display: flex; align-items: center; justify-content: space-between;
   font-size: 0.85rem; color: var(--gray-600);
 }
@@ -376,8 +381,25 @@ body {
 }
 .pdv-chevron { background: none; border: none; cursor: pointer; color: var(--gray-400); padding: 0; }
 
-/* Troco */
-.pdv-troco-area { display: flex; flex-direction: column; gap: 6px; }
+/* Label "Cliente" acima do nome */
+.pdv-cliente-label { font-size: 0.7rem; color: var(--gray-400); font-weight: 500; }
+.pdv-cliente-info span#pdvClienteNome { font-size: 0.875rem; font-weight: 600; }
+
+/* Obs + Limpar caixa na mesma linha */
+.pdv-obs-limpar {
+  display: flex; align-items: center; justify-content: space-between;
+  border-top: 1px solid var(--gray-100); padding-top: 8px;
+}
+.pdv-limpar-btn {
+  display: flex; align-items: center; gap: 6px;
+  background: none; border: 1px solid var(--gray-200);
+  padding: 5px 10px; border-radius: 8px; font-size: 0.75rem;
+  cursor: pointer; color: var(--gray-500); transition: all .15s;
+}
+.pdv-limpar-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+/* Troco sempre visível */
+.pdv-troco-area { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--gray-100); padding-top: 8px; }
 .pdv-recebido-input {
   width: 100px; border: 1px solid var(--gray-200); border-radius: 8px;
   padding: 4px 8px; font-size: 0.85rem; text-align: right;

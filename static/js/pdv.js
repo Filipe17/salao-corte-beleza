@@ -327,12 +327,6 @@ function renderPgtoGrid() {
 function selecionarPgto(key) {
   pgtoSel = key;
   renderPgtoGrid();
-  const trocoArea = document.getElementById('pdvTrocoArea');
-  if (trocoArea) trocoArea.style.display = key === 'dinheiro' ? 'flex' : 'none';
-  if (key === 'dinheiro') {
-    trocoArea.style.flexDirection = 'column';
-    trocoArea.style.gap = '6px';
-  }
 }
 
 // ── Observação ────────────────────────────────────────────
@@ -356,7 +350,6 @@ function novaVenda() {
   renderCart();
   atualizarTotais();
   renderPgtoGrid();
-  document.getElementById('pdvTrocoArea').style.display = 'none';
   toast('Nova venda iniciada', 'success');
 }
 
