@@ -1172,9 +1172,8 @@
   background: white;
   border: 1px solid var(--gray-200);
   border-radius: var(--radius-lg);
-  overflow: auto;
+  overflow-x: auto;
   box-shadow: var(--shadow-sm);
-  max-height: calc(100vh - 220px);
 }
 
 /* Header com nomes dos profissionais */
