@@ -1827,9 +1827,9 @@ function renderListaPerfis() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
             Duplicar perfil
           </button>
-          <button class="perfil-dropdown-item" onclick="closePerfilMenus();definirPadrao(${p.id})" ${p.padrao ? 'disabled style="opacity:0.45"' : ''}>
+          <button class="perfil-dropdown-item" onclick="closePerfilMenus();definirPadrao(${p.id})">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            Definir como padrão ${p.padrao ? '(atual)' : ''}
+            Definir como padrão
           </button>
           <button class="perfil-dropdown-item" onclick="closePerfilMenus();selecionarPerfil(${p.id})">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -1935,9 +1935,9 @@ function renderPerfisArea() {
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
                     Duplicar perfil
                   </button>
-                  <button class="perfil-dropdown-item" onclick="closePerfilMenus();definirPadrao(${p.id})" ${p.padrao ? 'disabled style="opacity:0.45"' : ''}>
+                  <button class="perfil-dropdown-item" onclick="closePerfilMenus();definirPadrao(${p.id})">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                    Definir como padrão ${p.padrao ? '(atual)' : ''}
+                    Definir como padrão
                   </button>
                   <button class="perfil-dropdown-item" onclick="closePerfilMenus();selecionarPerfil(${p.id})">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
