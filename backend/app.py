@@ -196,6 +196,31 @@ class Usuario(db.Model):
         }
 
 
+
+class PerfilAcesso(db.Model):
+    __tablename__ = 'perfis_acesso'
+    id          = db.Column(db.Integer, primary_key=True)
+    nome        = db.Column(db.String(80), nullable=False)
+    descricao   = db.Column(db.String(200), default='')
+    padrao      = db.Column(db.Boolean, default=False)
+    ativo       = db.Column(db.Boolean, default=True)
+    # Permissões por módulo: JSON com visualizar/incluir/editar/excluir/imprimir/exportar
+    permissoes  = db.Column(db.Text, default='{}')
+    data_criacao = db.Column(db.String(20), default=lambda: str(date.today()))
+
+    def to_dict(self):
+        import json
+        try:
+            perms = json.loads(self.permissoes or '{}')
+        except:
+            perms = {}
+        return {
+            'id': self.id, 'nome': self.nome, 'descricao': self.descricao or '',
+            'padrao': self.padrao, 'ativo': self.ativo,
+            'permissoes': perms, 'data_criacao': self.data_criacao or '',
+        }
+
+
 class Transacao(db.Model):
     __tablename__ = 'transacoes'
     id        = db.Column(db.Integer, primary_key=True)
@@ -253,6 +278,21 @@ def seed():
             Produto(nome='Acetona 1L', categoria='Unhas',
                     qtd=2, minimo=4, unidade='un', custo=12, preco=25),
         ])
+
+    # Seed perfis de acesso
+    if PerfilAcesso.query.count() == 0:
+        perfis_seed = [
+            {'nome':'Administrador','descricao':'Acesso total ao sistema','padrao':True,'ativo':True,'permissoes':'{"dashboard": {"visualizar": true, "incluir": true, "editar": true, "excluir": true, "imprimir": true, "exportar": true}, "agenda": {"visualizar": true, "incluir": true, "editar": true, "excluir": true, "imprimir": true, "exportar": true}, "clientes": {"visualizar": true, "incluir": true, "editar": true, "excluir": true, "imprimir": true, "exportar": true}, "servicos": {"visualizar": true, "incluir": true, "editar": true, "excluir": true, "imprimir": true, "exportar": true}, "profissionais": {"visualizar": true, "incluir": true, "editar": true, "excluir": true, "imprimir": true, "exportar": true}, "atendimentos": {"visualizar": true, "incluir": true, "editar": true, "excluir": true, "imprimir": true, "exportar": true}, "pdv": {"visualizar": true, "incluir": true, "editar": true, "excluir": true, "imprimir": true, "exportar": true}, "estoque": {"visualizar": true, "incluir": true, "editar": true, "excluir": true, "imprimir": true, "exportar": true}, "financeiro": {"visualizar": true, "incluir": true, "editar": true, "excluir": true, "imprimir": true, "exportar": true}, "relatorios": {"visualizar": true, "incluir": true, "editar": true, "excluir": true, "imprimir": true, "exportar": true}, "configuracoes": {"visualizar": true, "incluir": true, "editar": true, "excluir": true, "imprimir": true, "exportar": true}}'},
+            {'nome':'Gerente','descricao':'Gerencia o salão e equipe','padrao':False,'ativo':True,'permissoes':'{"dashboard": {"visualizar": true, "incluir": true, "editar": true, "excluir": true, "imprimir": true, "exportar": true}, "agenda": {"visualizar": true, "incluir": true, "editar": true, "excluir": true, "imprimir": true, "exportar": true}, "clientes": {"visualizar": true, "incluir": true, "editar": true, "excluir": true, "imprimir": true, "exportar": true}, "servicos": {"visualizar": true, "incluir": true, "editar": true, "excluir": true, "imprimir": true, "exportar": true}, "profissionais": {"visualizar": true, "incluir": true, "editar": true, "excluir": true, "imprimir": true, "exportar": true}, "atendimentos": {"visualizar": true, "incluir": true, "editar": true, "excluir": true, "imprimir": true, "exportar": true}, "pdv": {"visualizar": true, "incluir": true, "editar": true, "excluir": true, "imprimir": true, "exportar": true}, "estoque": {"visualizar": true, "incluir": true, "editar": true, "excluir": true, "imprimir": true, "exportar": true}, "financeiro": {"visualizar": true, "incluir": true, "editar": true, "excluir": true, "imprimir": true, "exportar": true}, "relatorios": {"visualizar": true, "incluir": true, "editar": true, "excluir": true, "imprimir": true, "exportar": true}, "configuracoes": {"visualizar": true, "incluir": true, "editar": true, "excluir": false, "imprimir": true, "exportar": true}}'},
+            {'nome':'Recepcionista','descricao':'Agenda clientes e atendimentos','padrao':False,'ativo':True,'permissoes':'{"dashboard": {"visualizar": true, "incluir": false, "editar": false, "excluir": false, "imprimir": false, "exportar": false}, "agenda": {"visualizar": true, "incluir": true, "editar": true, "excluir": false, "imprimir": false, "exportar": false}, "clientes": {"visualizar": true, "incluir": true, "editar": true, "excluir": false, "imprimir": false, "exportar": false}, "servicos": {"visualizar": false, "incluir": false, "editar": false, "excluir": false, "imprimir": false, "exportar": false}, "profissionais": {"visualizar": false, "incluir": false, "editar": false, "excluir": false, "imprimir": false, "exportar": false}, "atendimentos": {"visualizar": true, "incluir": true, "editar": true, "excluir": false, "imprimir": false, "exportar": false}, "pdv": {"visualizar": false, "incluir": false, "editar": false, "excluir": false, "imprimir": false, "exportar": false}, "estoque": {"visualizar": false, "incluir": false, "editar": false, "excluir": false, "imprimir": false, "exportar": false}, "financeiro": {"visualizar": false, "incluir": false, "editar": false, "excluir": false, "imprimir": false, "exportar": false}, "relatorios": {"visualizar": false, "incluir": false, "editar": false, "excluir": false, "imprimir": false, "exportar": false}, "configuracoes": {"visualizar": false, "incluir": false, "editar": false, "excluir": false, "imprimir": false, "exportar": false}}'},
+            {'nome':'Profissional','descricao':'Acesso aos atendimentos','padrao':False,'ativo':True,'permissoes':'{"dashboard": {"visualizar": true, "incluir": false, "editar": false, "excluir": false, "imprimir": false, "exportar": false}, "agenda": {"visualizar": true, "incluir": false, "editar": false, "excluir": false, "imprimir": false, "exportar": false}, "clientes": {"visualizar": false, "incluir": false, "editar": false, "excluir": false, "imprimir": false, "exportar": false}, "servicos": {"visualizar": true, "incluir": false, "editar": false, "excluir": false, "imprimir": false, "exportar": false}, "profissionais": {"visualizar": false, "incluir": false, "editar": false, "excluir": false, "imprimir": false, "exportar": false}, "atendimentos": {"visualizar": true, "incluir": true, "editar": true, "excluir": false, "imprimir": false, "exportar": false}, "pdv": {"visualizar": false, "incluir": false, "editar": false, "excluir": false, "imprimir": false, "exportar": false}, "estoque": {"visualizar": false, "incluir": false, "editar": false, "excluir": false, "imprimir": false, "exportar": false}, "financeiro": {"visualizar": false, "incluir": false, "editar": false, "excluir": false, "imprimir": false, "exportar": false}, "relatorios": {"visualizar": false, "incluir": false, "editar": false, "excluir": false, "imprimir": false, "exportar": false}, "configuracoes": {"visualizar": false, "incluir": false, "editar": false, "excluir": false, "imprimir": false, "exportar": false}}'},
+            {'nome':'Caixa','descricao':'Acesso ao PDV e financeiro','padrao':False,'ativo':True,'permissoes':'{"dashboard": {"visualizar": true, "incluir": false, "editar": false, "excluir": false, "imprimir": true, "exportar": false}, "agenda": {"visualizar": false, "incluir": false, "editar": false, "excluir": false, "imprimir": true, "exportar": false}, "clientes": {"visualizar": false, "incluir": false, "editar": false, "excluir": false, "imprimir": true, "exportar": false}, "servicos": {"visualizar": false, "incluir": false, "editar": false, "excluir": false, "imprimir": true, "exportar": false}, "profissionais": {"visualizar": false, "incluir": false, "editar": false, "excluir": false, "imprimir": true, "exportar": false}, "atendimentos": {"visualizar": false, "incluir": false, "editar": false, "excluir": false, "imprimir": true, "exportar": false}, "pdv": {"visualizar": true, "incluir": true, "editar": true, "excluir": false, "imprimir": true, "exportar": false}, "estoque": {"visualizar": true, "incluir": false, "editar": false, "excluir": false, "imprimir": true, "exportar": false}, "financeiro": {"visualizar": true, "incluir": true, "editar": false, "excluir": false, "imprimir": true, "exportar": true}, "relatorios": {"visualizar": false, "incluir": false, "editar": false, "excluir": false, "imprimir": true, "exportar": false}, "configuracoes": {"visualizar": false, "incluir": false, "editar": false, "excluir": false, "imprimir": true, "exportar": false}}'},
+        ]
+        for p in perfis_seed:
+            db.session.add(PerfilAcesso(**p))
+        db.session.commit()
+        print("✅ Seed: perfis de acesso criados.")
+
     if Usuario.query.count() == 0:
         senha_hash = bcrypt.hashpw(b'admin123', bcrypt.gensalt()).decode()
         db.session.add(Usuario(nome='Admin', usuario='admin', senha=senha_hash,
@@ -317,6 +357,64 @@ def serve_uploads(path):
 # ═══════════════════════════════════════════════════════
 # API — AUTENTICAÇÃO
 # ═══════════════════════════════════════════════════════
+
+
+# ═══════════════════════════════════════════════════════
+# PERFIS DE ACESSO
+# ═══════════════════════════════════════════════════════
+
+@app.route('/api/perfis', methods=['GET'])
+def get_perfis():
+    perfis = PerfilAcesso.query.order_by(PerfilAcesso.id).all()
+    result = []
+    for p in perfis:
+        d = p.to_dict()
+        # Contar usuários com esse perfil (pelo nome do perfil em lowercase)
+        nome_lower = p.nome.lower().replace(' ', '_').replace('/', '_')
+        d['total_usuarios'] = Usuario.query.filter(
+            db.func.lower(Usuario.role) == p.nome.lower()
+        ).count()
+        result.append(d)
+    return jsonify(result)
+
+@app.route('/api/perfis', methods=['POST'])
+def create_perfil():
+    import json
+    body = request.get_json()
+    if not body.get('nome'):
+        return jsonify({'erro': 'Nome obrigatório'}), 400
+    p = PerfilAcesso(
+        nome=body['nome'],
+        descricao=body.get('descricao', ''),
+        padrao=body.get('padrao', False),
+        ativo=body.get('ativo', True),
+        permissoes=json.dumps(body.get('permissoes', {})),
+        data_criacao=str(date.today()),
+    )
+    db.session.add(p)
+    db.session.commit()
+    return jsonify(p.to_dict()), 201
+
+@app.route('/api/perfis/<int:id>', methods=['PUT'])
+def update_perfil(id):
+    import json
+    p = PerfilAcesso.query.get_or_404(id)
+    body = request.get_json()
+    if 'nome'       in body: p.nome       = body['nome']
+    if 'descricao'  in body: p.descricao  = body['descricao']
+    if 'ativo'      in body: p.ativo      = body['ativo']
+    if 'permissoes' in body: p.permissoes = json.dumps(body['permissoes'])
+    db.session.commit()
+    return jsonify(p.to_dict())
+
+@app.route('/api/perfis/<int:id>', methods=['DELETE'])
+def delete_perfil(id):
+    p = PerfilAcesso.query.get_or_404(id)
+    if p.padrao:
+        return jsonify({'erro': 'Não é possível excluir o perfil padrão'}), 400
+    db.session.delete(p)
+    db.session.commit()
+    return jsonify({'ok': True})
 
 @app.route('/api/login', methods=['POST'])
 def login():

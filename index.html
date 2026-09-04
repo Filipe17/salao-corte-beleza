@@ -85,6 +85,9 @@
         <a href="#" class="nav-subitem" data-config="usuarios" onclick="navigateConfig('usuarios',event)">
           <span class="nav-subdot">•</span> Usuários
         </a>
+        <a href="#" class="nav-subitem" data-config="perfis" onclick="navigateConfig('perfis',event)">
+          <span class="nav-subdot">•</span> Perfis de Acesso
+        </a>
         <a href="#" class="nav-subitem" data-config="dados" onclick="navigateConfig('dados',event)">
           <span class="nav-subdot">•</span> Dados do Salão
         </a>
@@ -96,6 +99,17 @@
         </a>
       </div>
     </nav>
+
+    <div class="sidebar-user">
+      <div class="user-avatar">A</div>
+      <div class="user-info">
+        <span class="user-name">Admin</span>
+        <span class="user-role">Gerente</span>
+      </div>
+      <button onclick="logout()" title="Sair" style="margin-left:auto;background:rgba(255,255,255,0.08);border:none;border-radius:8px;padding:7px;cursor:pointer;color:rgba(255,255,255,0.5);display:flex;align-items:center;transition:all 0.15s;" onmouseover="this.style.background='rgba(239,68,68,0.2)';this.style.color='#fca5a5'" onmouseout="this.style.background='rgba(255,255,255,0.08)';this.style.color='rgba(255,255,255,0.5)'">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="17" height="17"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
   </aside>
 
   <!-- Overlay mobile -->
@@ -124,26 +138,13 @@
         </button>
 
         <!-- Usuário -->
-        <div class="topbar-user" id="topbarUser" onclick="toggleUserMenu()">
+        <div class="topbar-user" id="topbarUser">
           <div class="topbar-user-avatar" id="topbarAvatar">A</div>
           <div class="topbar-user-info">
             <span class="topbar-user-name" id="topbarUserName">Administrador</span>
             <span class="topbar-user-role" id="topbarUserRole">Admin</span>
           </div>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="color:var(--gray-400)"><polyline points="6 9 12 15 18 9"/></svg>
-
-          <!-- Dropdown -->
-          <div class="topbar-user-dropdown" id="userDropdown">
-            <div class="user-dropdown-header">
-              <div class="user-dropdown-name" id="dropUserName">Administrador</div>
-              <div class="user-dropdown-role" id="dropUserRole">Admin</div>
-            </div>
-            <div class="user-dropdown-divider"></div>
-            <button class="user-dropdown-item" onclick="logout()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-              Sair do sistema
-            </button>
-          </div>
         </div>
       </div>
     </header>
@@ -170,80 +171,12 @@
       if (u.nome) {
         document.getElementById('topbarUserName').textContent = u.nome;
         document.getElementById('topbarAvatar').textContent   = u.nome[0].toUpperCase();
-        document.getElementById('dropUserName').textContent   = u.nome;
       }
       if (u.role) {
         const roles = { gerente:'Gerente', administrador:'Administrador', profissional:'Profissional', recepcionista:'Recepcionista', caixa:'Caixa' };
-        const roleLabel = roles[u.role] || u.role;
-        document.getElementById('topbarUserRole').textContent = roleLabel;
-        document.getElementById('dropUserRole').textContent   = roleLabel;
+        document.getElementById('topbarUserRole').textContent = roles[u.role] || u.role;
       }
     } catch(e) {}
-
-    function toggleUserMenu() {
-      const dd = document.getElementById('userDropdown');
-      dd.classList.toggle('show');
-    }
-
-    // Fechar dropdown ao clicar fora
-    document.addEventListener('click', (e) => {
-      if (!document.getElementById('topbarUser').contains(e.target)) {
-        document.getElementById('userDropdown')?.classList.remove('show');
-      }
-    });
   </script>
-
-  <style>
-    .topbar-user { position: relative; }
-    .topbar-user-dropdown {
-      display: none;
-      position: absolute;
-      top: calc(100% + 8px);
-      right: 0;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08);
-      min-width: 200px;
-      overflow: hidden;
-      z-index: 300;
-      border: 1px solid var(--gray-200);
-    }
-    .topbar-user-dropdown.show { display: block; }
-    .user-dropdown-header {
-      padding: 14px 16px 12px;
-      background: var(--gray-50);
-    }
-    .user-dropdown-name {
-      font-weight: 600;
-      font-size: 0.88rem;
-      color: var(--gray-800);
-    }
-    .user-dropdown-role {
-      font-size: 0.75rem;
-      color: var(--gray-400);
-      margin-top: 2px;
-    }
-    .user-dropdown-divider {
-      height: 1px;
-      background: var(--gray-100);
-    }
-    .user-dropdown-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      width: 100%;
-      padding: 11px 16px;
-      font-size: 0.875rem;
-      color: var(--danger);
-      font-family: var(--font-body);
-      font-weight: 500;
-      background: none;
-      border: none;
-      cursor: pointer;
-      transition: background 0.15s;
-      text-align: left;
-    }
-    .user-dropdown-item:hover { background: #fef2f2; }
-  </style>
 </body>
 </html>
