@@ -76,10 +76,25 @@
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
         <span>Relatórios</span>
       </a>
-      <a href="#" class="nav-item" data-page="configuracoes">
+      <a href="#" class="nav-item nav-item-parent" id="navConfiguracoes" onclick="toggleConfigMenu(event)">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M12 2a10 10 0 000 20"/></svg>
         <span>Configurações</span>
+        <svg class="nav-arrow" id="configArrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="margin-left:auto;transition:transform 0.2s"><polyline points="6 9 12 15 18 9"/></svg>
       </a>
+      <div class="nav-submenu" id="configSubmenu">
+        <a href="#" class="nav-subitem" data-config="usuarios" onclick="navigateConfig('usuarios',event)">
+          <span class="nav-subdot">•</span> Usuários
+        </a>
+        <a href="#" class="nav-subitem" data-config="dados" onclick="navigateConfig('dados',event)">
+          <span class="nav-subdot">•</span> Dados do Salão
+        </a>
+        <a href="#" class="nav-subitem" data-config="horarios" onclick="navigateConfig('horarios',event)">
+          <span class="nav-subdot">•</span> Horários
+        </a>
+        <a href="#" class="nav-subitem" data-config="whatsapp" onclick="navigateConfig('whatsapp',event)">
+          <span class="nav-subdot">•</span> WhatsApp
+        </a>
+      </div>
     </nav>
 
     <div class="sidebar-user">

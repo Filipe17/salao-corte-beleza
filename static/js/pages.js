@@ -1180,20 +1180,32 @@ function renderAtendimento() {
 }
 
 /* ===================== CONFIGURAÇÕES ===================== */
-function renderConfiguracoes() {
-  return `
-  <div id="configPageHeader" class="page-header">
-    <div class="page-header-left"><h1>Configurações</h1><p>Gerencie as configurações do sistema</p></div>
-  </div>
+// Seção atual de configurações
+let _configSecao = 'dados';
 
-  <div class="config-tabs" id="configTabsBar">
-    <button class="config-tab active" onclick="switchConfigTab('dados')">Dados do Salão</button>
-    <button class="config-tab" onclick="switchConfigTab('horarios')">Horários</button>
-    <button class="config-tab" onclick="switchConfigTab('usuarios')">Usuários</button>
-    <button class="config-tab" onclick="switchConfigTab('whatsapp')">WhatsApp</button>
-  </div>
+function renderConfiguracoes(secao) {
+  if (secao) _configSecao = secao;
+  // Marcar subitem ativo na sidebar
+  setTimeout(() => {
+    document.querySelectorAll('.nav-subitem').forEach(el => {
+      el.classList.toggle('active', el.dataset.config === _configSecao);
+    });
+    // Expandir submenu se não estiver aberto
+    const sub = document.getElementById('configSubmenu');
+    if (sub && !sub.classList.contains('open')) {
+      sub.classList.add('open');
+      const arrow = document.getElementById('configArrow');
+      if (arrow) arrow.style.transform = 'rotate(180deg)';
+    }
+  }, 0);
 
-  <div id="configTabDados" class="config-tab-content">
+  const titulos = { dados:'Dados do Salão', horarios:'Horários', usuarios:'Usuários', whatsapp:'WhatsApp' };
+  const titulo = titulos[_configSecao] || 'Configurações';
+
+  let conteudo = '';
+
+  if (_configSecao === 'dados') {
+    conteudo = `
     <div class="card">
       <div class="card-header"><div class="card-title">Dados do Salão</div></div>
       <div class="card-body">
@@ -1206,10 +1218,10 @@ function renderConfiguracoes() {
         </div>
         <button class="btn btn-primary" onclick="showToast('Configurações salvas!','success')">Salvar alterações</button>
       </div>
-    </div>
-  </div>
+    </div>`;
 
-  <div id="configTabHorarios" class="config-tab-content" style="display:none">
+  } else if (_configSecao === 'horarios') {
+    conteudo = `
     <div class="card">
       <div class="card-header"><div class="card-title">Horário de Funcionamento</div></div>
       <div class="card-body">
@@ -1225,10 +1237,10 @@ function renderConfiguracoes() {
           </div>`).join('')}
         <button class="btn btn-primary" style="margin-top:16px" onclick="showToast('Horários salvos!','success')">Salvar horários</button>
       </div>
-    </div>
-  </div>
+    </div>`;
 
-  <div id="configTabWhatsapp" class="config-tab-content" style="display:none">
+  } else if (_configSecao === 'whatsapp') {
+    conteudo = `
     <div class="card">
       <div class="card-header"><div class="card-title">WhatsApp Business</div></div>
       <div class="card-body">
@@ -1246,28 +1258,56 @@ function renderConfiguracoes() {
         </div>
         <button class="btn btn-primary" onclick="showToast('WhatsApp configurado!','success')">Salvar</button>
       </div>
-    </div>
-  </div>
+    </div>`;
 
-  <div id="configTabUsuarios" class="config-tab-content" style="display:none">
-    <div id="usuariosArea"><div class="loading-box">Carregando...</div></div>
-  </div>`;
+  } else if (_configSecao === 'usuarios') {
+    conteudo = `<div id="usuariosArea"><div class="loading-box">Carregando...</div></div>`;
+    setTimeout(() => renderUsuariosArea(), 0);
+  }
+
+  return `
+  <div class="page-header" id="configPageHeader">
+    <div class="page-header-left"><h1>${titulo}</h1></div>
+  </div>
+  ${conteudo}`;
 }
 
-function switchConfigTab(tab) {
-  document.querySelectorAll('.config-tab').forEach((btn, i) => {
-    const tabs = ['dados','horarios','usuarios','whatsapp'];
-    btn.classList.toggle('active', tabs[i] === tab);
-  });
-  ['dados','horarios','usuarios','whatsapp'].forEach(t => {
-    const el = document.getElementById('configTab' + t.charAt(0).toUpperCase() + t.slice(1));
-    if (el) el.style.display = t === tab ? '' : 'none';
-  });
-  // Carregar usuários ao abrir a aba
-  if (tab === 'usuarios') {
-    const area = document.getElementById('usuariosArea');
-    if (area) renderUsuariosArea();
+// ── Submenu de Configurações na sidebar ──────────────────
+function toggleConfigMenu(e) {
+  e.preventDefault();
+  const sub   = document.getElementById('configSubmenu');
+  const arrow = document.getElementById('configArrow');
+  const isOpen = sub.classList.toggle('open');
+  arrow.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+  if (isOpen && !document.querySelector('.nav-subitem.active')) {
+    navigateConfig('dados');
   }
+}
+
+function navigateConfig(secao, e) {
+  if (e) e.preventDefault();
+  _configSecao = secao;
+  // Marcar item pai como ativo
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('navConfiguracoes')?.classList.add('active');
+  // Marcar subitem
+  document.querySelectorAll('.nav-subitem').forEach(el => {
+    el.classList.toggle('active', el.dataset.config === secao);
+  });
+  // Expandir submenu
+  const sub = document.getElementById('configSubmenu');
+  if (sub) sub.classList.add('open');
+  const arrow = document.getElementById('configArrow');
+  if (arrow) arrow.style.transform = 'rotate(180deg)';
+  // Atualizar título da topbar
+  const titulos = { dados:'Dados do Salão', horarios:'Horários', usuarios:'Usuários', whatsapp:'WhatsApp' };
+  const topTitle = document.getElementById('pageTitle');
+  if (topTitle) topTitle.textContent = titulos[secao] || 'Configurações';
+  document.title = `${titulos[secao] || 'Configurações'} — Belezza`;
+  // Renderizar
+  const content = document.getElementById('pageContent');
+  content.innerHTML = `<div class="page-fade">${renderConfiguracoes(secao)}</div>`;
+  content.scrollTop = 0;
 }
 
 // ── Tela de Usuários ─────────────────────────────────────────────────────────
@@ -1379,11 +1419,6 @@ function renderTabelaUsuarios(filtro = '') {
 // ── Tela de cadastro / edição (substitui a aba inteira) ──
 function abrirCadastroUsuario(id) {
   _fotoSelecionada = null;
-  // Esconder abas e header de configurações
-  const tabsBar = document.getElementById('configTabsBar');
-  const header  = document.getElementById('configPageHeader');
-  if (tabsBar) tabsBar.style.display = 'none';
-  if (header)  header.style.display  = 'none';
   // Atualizar título da topbar
   const topTitle = document.getElementById('pageTitle');
   if (topTitle) topTitle.textContent = id ? 'Editar Usuário' : 'Cadastro de Usuário';
@@ -1541,17 +1576,8 @@ function abrirCadastroUsuario(id) {
 }
 
 function voltarListaUsuarios() {
-  // Mostrar abas e header de configurações
-  const tabsBar = document.getElementById('configTabsBar');
-  const header  = document.getElementById('configPageHeader');
-  if (tabsBar) tabsBar.style.display = '';
-  if (header)  header.style.display  = '';
-  // Restaurar título da topbar
-  const topTitle = document.getElementById('pageTitle');
-  if (topTitle) topTitle.textContent = 'Configurações';
-
   _usuarioEditando = null;
-  renderUsuariosArea();
+  navigateConfig('usuarios');
 }
 
 function previewFoto(event) {
@@ -1689,3 +1715,35 @@ function confirmarDesativarUsuario(id, nome) {
     } catch(e) { showToast('Erro ao atualizar usuário.', 'error'); }
   });
 }
+
+// Estilos do submenu de configurações (injetados dinamicamente)
+(function() {
+  const s = document.createElement('style');
+  s.textContent = `
+    .nav-item-parent { cursor:pointer; }
+    .nav-submenu {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.25s ease;
+      padding-left: 16px;
+    }
+    .nav-submenu.open { max-height: 300px; }
+    .nav-subitem {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border-radius: var(--radius-md);
+      color: rgba(255,255,255,0.5);
+      font-size: 0.83rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-decoration: none;
+      margin-bottom: 2px;
+    }
+    .nav-subitem:hover { color: white; background: rgba(255,255,255,0.06); }
+    .nav-subitem.active { color: var(--primary-light); font-weight: 500; }
+    .nav-subdot { font-size: 0.6rem; opacity: 0.6; }
+  `;
+  document.head.appendChild(s);
+})();
