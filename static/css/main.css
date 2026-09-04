@@ -91,19 +91,13 @@ body {
   min-height: 100vh;
   display: flex;
   overflow-x: hidden;
-  cursor: default;
 }
 a { text-decoration: none; color: inherit; }
 button { cursor: pointer; border: none; background: none; font-family: inherit; }
-button:disabled { cursor: not-allowed; }
-input, select, textarea { font-family: inherit; cursor: text; }
-select { cursor: pointer; }
+button svg, a svg, button span { pointer-events: none; }
+input, select, textarea { font-family: inherit; }
 img { max-width: 100%; display: block; }
 ul { list-style: none; }
-* { cursor: inherit; }
-a, button, [onclick], label[for], input[type="checkbox"], input[type="radio"], select { cursor: pointer; }
-input[type="text"], input[type="email"], input[type="password"], input[type="tel"],
-input[type="number"], input[type="date"], input[type="time"], textarea { cursor: text; }
 
 /* ===========================
    SIDEBAR
