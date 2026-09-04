@@ -1777,7 +1777,95 @@ async function loadPerfis() {
     const res = await fetch('/api/perfis');
     _perfis = await res.json();
   } catch(e) { _perfis = []; }
-  renderPerfisArea();
+  // Só re-renderiza se a área já existe (evita loop)
+  const area = document.getElementById('perfisArea');
+  if (area) {
+    if (!_perfilSel && _perfis.length) _perfilSel = _perfis[0];
+    renderTabelaPerfis2();
+    renderListaPerfis();
+    renderPermissoesView();
+  }
+}
+
+// Atualiza só a tabela sem recriar tudo
+function renderTabelaPerfis2() {
+  const wrap = document.getElementById('perfisTabelaWrap');
+  if (wrap) wrap.innerHTML = renderTabelaPerfis(_perfis);
+}
+
+// Atualiza só a lista lateral
+function renderListaPerfis() {
+  const lista = document.getElementById('perfisListaInner');
+  if (!lista) return;
+  const iconesPerfil = { administrador:'🛡️', gerente:'💼', recepcionista:'🧑‍💼', profissional:'✂️', caixa:'💵' };
+  lista.innerHTML = _perfis.map(p => {
+    const isSel = _perfilSel && p.id === _perfilSel.id;
+    const icon  = iconesPerfil[p.nome.toLowerCase()] || '👤';
+    return `
+    <div class="perfil-item ${isSel ? 'ativo' : ''}" onclick="selecionarPerfil(${p.id})">
+      <div class="perfil-item-icon">${icon}</div>
+      <div class="perfil-item-info">
+        <div class="perfil-item-nome">
+          ${p.nome}
+          ${p.padrao ? '<span class="badge badge-pink" style="font-size:0.65rem;padding:2px 8px">Padrão</span>' : ''}
+        </div>
+        <div class="perfil-item-desc">${p.descricao}</div>
+      </div>
+      <div class="perfil-item-menu" onclick="event.stopPropagation()">
+        <button class="perfil-menu-btn" onclick="togglePerfilMenu(event,${p.id})" title="Opções">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+        </button>
+        <div class="perfil-dropdown" id="perfilMenu_${p.id}">
+          <button class="perfil-dropdown-item" onclick="closePerfilMenus();editarPerfil(${p.id})">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Editar perfil
+          </button>
+          <button class="perfil-dropdown-item" onclick="closePerfilMenus();duplicarPerfil(${p.id})">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            Duplicar perfil
+          </button>
+          ${!p.padrao ? `<button class="perfil-dropdown-item" onclick="closePerfilMenus();definirPadrao(${p.id})">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            Definir como padrão
+          </button>` : ''}
+          <button class="perfil-dropdown-item" onclick="closePerfilMenus();selecionarPerfil(${p.id})">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            Visualizar permissões
+          </button>
+          ${!p.padrao ? `<button class="perfil-dropdown-item perfil-dropdown-danger" onclick="closePerfilMenus();confirmarExcluirPerfil(${p.id},'${p.nome}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+            Excluir perfil
+          </button>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Atualiza só a view de permissões
+function renderPermissoesView() {
+  const wrap = document.getElementById('perfisPermsView');
+  if (!wrap || !_perfilSel) return;
+  const ACOES = ['visualizar','incluir','editar','excluir','imprimir','exportar'];
+  const MODULOS = [
+    {key:'dashboard',label:'Dashboard',icon:'▦'},{key:'agenda',label:'Agenda',icon:'📅'},
+    {key:'clientes',label:'Clientes',icon:'👥'},{key:'servicos',label:'Serviços',icon:'✦'},
+    {key:'profissionais',label:'Profissionais',icon:'👤'},{key:'atendimentos',label:'Atendimentos',icon:'📋'},
+    {key:'pdv',label:'PDV / Vendas',icon:'🛒'},{key:'estoque',label:'Estoque',icon:'📦'},
+    {key:'financeiro',label:'Financeiro',icon:'💰'},{key:'relatorios',label:'Relatórios',icon:'📊'},
+    {key:'configuracoes',label:'Configurações',icon:'⚙️'},
+  ];
+  wrap.innerHTML = MODULOS.map(m => {
+    const perms = _perfilSel.permissoes[m.key] || {};
+    return `<tr>
+      <td><span style="display:flex;align-items:center;gap:8px">${m.icon} ${m.label}</span></td>
+      ${ACOES.map(a => `<td style="text-align:center">
+        ${perms[a]
+          ? '<svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" width="16" height="16"><polyline points="20 6 9 17 4 12"/></svg>'
+          : '<svg viewBox="0 0 24 24" fill="none" stroke="#e4e4e7" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'}
+      </td>`).join('')}
+    </tr>`;
+  }).join('');
 }
 
 function renderPerfisArea() {
@@ -1808,7 +1896,7 @@ function renderPerfisArea() {
         <div class="card-header" style="padding:16px 20px;border-bottom:1px solid var(--gray-100)">
           <div class="card-title">Perfis Cadastrados</div>
         </div>
-        <div class="perfis-lista">
+        <div class="perfis-lista" id="perfisListaInner">
           ${_perfis.map(p => {
             const isSel = _perfilSel && p.id === _perfilSel.id;
             const icon  = iconesPerfil[p.nome.toLowerCase()] || '👤';
@@ -1859,7 +1947,7 @@ function renderPerfisArea() {
         <div class="card-header">
           <div class="card-title">
             Permissões do Perfil:
-            <span style="color:var(--primary)">${_perfilSel ? _perfilSel.nome : '—'}</span>
+            <span style="color:var(--primary)" id="perfisPermsTitle">${_perfilSel ? _perfilSel.nome : '—'}</span>
           </div>
           ${_perfilSel ? `<button class="btn btn-outline" style="font-size:0.8rem;padding:6px 14px" onclick="editarPerfil(${_perfilSel.id})">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -1875,7 +1963,7 @@ function renderPerfisArea() {
               </tr>
             </thead>
             <tbody>
-              ${_perfilSel ? MODULOS.map(m => {
+              <tbody id="perfisPermsView">${_perfilSel ? MODULOS.map(m => {
                 const perms = _perfilSel.permissoes[m.key] || {};
                 return `<tr>
                   <td><span style="display:flex;align-items:center;gap:8px">${m.icon} ${m.label}</span></td>
@@ -1885,7 +1973,7 @@ function renderPerfisArea() {
                       : '<svg viewBox="0 0 24 24" fill="none" stroke="#e4e4e7" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'}
                   </td>`).join('')}
                 </tr>`;
-              }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--gray-400);padding:32px">Selecione um perfil</td></tr>'}
+              }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--gray-400);padding:32px">Selecione um perfil</td></tr>'}</tbody>
             </tbody>
           </table>
         </div>
@@ -1960,7 +2048,6 @@ function renderPerfisArea() {
       </div>
     </div>`;
 
-  setTimeout(loadPerfis, 0);
 }
 
 function renderTabelaPerfis(lista) {
@@ -1998,7 +2085,11 @@ function filtrarPerfis(termo) {
 
 function selecionarPerfil(id) {
   _perfilSel = _perfis.find(p => p.id === id);
-  renderPerfisArea();
+  renderListaPerfis();
+  renderPermissoesView();
+  // Atualizar título
+  const titulo = document.getElementById('perfisPermsTitle');
+  if (titulo && _perfilSel) titulo.textContent = _perfilSel.nome;
 }
 
 function abrirNovoPerfil() {
