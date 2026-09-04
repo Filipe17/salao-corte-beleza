@@ -2787,6 +2787,8 @@ function editarFP(id) {
   document.getElementById('fpFormErro').style.display = 'none';
   const wrap = document.getElementById('fpFormWrap');
   if (wrap) wrap.style.display = '';
+  const layout = document.getElementById('fpLayout');
+  if (layout) layout.classList.add('form-aberto');
 }
 
 function fecharFormFP() {
