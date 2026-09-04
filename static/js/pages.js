@@ -302,6 +302,36 @@ function renderAgenda() {
   </div>
 
   <div class="agenda-nova-layout">
+    <!-- Painel esquerdo: Atendimentos de hoje -->
+    <div class="agenda-painel-hoje">
+      <div style="font-size:0.85rem;font-weight:700;color:var(--gray-700);margin-bottom:16px">Atendimentos de hoje</div>
+      ${(() => {
+        const dayStr = agendaDate.toISOString().slice(0,10);
+        const hoje = DB.agendamentos.filter(a => a.data === dayStr);
+        const agendados    = hoje.filter(a => a.status === 'confirmado' || a.status === 'pendente').length;
+        const emAndamento  = hoje.filter(a => a.status === 'emandamento').length;
+        const concluidos   = hoje.filter(a => a.status === 'finalizado').length;
+        const cancelados   = hoje.filter(a => a.status === 'cancelado').length;
+        return `
+          <div class="hoje-stat">
+            <span style="color:var(--gray-500);font-size:0.8rem">Agendados</span>
+            <span class="hoje-num" style="color:var(--primary)">${agendados}</span>
+          </div>
+          <div class="hoje-stat">
+            <span style="color:var(--gray-500);font-size:0.8rem">Em andamento</span>
+            <span class="hoje-num" style="color:#f59e0b">${emAndamento}</span>
+          </div>
+          <div class="hoje-stat">
+            <span style="color:var(--gray-500);font-size:0.8rem">Concluídos</span>
+            <span class="hoje-num" style="color:#22c55e">${concluidos}</span>
+          </div>
+          <div class="hoje-stat">
+            <span style="color:var(--gray-500);font-size:0.8rem">Cancelados</span>
+            <span class="hoje-num" style="color:#ef4444">${cancelados}</span>
+          </div>`;
+      })()}
+    </div>
+
     <!-- Área principal -->
     <div class="agenda-nova-main">
       <!-- Toolbar -->
