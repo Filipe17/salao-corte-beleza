@@ -275,12 +275,13 @@ ul { list-style: none; }
   box-shadow: var(--shadow-sm);
 }
 .menu-toggle {
-  display: none;
+  display: flex;
   width: 36px; height: 36px;
   align-items: center; justify-content: center;
   border-radius: var(--radius-sm);
   color: var(--gray-600);
   transition: background var(--t-fast);
+  flex-shrink: 0;
 }
 .menu-toggle:hover { background: var(--gray-100); }
 .menu-toggle svg { width: 20px; height: 20px; }
