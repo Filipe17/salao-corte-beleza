@@ -1788,6 +1788,12 @@ async function loadPerfis() {
     renderPermissoesView();
   }
 }
+  // Carregar dados da API (só na primeira vez)
+  if (!area.dataset.carregado) {
+    area.dataset.carregado = '1';
+    setTimeout(async () => { await loadPerfis(); }, 0);
+  }
+
 
 // Atualiza só a tabela sem recriar tudo
 function renderTabelaPerfis2() {
@@ -1875,15 +1881,6 @@ function renderPerfisArea() {
   if (!area) return;
 
   if (!_perfilSel && _perfis.length) _perfilSel = _perfis[0];
-
-  // Carregar dados da API depois de montar a estrutura
-  const jaCarregado = area.dataset.carregado === '1';
-  if (!jaCarregado) {
-    area.dataset.carregado = '1';
-    setTimeout(async () => {
-      await loadPerfis();
-    }, 0);
-  }
 
   const iconesPerfil = { administrador:'🛡️', gerente:'💼', recepcionista:'🧑‍💼', profissional:'✂️', caixa:'💵' };
 
