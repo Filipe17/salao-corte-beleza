@@ -1204,7 +1204,7 @@ function renderEstoque() {
 
   return `
   <div class="page-header">
-    <div class="page-header-left"><h1>PDV — Vendas</h1><p>Ponto de venda rápido</p></div>
+    <div class="page-header-left"><h1>Estoque</h1><p>Controle de produtos e entradas</p></div>
     <div class="page-header-right">
       <button class="btn btn-outline" onclick="showToast('Em desenvolvimento','warning')">Relatório</button>
       <button class="btn btn-primary" onclick="openNewProduto()">
@@ -1266,7 +1266,7 @@ function renderFinanceiro() {
 
   return `
   <div class="page-header">
-    <div class="page-header-left"><h1>Estoque</h1></div>
+    <div class="page-header-left"><h1>Financeiro</h1><p>Controle de entradas e saídas</p></div>
     <div class="page-header-right">
       <button class="btn btn-outline" onclick="openNovaTransacao('saida')">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg> Lançar saída
@@ -1378,7 +1378,7 @@ function renderRelatorios() {
 
   return `
   <div class="page-header">
-    <div class="page-header-left"><h1>Financeiro</h1><p>Controle de entradas e saídas</p></div>
+    <div class="page-header-left"><h1>Relatórios</h1><p>Análises e indicadores do salão</p></div>
     <div class="page-header-right">
       <select class="form-control" style="width:auto">
         <option>Setembro 2025</option><option>Agosto 2025</option><option>Julho 2025</option>
