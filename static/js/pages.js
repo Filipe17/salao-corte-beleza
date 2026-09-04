@@ -1714,13 +1714,30 @@ function renderAtendimento() {
                   <td style="font-weight:600;font-size:0.875rem">${formatCurrency(a.valor)}</td>
                   <td><span class="badge ${statusBadgeClass[a.status]||'badge-gray'}" style="font-size:0.72rem">${statusLabel[a.status]||a.status}</span></td>
                   <td onclick="event.stopPropagation()">
-                    <div style="display:flex;gap:4px;justify-content:center">
+                    <div style="display:flex;gap:4px;justify-content:center;position:relative">
                       <button class="btn-icon-sm btn-icon-edit" onclick="_atdSelecionado=${a.id};navigate('atendimento')" title="Ver detalhes">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                       </button>
-                      <button class="btn-icon-sm" title="Mais opções">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-                      </button>
+                      <div style="position:relative">
+                        <button class="btn-icon-sm" onclick="toggleAtdMenu(event,${a.id})" title="Mais opções">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                        </button>
+                        <div class="atd-mini-menu" id="atdMenu_${a.id}">
+                          <button onclick="closeAtdMenus();_atdSelecionado=${a.id};navigate('atendimento')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            Ver detalhes
+                          </button>
+                          ${a.status !== 'finalizado' && a.status !== 'cancelado' ? `
+                          <button onclick="closeAtdMenus();atdFinalizar(${a.id})">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>
+                            Finalizar
+                          </button>
+                          <button onclick="closeAtdMenus();atdCancelar(${a.id})" style="color:var(--danger)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            Cancelar
+                          </button>` : ''}
+                        </div>
+                      </div>
                     </div>
                   </td>
                 </tr>`).join('')}
@@ -1747,6 +1764,77 @@ function renderAtendimento() {
     <!-- Painel de detalhes -->
     ${painelDetalhes}
   </div>`;
+}
+
+function toggleAtdMenu(e, id) {
+  e.stopPropagation();
+  const menu = document.getElementById('atdMenu_' + id);
+  const isOpen = menu.classList.contains('show');
+  closeAtdMenus();
+  if (!isOpen) {
+    menu.classList.add('show');
+    setTimeout(() => document.addEventListener('click', closeAtdMenus, { once: true }), 0);
+  }
+}
+function closeAtdMenus() {
+  document.querySelectorAll('.atd-mini-menu.show').forEach(m => m.classList.remove('show'));
+}
+async function atdFinalizar(id) {
+  try {
+    if (typeof apiFetch === 'function') {
+      await apiFetch('/api/agendamentos/' + id + '/status', { method:'PATCH', body: JSON.stringify({ status:'finalizado' }) });
+      await reloadAndNavigate('atendimento');
+    } else {
+      const a = DB.agendamentos.find(x=>x.id===id);
+      if (a) { a.status='finalizado'; navigate('atendimento'); }
+    }
+    showToast('Atendimento finalizado!', 'success');
+  } catch(e) { showToast('Erro ao finalizar', 'error'); }
+}
+function atdCancelar(id) {
+  confirmDialog('Deseja cancelar este atendimento?', async () => {
+    try {
+      if (typeof apiFetch === 'function') {
+        await apiFetch('/api/agendamentos/' + id + '/status', { method:'PATCH', body: JSON.stringify({ status:'cancelado' }) });
+        await reloadAndNavigate('atendimento');
+      } else {
+        const a = DB.agendamentos.find(x=>x.id===id);
+        if (a) { a.status='cancelado'; navigate('atendimento'); }
+      }
+      showToast('Atendimento cancelado', 'warning');
+    } catch(e) { showToast('Erro ao cancelar', 'error'); }
+  });
+}
+
+// CSS do mini-menu (injetado uma vez)
+if (!document.getElementById('atdMiniMenuStyle')) {
+  const s = document.createElement('style');
+  s.id = 'atdMiniMenuStyle';
+  s.textContent = `
+    .atd-mini-menu {
+      display: none;
+      position: absolute;
+      right: 0; top: calc(100% + 4px);
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+      min-width: 150px;
+      z-index: 300;
+      overflow: hidden;
+    }
+    .atd-mini-menu.show { display: block; }
+    .atd-mini-menu button {
+      display: flex; align-items: center; gap: 8px;
+      width: 100%; padding: 9px 14px;
+      font-size: 0.82rem; font-weight: 500;
+      color: var(--gray-700); font-family: var(--font-body);
+      background: none; border: none; cursor: pointer;
+      text-align: left; transition: background 0.12s;
+    }
+    .atd-mini-menu button:hover { background: var(--gray-50); }
+  `;
+  document.head.appendChild(s);
 }
 
 /* ===================== CONFIGURAÇÕES ===================== */
