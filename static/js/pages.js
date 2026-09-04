@@ -194,41 +194,50 @@ async function naSalvar() {
   if (!hora)  { showToast('Informe o horário', 'error'); return; }
   if (_naServicos.length === 0) { showToast('Adicione pelo menos um serviço', 'error'); return; }
 
-  const durTotal  = _naServicos.reduce((s,x) => s+x.duracao, 0);
-  const valorTotal= _naServicos.reduce((s,x) => s+x.preco, 0);
-  const [h, m]    = hora.split(':').map(Number);
-  const fimMin    = h * 60 + m + durTotal;
-  const horaFim   = `${String(Math.floor(fimMin/60)%24).padStart(2,'0')}:${String(fimMin%60).padStart(2,'0')}`;
-  const status    = _naModo === 'atendimento' ? 'emandamento' : 'confirmado';
+  const status = _naModo === 'atendimento' ? 'emandamento' : 'confirmado';
 
-  // Usar o primeiro serviço como principal (sistema atual só tem 1 por agendamento)
-  const servPrincipal = _naServicos[0];
+  // Cria um agendamento por serviço com horários sequenciais
+  const [h, m] = hora.split(':').map(Number);
+  let curMin = h * 60 + m;
 
   try {
-    if (typeof apiFetch === 'function') {
-      await apiFetch('/api/agendamentos', {
-        method: 'POST',
-        body: JSON.stringify({
-          clienteId: cliId, proId, servicoId: servPrincipal.id,
-          data, hora, hora_fim: horaFim, duracao: durTotal,
-          valor: valorTotal, status, obs,
-        }),
-      });
-    } else {
-      // Modo local (sem API)
-      DB.agendamentos.push({
-        id: generateId(DB.agendamentos),
-        clienteId: cliId, proId, servicoId: servPrincipal.id,
-        data, hora, hora_fim: horaFim, duracao: durTotal,
-        valor: valorTotal, status, obs,
-      });
+    for (const serv of _naServicos) {
+      const horaInicio = `${String(Math.floor(curMin/60)%24).padStart(2,'0')}:${String(curMin%60).padStart(2,'0')}`;
+      const fimMin     = curMin + serv.duracao;
+      const horaFim    = `${String(Math.floor(fimMin/60)%24).padStart(2,'0')}:${String(fimMin%60).padStart(2,'0')}`;
+
+      if (typeof apiFetch === 'function') {
+        await apiFetch('/api/agendamentos', {
+          method: 'POST',
+          body: JSON.stringify({
+            clienteId: cliId, proId, servicoId: serv.id,
+            data, hora: horaInicio, hora_fim: horaFim,
+            duracao: serv.duracao, valor: serv.preco, status, obs,
+          }),
+        });
+      } else {
+        // Modo local (sem API)
+        DB.agendamentos.push({
+          id: generateId(DB.agendamentos),
+          clienteId: cliId, proId, servicoId: serv.id,
+          data, hora: horaInicio, hora_fim: horaFim,
+          duracao: serv.duracao, valor: serv.preco, status, obs,
+        });
+      }
+
+      curMin = fimMin; // próximo serviço começa onde esse termina
     }
+
     closeModal();
-    const msg = _naModo === 'atendimento' ? 'Atendimento iniciado!' : 'Agendamento criado!';
+    const qtd = _naServicos.length;
+    const msg = _naModo === 'atendimento'
+      ? `Atendimento iniciado! (${qtd} serviço${qtd > 1 ? 's' : ''})`
+      : `Agendamento criado! (${qtd} serviço${qtd > 1 ? 's' : ''})`;
     showToast(msg, 'success');
     if (typeof atualizarSidebarHoje === 'function') atualizarSidebarHoje();
-    if (_naModo === 'atendimento') navigate('atendimento');
-    else navigate('agenda');
+    const destino = _naModo === 'atendimento' ? 'atendimento' : 'agenda';
+    if (typeof reloadAndNavigate === 'function') await reloadAndNavigate(destino);
+    else navigate(destino);
   } catch(e) {
     showToast(e.message || 'Erro ao salvar', 'error');
   }
