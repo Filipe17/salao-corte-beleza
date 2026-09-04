@@ -89,7 +89,7 @@ body {
 /* ── Layout principal ── */
 .pdv-main {
   display: grid;
-  grid-template-columns: 1fr 480px;
+  grid-template-columns: 1fr 600px;
   gap: 0;
   flex: 1;
   overflow: hidden;
@@ -363,6 +363,14 @@ body {
   resize: vertical; min-height: 60px; outline: none;
 }
 .pdv-obs-area:focus { border-color: var(--primary); }
+
+/* Dois cards lado a lado */
+.pdv-cards-row {
+  display: flex;
+  gap: 12px;
+  align-items: start;
+}
+.pdv-cards-row .pdv-bottom-card { flex: 1; }
 
 /* Card em volta de totais + pagamento + troco */
 .pdv-bottom-card {
