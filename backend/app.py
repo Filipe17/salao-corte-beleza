@@ -221,6 +221,28 @@ class PerfilAcesso(db.Model):
         }
 
 
+
+class FormaPagamento(db.Model):
+    __tablename__ = 'formas_pagamento'
+    id              = db.Column(db.Integer, primary_key=True)
+    nome            = db.Column(db.String(80), nullable=False)
+    tipo            = db.Column(db.String(30), default='outros')  # dinheiro|pix|cartao|transferencia|outros
+    taxa            = db.Column(db.Float, default=0.0)
+    parcelamento    = db.Column(db.Boolean, default=False)
+    max_parcelas    = db.Column(db.Integer, default=1)
+    conta_destino   = db.Column(db.String(80), default='')
+    ativo           = db.Column(db.Boolean, default=True)
+    data_cadastro   = db.Column(db.String(20), default=lambda: str(date.today()))
+
+    def to_dict(self):
+        return {
+            'id': self.id, 'nome': self.nome, 'tipo': self.tipo,
+            'taxa': self.taxa, 'parcelamento': self.parcelamento,
+            'max_parcelas': self.max_parcelas, 'conta_destino': self.conta_destino or '',
+            'ativo': self.ativo, 'data_cadastro': self.data_cadastro or '',
+        }
+
+
 class Transacao(db.Model):
     __tablename__ = 'transacoes'
     id        = db.Column(db.Integer, primary_key=True)
@@ -292,6 +314,22 @@ def seed():
             db.session.add(PerfilAcesso(**p))
         db.session.commit()
         print("✅ Seed: perfis de acesso criados.")
+
+
+    # Seed formas de pagamento
+    if FormaPagamento.query.count() == 0:
+        fps = [
+            FormaPagamento(nome='Dinheiro',            tipo='dinheiro',      taxa=0.0,  parcelamento=False, max_parcelas=1,  ativo=True),
+            FormaPagamento(nome='PIX',                 tipo='pix',           taxa=0.0,  parcelamento=False, max_parcelas=1,  ativo=True),
+            FormaPagamento(nome='Cartão de Débito',    tipo='cartao',        taxa=1.5,  parcelamento=False, max_parcelas=1,  ativo=True),
+            FormaPagamento(nome='Cartão de Crédito',   tipo='cartao',        taxa=3.5,  parcelamento=True,  max_parcelas=12, ativo=True),
+            FormaPagamento(nome='Transferência Bancária', tipo='transferencia', taxa=0.0, parcelamento=False, max_parcelas=1, ativo=True),
+            FormaPagamento(nome='Fiado',               tipo='outros',        taxa=0.0,  parcelamento=False, max_parcelas=1,  ativo=False),
+        ]
+        for fp in fps:
+            db.session.add(fp)
+        db.session.commit()
+        print("✅ Seed: formas de pagamento criadas.")
 
     if Usuario.query.count() == 0:
         senha_hash = bcrypt.hashpw(b'admin123', bcrypt.gensalt()).decode()
@@ -434,6 +472,55 @@ def delete_perfil(id):
     if p.padrao:
         return jsonify({'erro': 'Não é possível excluir o perfil padrão'}), 400
     db.session.delete(p)
+    db.session.commit()
+    return jsonify({'ok': True})
+
+
+# ═══════════════════════════════════════════════════════
+# FORMAS DE PAGAMENTO
+# ═══════════════════════════════════════════════════════
+
+@app.route('/api/formas-pagamento', methods=['GET'])
+def get_formas_pagamento():
+    fps = FormaPagamento.query.order_by(FormaPagamento.id).all()
+    return jsonify([fp.to_dict() for fp in fps])
+
+@app.route('/api/formas-pagamento', methods=['POST'])
+def create_forma_pagamento():
+    body = request.get_json()
+    if not body.get('nome'):
+        return jsonify({'erro': 'Nome obrigatório'}), 400
+    fp = FormaPagamento(
+        nome=body['nome'], tipo=body.get('tipo','outros'),
+        taxa=float(body.get('taxa', 0)),
+        parcelamento=body.get('parcelamento', False),
+        max_parcelas=int(body.get('max_parcelas', 1)),
+        conta_destino=body.get('conta_destino', ''),
+        ativo=body.get('ativo', True),
+        data_cadastro=str(date.today()),
+    )
+    db.session.add(fp)
+    db.session.commit()
+    return jsonify(fp.to_dict()), 201
+
+@app.route('/api/formas-pagamento/<int:id>', methods=['PUT'])
+def update_forma_pagamento(id):
+    fp = FormaPagamento.query.get_or_404(id)
+    body = request.get_json()
+    if 'nome'          in body: fp.nome          = body['nome']
+    if 'tipo'          in body: fp.tipo          = body['tipo']
+    if 'taxa'          in body: fp.taxa          = float(body['taxa'])
+    if 'parcelamento'  in body: fp.parcelamento  = body['parcelamento']
+    if 'max_parcelas'  in body: fp.max_parcelas  = int(body['max_parcelas'])
+    if 'conta_destino' in body: fp.conta_destino = body['conta_destino']
+    if 'ativo'         in body: fp.ativo         = body['ativo']
+    db.session.commit()
+    return jsonify(fp.to_dict())
+
+@app.route('/api/formas-pagamento/<int:id>', methods=['DELETE'])
+def delete_forma_pagamento(id):
+    fp = FormaPagamento.query.get_or_404(id)
+    db.session.delete(fp)
     db.session.commit()
     return jsonify({'ok': True})
 

@@ -1012,3 +1012,69 @@
   50% { box-shadow: 0 0 0 4px rgba(192,38,211,0.1); }
 }
 .btn-primary-pulse { animation: pulse-border 1.5s infinite; }
+
+/* ── Formas de Pagamento ── */
+.fp-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.fp-kpi {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: var(--shadow-sm);
+}
+.fp-kpi-icon {
+  width: 48px; height: 48px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.fp-kpi-val {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--gray-800);
+  line-height: 1;
+}
+.fp-kpi-lbl {
+  font-size: 0.8rem;
+  color: var(--gray-500);
+  margin-top: 3px;
+}
+.fp-kpi-sub {
+  font-size: 0.72rem;
+  color: var(--gray-400);
+}
+
+.fp-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+  transition: grid-template-columns 0.2s;
+}
+.fp-layout.form-aberto {
+  grid-template-columns: 1fr 340px;
+}
+
+.fp-tabela-wrap { overflow: visible; }
+.fp-form-wrap { overflow: visible; }
+
+.fp-sobre {
+  background: #fdf2f8;
+  border: 1px solid #fce7f3;
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  margin-top: 4px;
+}
+
+@media (max-width: 900px) {
+  .fp-kpis { grid-template-columns: repeat(2,1fr); }
+  .fp-layout.form-aberto { grid-template-columns: 1fr; }
+}

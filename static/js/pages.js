@@ -1196,7 +1196,7 @@ function renderConfiguracoes(secao) {
     }
   }, 0);
 
-  const titulos = { dados:'Dados do Salão', horarios:'Horários', usuarios:'Usuários', whatsapp:'WhatsApp', perfis:'Perfis de Acesso', permissoes:'Permissões' };
+  const titulos = { dados:'Dados do Salão', horarios:'Horários', usuarios:'Usuários', whatsapp:'WhatsApp', perfis:'Perfis de Acesso', permissoes:'Permissões', 'formas-pagamento':'Formas de Pagamento' };
   const titulo = titulos[_configSecao] || 'Configurações';
 
   let conteudo = '';
@@ -1260,6 +1260,9 @@ function renderConfiguracoes(secao) {
   } else if (_configSecao === 'permissoes') {
     conteudo = `<div id="permissoesArea"><div class="loading-box" style="padding:40px;text-align:center;color:var(--gray-400)">Carregando...</div></div>`;
 
+  } else if (_configSecao === 'formas-pagamento') {
+    conteudo = `<div id="formasPagArea"><div class="loading-box" style="padding:40px;text-align:center;color:var(--gray-400)">Carregando...</div></div>`;
+
   } else if (_configSecao === 'perfis') {
     conteudo = `<div id="perfisArea"><div class="loading-box">Carregando...</div></div>`;
     setTimeout(() => renderPerfisArea(), 0);
@@ -1304,7 +1307,7 @@ function navigateConfig(secao, e) {
   const arrow = document.getElementById('configArrow');
   if (arrow) arrow.style.transform = 'rotate(180deg)';
   // Atualizar título da topbar
-  const titulos = { dados:'Dados do Salão', horarios:'Horários', usuarios:'Usuários', whatsapp:'WhatsApp', perfis:'Perfis de Acesso', permissoes:'Permissões' };
+  const titulos = { dados:'Dados do Salão', horarios:'Horários', usuarios:'Usuários', whatsapp:'WhatsApp', perfis:'Perfis de Acesso', permissoes:'Permissões', 'formas-pagamento':'Formas de Pagamento' };
   const topTitle = document.getElementById('pageTitle');
   if (topTitle) topTitle.textContent = titulos[secao] || 'Configurações';
   document.title = `${titulos[secao] || 'Configurações'} — Belezza`;
@@ -1315,6 +1318,7 @@ function navigateConfig(secao, e) {
   // Carregar dados após HTML estar no DOM
   if (secao === 'perfis') setTimeout(async () => { await loadPerfis(); }, 0);
   if (secao === 'permissoes') setTimeout(async () => { await loadPermissoes(); }, 0);
+  if (secao === 'formas-pagamento') setTimeout(async () => { await loadFormasPagamento(); }, 0);
   if (secao === 'usuarios') setTimeout(() => { renderUsuariosArea(); }, 0);
 }
 
@@ -2496,4 +2500,320 @@ async function salvarPermissoes() {
     btn.disabled = false;
     btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Salvar permissões';
   }
+}
+
+// ═══════════════════════════════════════════════════════
+// FORMAS DE PAGAMENTO
+// ═══════════════════════════════════════════════════════
+
+let _formasPag     = [];
+let _fpEditando    = null;
+let _fpFormAberto  = false;
+
+const FP_TIPOS = {
+  dinheiro:      { label:'Dinheiro',      cor:'#22c55e', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg>' },
+  pix:           { label:'PIX',           cor:'#06b6d4', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>' },
+  cartao:        { label:'Cartão',        cor:'#8b5cf6', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>' },
+  transferencia: { label:'Transferência', cor:'#f59e0b', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>' },
+  outros:        { label:'Outros',        cor:'#6b7280', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>' },
+};
+
+async function loadFormasPagamento() {
+  const area = document.getElementById('formasPagArea');
+  if (!area) return;
+  try {
+    const base = (typeof API_BASE !== 'undefined') ? API_BASE : '';
+    const res  = await fetch(base + '/api/formas-pagamento');
+    _formasPag = await res.json();
+  } catch(e) { _formasPag = []; }
+  renderFormasPagArea();
+}
+
+function renderFormasPagArea() {
+  const area = document.getElementById('formasPagArea');
+  if (!area) return;
+
+  const total   = _formasPag.length;
+  const ativas  = _formasPag.filter(f => f.ativo).length;
+  const inativas= total - ativas;
+  const taxas   = _formasPag.filter(f => f.tipo === 'cartao' && f.taxa > 0);
+  const taxaMedia = taxas.length ? (taxas.reduce((s,f)=>s+f.taxa,0)/taxas.length).toFixed(2) : '0,00';
+
+  area.innerHTML = `
+    <!-- KPIs -->
+    <div class="fp-kpis">
+      <div class="fp-kpi">
+        <div class="fp-kpi-icon" style="background:#fce7f3"><svg viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="2" width="22" height="22"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
+        <div><div class="fp-kpi-val">${total}</div><div class="fp-kpi-lbl">Total de Formas</div><div class="fp-kpi-sub">cadastradas</div></div>
+      </div>
+      <div class="fp-kpi">
+        <div class="fp-kpi-icon" style="background:#dcfce7"><svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" width="22" height="22"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <div><div class="fp-kpi-val">${ativas}</div><div class="fp-kpi-lbl">Ativas</div><div class="fp-kpi-sub">formas</div></div>
+      </div>
+      <div class="fp-kpi">
+        <div class="fp-kpi-icon" style="background:#fef9c3"><svg viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2" width="22" height="22"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg></div>
+        <div><div class="fp-kpi-val">${inativas}</div><div class="fp-kpi-lbl">Inativas</div><div class="fp-kpi-sub">formas</div></div>
+      </div>
+      <div class="fp-kpi">
+        <div class="fp-kpi-icon" style="background:#ede9fe"><svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" width="22" height="22"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
+        <div><div class="fp-kpi-val">${taxaMedia.replace('.',',')}%</div><div class="fp-kpi-lbl">Cartão (média taxa)</div><div class="fp-kpi-sub">taxa média</div></div>
+      </div>
+    </div>
+
+    <div class="fp-layout">
+      <!-- Tabela -->
+      <div class="card fp-tabela-wrap">
+        <div class="card-header">
+          <div class="card-title">Formas de Pagamento Cadastradas</div>
+          <button class="btn btn-primary" onclick="abrirFormFP()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nova Forma de Pagamento
+          </button>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr>
+              <th>Forma de Pagamento</th>
+              <th>Tipo</th>
+              <th style="text-align:center">Taxa (%)</th>
+              <th style="text-align:center">Permite Parcelamento</th>
+              <th style="text-align:center">Status</th>
+              <th style="text-align:center">Ações</th>
+            </tr></thead>
+            <tbody>
+              ${_formasPag.length === 0
+                ? '<tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:32px">Nenhuma forma cadastrada</td></tr>'
+                : _formasPag.map(fp => {
+                    const t = FP_TIPOS[fp.tipo] || FP_TIPOS.outros;
+                    return `<tr>
+                      <td>
+                        <div style="display:flex;align-items:center;gap:10px">
+                          <div style="width:36px;height:36px;border-radius:10px;background:${t.cor}20;display:flex;align-items:center;justify-content:center;color:${t.cor}">${t.icon}</div>
+                          <div>
+                            <div style="font-weight:600;font-size:0.875rem">${fp.nome}</div>
+                            <div style="font-size:0.75rem;color:var(--gray-400)">${fp.tipo === 'dinheiro' ? 'Pagamento em espécie' : fp.tipo === 'pix' ? 'Pagamento instantâneo' : fp.tipo === 'cartao' ? fp.parcelamento ? 'Crédito à vista ou parcelado' : 'Débito à vista' : fp.tipo === 'transferencia' ? 'TED / DOC' : 'Pagamento posterior'}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td><span class="badge" style="background:${t.cor}15;color:${t.cor};border:1px solid ${t.cor}30;font-size:0.75rem">${t.label}</span></td>
+                      <td style="text-align:center;font-weight:500">${fp.taxa > 0 ? fp.taxa.toFixed(2).replace('.',',')+'%' : '0%'}</td>
+                      <td style="text-align:center">
+                        ${fp.parcelamento
+                          ? `<div style="display:flex;flex-direction:column;align-items:center;gap:2px"><span style="color:#22c55e;display:flex;align-items:center;gap:4px;font-size:0.8rem;font-weight:500"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>Sim</span><span style="font-size:0.72rem;color:var(--gray-400)">Até ${fp.max_parcelas}x</span></div>`
+                          : `<span style="color:var(--danger);display:flex;align-items:center;justify-content:center;gap:4px;font-size:0.8rem;font-weight:500"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Não</span>`}
+                      </td>
+                      <td style="text-align:center">${fp.ativo ? '<span class="badge badge-green">Ativo</span>' : '<span class="badge badge-gray">Inativo</span>'}</td>
+                      <td style="text-align:center">
+                        <div style="display:flex;gap:6px;justify-content:center">
+                          <button class="btn-icon-sm btn-icon-edit" onclick="editarFP(${fp.id})" title="Editar">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                          </button>
+                          <button class="btn-icon-sm btn-icon-delete" onclick="confirmarExcluirFP(${fp.id},'${fp.nome}')" title="Excluir">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>`;
+                  }).join('')}
+            </tbody>
+          </table>
+        </div>
+        <!-- Rodapé -->
+        <div style="padding:12px 20px;font-size:0.8rem;color:var(--gray-400);border-top:1px solid var(--gray-100)">
+          Mostrando 1 a ${_formasPag.length} de ${_formasPag.length} formas de pagamento
+        </div>
+      </div>
+
+      <!-- Formulário lateral -->
+      <div class="card fp-form-wrap" id="fpFormWrap" style="display:${_fpFormAberto ? '' : 'none'}">
+        <div class="card-header">
+          <div class="card-title" style="color:var(--primary)" id="fpFormTitulo">Nova Forma de Pagamento</div>
+          <button class="modal-close" onclick="fecharFormFP()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="error-msg" id="fpFormErro" style="display:none;margin-bottom:12px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/></svg>
+            <span id="fpFormErroTxt"></span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Nome da Forma de Pagamento <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="fpNome" class="form-control" placeholder="Ex.: Cartão de Crédito" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tipo <span style="color:var(--danger)">*</span></label>
+            <select id="fpTipo" class="form-control">
+              <option value="">Selecione o tipo</option>
+              <option value="dinheiro">Dinheiro</option>
+              <option value="pix">PIX</option>
+              <option value="cartao">Cartão</option>
+              <option value="transferencia">Transferência</option>
+              <option value="outros">Outros</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Taxa da Operadora (%)</label>
+            <div style="position:relative">
+              <input type="number" id="fpTaxa" class="form-control" placeholder="Ex.: 3,50" step="0.01" min="0" style="padding-right:36px" />
+              <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--gray-400);font-size:0.85rem">%</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">
+              Permite parcelamento?
+              <label class="toggle" style="margin:0">
+                <input type="checkbox" id="fpParcelamento" onchange="toggleParcelamento()" />
+                <span class="toggle-slider"></span>
+              </label>
+            </label>
+          </div>
+          <div class="form-group" id="fpMaxParcelasGrupo" style="display:none">
+            <label class="form-label">Número máximo de parcelas</label>
+            <select id="fpMaxParcelas" class="form-control">
+              <option value="">Selecione</option>
+              ${[2,3,4,5,6,7,8,9,10,11,12].map(n=>`<option value="${n}">${n}x</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Conta/Caixa de destino</label>
+            <select id="fpConta" class="form-control">
+              <option value="">Selecione a conta ou caixa</option>
+              <option value="Caixa Principal">Caixa Principal</option>
+              <option value="Conta Corrente">Conta Corrente</option>
+              <option value="Conta Poupança">Conta Poupança</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status <span style="color:var(--danger)">*</span></label>
+            <select id="fpAtivo" class="form-control" style="color:var(--primary)">
+              <option value="true">Ativo</option>
+              <option value="false">Inativo</option>
+            </select>
+          </div>
+
+          <button class="btn btn-primary" style="width:100%;margin-top:8px" id="btnSalvarFP" onclick="salvarFP()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+            Salvar
+          </button>
+          <button class="btn btn-outline" style="width:100%;margin-top:8px" onclick="fecharFormFP()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sobre -->
+    <div class="fp-sobre">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;color:var(--primary)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <strong>Sobre as Formas de Pagamento</strong>
+      </div>
+      <p style="font-size:0.82rem;color:var(--gray-600)">As formas de pagamento cadastradas serão utilizadas no PDV, atendimentos e financeiro.</p>
+      <p style="font-size:0.82rem;color:var(--gray-600);margin-top:4px">As taxas informadas são utilizadas para cálculo do valor líquido recebido.</p>
+    </div>`;
+}
+
+function toggleParcelamento() {
+  const cb  = document.getElementById('fpParcelamento');
+  const grp = document.getElementById('fpMaxParcelasGrupo');
+  if (grp) grp.style.display = cb.checked ? '' : 'none';
+}
+
+function abrirFormFP() {
+  _fpEditando   = null;
+  _fpFormAberto = true;
+  document.getElementById('fpFormTitulo').textContent = 'Nova Forma de Pagamento';
+  ['fpNome','fpTaxa'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  document.getElementById('fpTipo').value       = '';
+  document.getElementById('fpAtivo').value      = 'true';
+  document.getElementById('fpConta').value      = '';
+  document.getElementById('fpParcelamento').checked = false;
+  document.getElementById('fpMaxParcelasGrupo').style.display = 'none';
+  document.getElementById('fpMaxParcelas').value = '';
+  document.getElementById('fpFormErro').style.display = 'none';
+  const wrap = document.getElementById('fpFormWrap');
+  if (wrap) wrap.style.display = '';
+}
+
+function editarFP(id) {
+  const fp = _formasPag.find(x => x.id === id);
+  if (!fp) return;
+  _fpEditando   = fp;
+  _fpFormAberto = true;
+  document.getElementById('fpFormTitulo').textContent = 'Editar Forma de Pagamento';
+  document.getElementById('fpNome').value           = fp.nome;
+  document.getElementById('fpTipo').value           = fp.tipo;
+  document.getElementById('fpTaxa').value           = fp.taxa;
+  document.getElementById('fpAtivo').value          = fp.ativo ? 'true' : 'false';
+  document.getElementById('fpConta').value          = fp.conta_destino || '';
+  document.getElementById('fpParcelamento').checked = fp.parcelamento;
+  document.getElementById('fpMaxParcelasGrupo').style.display = fp.parcelamento ? '' : 'none';
+  document.getElementById('fpMaxParcelas').value    = fp.max_parcelas || '';
+  document.getElementById('fpFormErro').style.display = 'none';
+  const wrap = document.getElementById('fpFormWrap');
+  if (wrap) wrap.style.display = '';
+}
+
+function fecharFormFP() {
+  _fpFormAberto = false;
+  const wrap = document.getElementById('fpFormWrap');
+  if (wrap) wrap.style.display = 'none';
+}
+
+async function salvarFP() {
+  const nome       = document.getElementById('fpNome').value.trim();
+  const tipo       = document.getElementById('fpTipo').value;
+  const taxa       = parseFloat(document.getElementById('fpTaxa').value) || 0;
+  const parc       = document.getElementById('fpParcelamento').checked;
+  const maxParc    = parseInt(document.getElementById('fpMaxParcelas').value) || 1;
+  const conta      = document.getElementById('fpConta').value;
+  const ativo      = document.getElementById('fpAtivo').value === 'true';
+  const btn        = document.getElementById('btnSalvarFP');
+
+  if (!nome || !tipo) {
+    document.getElementById('fpFormErroTxt').textContent = 'Preencha nome e tipo.';
+    document.getElementById('fpFormErro').style.display = 'flex';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner-sm"></div> Salvando...';
+
+  try {
+    const base = (typeof API_BASE !== 'undefined') ? API_BASE : '';
+    const body = { nome, tipo, taxa, parcelamento: parc, max_parcelas: maxParc, conta_destino: conta, ativo };
+    if (_fpEditando) {
+      await fetch(`${base}/api/formas-pagamento/${_fpEditando.id}`, {
+        method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
+      });
+      showToast('Forma de pagamento atualizada!', 'success');
+    } else {
+      await fetch(base + '/api/formas-pagamento', {
+        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
+      });
+      showToast('Forma de pagamento criada!', 'success');
+    }
+    fecharFormFP();
+    await loadFormasPagamento();
+  } catch(e) {
+    document.getElementById('fpFormErroTxt').textContent = 'Erro ao salvar.';
+    document.getElementById('fpFormErro').style.display = 'flex';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg> Salvar';
+  }
+}
+
+function confirmarExcluirFP(id, nome) {
+  confirmDialog(`Deseja excluir a forma de pagamento <strong>${nome}</strong>?`, async () => {
+    try {
+      const base = (typeof API_BASE !== 'undefined') ? API_BASE : '';
+      await fetch(`${base}/api/formas-pagamento/${id}`, { method: 'DELETE' });
+      showToast('Forma de pagamento excluída!', 'success');
+      await loadFormasPagamento();
+    } catch(e) { showToast('Erro ao excluir.', 'error'); }
+  });
 }
