@@ -239,6 +239,15 @@ body {
   gap: 10px;
 }
 
+/* Card em volta das abas */
+.pdv-caixa-card {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 6px;
+  box-shadow: var(--shadow);
+}
+
 /* Abas caixa/comanda */
 .pdv-caixa-tabs {
   display: flex; align-items: center; gap: 4px;
@@ -354,6 +363,18 @@ body {
   resize: vertical; min-height: 60px; outline: none;
 }
 .pdv-obs-area:focus { border-color: var(--primary); }
+
+/* Card em volta de totais + pagamento + troco */
+.pdv-bottom-card {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: var(--shadow);
+}
 
 /* Totais + Pagamento lado a lado */
 .pdv-totais-pgto {
