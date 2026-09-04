@@ -36,6 +36,204 @@ function atualizarSidebarHoje() {
   set('hojeCancelados', ags.filter(a => a.status === 'cancelado').length);
 }
 
+// ══════════════════════════════════════════════════════════
+// FORMULÁRIO UNIFICADO DE AGENDAMENTO / ATENDIMENTO
+// ══════════════════════════════════════════════════════════
+
+let _naServicos = []; // lista de serviços adicionados
+let _naModo     = 'agenda'; // 'agenda' | 'atendimento'
+
+function openNewAppointment(modo = 'agenda', horaInicial = null) {
+  _naModo     = modo;
+  _naServicos = [];
+
+  const titulo    = modo === 'agenda' ? 'Novo Agendamento' : 'Novo Atendimento';
+  const btnLabel  = modo === 'agenda' ? '💾 Salvar Agendamento' : '▶ Iniciar Atendimento';
+  const statusOpts = modo === 'agenda'
+    ? '<label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="na_status" value="confirmado" checked /> Agendado</label><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="na_status" value="confirmado2" /> Confirmado</label>'
+    : '';
+
+  const cliOptions = DB.clientes.map(c => `<option value="${c.id}">${c.nome} — ${c.telefone||''}</option>`).join('');
+  const proOptions = DB.profissionais.filter(p=>p.ativo!==false).map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+  const servOptions = DB.servicos.filter(s=>s.ativo).map(s => `<option value="${s.id}" data-preco="${s.preco}" data-dur="${s.duracao}">${s.nome} — ${formatCurrency(s.preco)}</option>`).join('');
+
+  openModal({
+    title: titulo,
+    size: 'lg',
+    body: `
+      <div class="grid grid-2" style="gap:12px">
+        <div class="form-group">
+          <label class="form-label">Cliente <span style="color:var(--danger)">*</span></label>
+          <div class="search-input">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <select class="form-control" id="na_cli" style="padding-left:36px">
+              <option value="">Buscar cliente...</option>${cliOptions}
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Profissional <span style="color:var(--danger)">*</span></label>
+          <select class="form-control" id="na_pro"><option value="">Selecionar...</option>${proOptions}</select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data <span style="color:var(--danger)">*</span></label>
+          <input type="date" class="form-control" id="na_data" value="${today()}" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Horário <span style="color:var(--danger)">*</span></label>
+          <input type="time" class="form-control" id="na_hora" value="${horaInicial||'09:00'}" />
+        </div>
+      </div>
+
+      <!-- Serviços -->
+      <div style="margin-top:4px">
+        <label class="form-label">Serviços <span style="color:var(--danger)">*</span></label>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <select class="form-control" id="na_serv_sel" style="flex:1">
+            <option value="">Selecionar serviço...</option>${servOptions}
+          </select>
+          <button class="btn btn-outline" onclick="naAdicionarServico()" type="button" style="white-space:nowrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Adicionar
+          </button>
+        </div>
+        <div id="na_servicos_lista" style="display:flex;flex-direction:column;gap:6px;min-height:40px"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--gray-100);padding-top:10px;margin-top:8px">
+          <div style="font-size:0.82rem;color:var(--gray-500)">Duração total: <strong id="na_duracao_total">0 min</strong></div>
+          <div style="font-size:0.95rem;font-weight:700;color:var(--primary)">Total: <span id="na_total">R$ 0,00</span></div>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top:12px">
+        <label class="form-label">Observações</label>
+        <textarea class="form-control" id="na_obs" rows="2" placeholder="Alguma observação sobre o atendimento..."></textarea>
+      </div>
+
+      ${statusOpts ? `<div style="display:flex;gap:20px;margin-top:8px;font-size:0.875rem">${statusOpts}</div>` : ''}
+    `,
+    footer: `
+      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="naSalvar()">${btnLabel}</button>
+    `
+  });
+
+  // Atualizar total ao trocar serviço
+  setTimeout(() => {
+    document.getElementById('na_serv_sel')?.addEventListener('change', naAtualizarTotal);
+  }, 100);
+}
+
+function naAdicionarServico() {
+  const sel   = document.getElementById('na_serv_sel');
+  const id    = parseInt(sel.value);
+  const opt   = sel.options[sel.selectedIndex];
+  if (!id) { showToast('Selecione um serviço', 'error'); return; }
+  if (_naServicos.find(s => s.id === id)) { showToast('Serviço já adicionado', 'error'); return; }
+
+  const preco = parseFloat(opt.dataset.preco) || 0;
+  const dur   = parseInt(opt.dataset.dur) || 30;
+  const nome  = opt.text.split(' — ')[0];
+
+  _naServicos.push({ id, nome, preco, duracao: dur });
+  sel.value = '';
+  naRenderServicos();
+}
+
+function naRemoverServico(id) {
+  _naServicos = _naServicos.filter(s => s.id !== id);
+  naRenderServicos();
+}
+
+function naRenderServicos() {
+  const lista = document.getElementById('na_servicos_lista');
+  if (!lista) return;
+  if (_naServicos.length === 0) {
+    lista.innerHTML = '<div style="text-align:center;color:var(--gray-400);font-size:0.82rem;padding:8px">Nenhum serviço adicionado</div>';
+  } else {
+    lista.innerHTML = _naServicos.map(s => `
+      <div style="display:flex;align-items:center;gap:10px;background:var(--gray-50);border-radius:8px;padding:8px 12px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
+        <span style="flex:1;font-size:0.875rem;font-weight:500">${s.nome}</span>
+        <span style="font-size:0.8rem;color:var(--gray-500)">${s.duracao} min</span>
+        <span style="font-size:0.875rem;font-weight:600;color:var(--primary);min-width:70px;text-align:right">${formatCurrency(s.preco)}</span>
+        <button onclick="naRemoverServico(${s.id})" style="background:none;border:none;cursor:pointer;color:var(--gray-400);padding:2px" title="Remover">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>`).join('');
+  }
+  naAtualizarTotal();
+}
+
+function naAtualizarTotal() {
+  const total   = _naServicos.reduce((s,x) => s+x.preco, 0);
+  const duracao = _naServicos.reduce((s,x) => s+x.duracao, 0);
+  const totalEl = document.getElementById('na_total');
+  const durEl   = document.getElementById('na_duracao_total');
+  if (totalEl) totalEl.textContent = formatCurrency(total);
+  if (durEl)   durEl.textContent   = duracao + ' min';
+
+  // Calcular hora de fim automaticamente
+  const horaEl = document.getElementById('na_hora');
+  if (horaEl && horaEl.value && duracao > 0) {
+    const [h, m] = horaEl.value.split(':').map(Number);
+    const fim = h * 60 + m + duracao;
+    // só para referência visual — não temos campo hora_fim no novo modal
+  }
+}
+
+async function naSalvar() {
+  const cliId  = parseInt(document.getElementById('na_cli')?.value);
+  const proId  = parseInt(document.getElementById('na_pro')?.value);
+  const data   = document.getElementById('na_data')?.value;
+  const hora   = document.getElementById('na_hora')?.value;
+  const obs    = document.getElementById('na_obs')?.value || '';
+
+  if (!cliId) { showToast('Selecione o cliente', 'error'); return; }
+  if (!proId) { showToast('Selecione o profissional', 'error'); return; }
+  if (!data)  { showToast('Informe a data', 'error'); return; }
+  if (!hora)  { showToast('Informe o horário', 'error'); return; }
+  if (_naServicos.length === 0) { showToast('Adicione pelo menos um serviço', 'error'); return; }
+
+  const durTotal  = _naServicos.reduce((s,x) => s+x.duracao, 0);
+  const valorTotal= _naServicos.reduce((s,x) => s+x.preco, 0);
+  const [h, m]    = hora.split(':').map(Number);
+  const fimMin    = h * 60 + m + durTotal;
+  const horaFim   = `${String(Math.floor(fimMin/60)%24).padStart(2,'0')}:${String(fimMin%60).padStart(2,'0')}`;
+  const status    = _naModo === 'atendimento' ? 'emandamento' : 'confirmado';
+
+  // Usar o primeiro serviço como principal (sistema atual só tem 1 por agendamento)
+  const servPrincipal = _naServicos[0];
+
+  try {
+    if (typeof apiFetch === 'function') {
+      await apiFetch('/api/agendamentos', {
+        method: 'POST',
+        body: JSON.stringify({
+          clienteId: cliId, proId, servicoId: servPrincipal.id,
+          data, hora, hora_fim: horaFim, duracao: durTotal,
+          valor: valorTotal, status, obs,
+        }),
+      });
+    } else {
+      // Modo local (sem API)
+      DB.agendamentos.push({
+        id: generateId(DB.agendamentos),
+        clienteId: cliId, proId, servicoId: servPrincipal.id,
+        data, hora, hora_fim: horaFim, duracao: durTotal,
+        valor: valorTotal, status, obs,
+      });
+    }
+    closeModal();
+    const msg = _naModo === 'atendimento' ? 'Atendimento iniciado!' : 'Agendamento criado!';
+    showToast(msg, 'success');
+    if (typeof atualizarSidebarHoje === 'function') atualizarSidebarHoje();
+    if (_naModo === 'atendimento') navigate('atendimento');
+    else navigate('agenda');
+  } catch(e) {
+    showToast(e.message || 'Erro ao salvar', 'error');
+  }
+}
+
 function renderDashboard() {
   const low = getLowStock();
   const schedule = getTodaySchedule();
@@ -1330,7 +1528,7 @@ function renderAtendimento() {
   <div class="page-header">
     <div class="page-header-left"><h1>Atendimentos</h1></div>
     <div class="page-header-right">
-      <button class="btn btn-primary" onclick="openNewAppointment()">
+      <button class="btn btn-primary" onclick="openNewAppointment('atendimento')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Novo Atendimento
       </button>

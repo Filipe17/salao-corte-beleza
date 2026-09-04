@@ -102,28 +102,27 @@ async function saveCliente() {
 
 // ── AGENDAMENTOS ──────────────────────────────────────────
 async function saveNewAppointment() {
+  // Delegar ao formulário unificado
+  if (typeof naSalvar === 'function') { await naSalvar(); return; }
+
+  // Fallback legado
   const cliId   = parseInt(document.getElementById('na_cli').value);
   const proId   = parseInt(document.getElementById('na_pro').value);
-  const servId  = parseInt(document.getElementById('na_serv').value);
+  const servId  = parseInt(document.getElementById('na_serv')?.value);
   const data    = document.getElementById('na_data').value;
   const hora    = document.getElementById('na_hora').value;
   const horaFim = document.getElementById('na_hora_fim')?.value || '';
   const obs     = document.getElementById('na_obs').value;
-
   if (!cliId || !proId || !servId || !data || !hora) {
-    showToast('Preencha todos os campos obrigatórios', 'error');
-    return;
+    showToast('Preencha todos os campos obrigatórios', 'error'); return;
   }
-
-  // Calcular duração pela diferença início/fim
   let duracao = 60;
   if (hora && horaFim) {
-    const [h1, m1] = hora.split(':').map(Number);
-    const [h2, m2] = horaFim.split(':').map(Number);
-    const diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+    const [h1,m1] = hora.split(':').map(Number);
+    const [h2,m2] = horaFim.split(':').map(Number);
+    const diff = (h2*60+m2)-(h1*60+m1);
     if (diff > 0) duracao = diff;
   }
-
   try {
     await apiFetch('/api/agendamentos', {
       method: 'POST',
@@ -132,9 +131,7 @@ async function saveNewAppointment() {
     closeModal();
     showToast('Agendamento criado com sucesso!', 'success');
     await reloadAndNavigate('agenda');
-  } catch (e) {
-    showToast(e.message, 'error');
-  }
+  } catch(e) { showToast(e.message, 'error'); }
 }
 
 async function finalizeAppointment(id) {
