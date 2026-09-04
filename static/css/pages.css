@@ -773,7 +773,7 @@
   display: grid;
   grid-template-columns: 380px 1fr;
   gap: 20px;
-  align-items: start;
+  align-items: stretch;
   margin-bottom: 0;
 }
 
@@ -783,6 +783,7 @@
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--gray-200);
   overflow: visible;
+  align-self: stretch;
 }
 
 .perfis-lista {
