@@ -1823,12 +1823,31 @@ function renderPerfisArea() {
                 <div class="perfil-item-desc">${p.descricao}</div>
               </div>
               <div class="perfil-item-menu" onclick="event.stopPropagation()">
-                <button class="btn-icon-sm" onclick="editarPerfil(${p.id})" title="Editar">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                <button class="perfil-menu-btn" onclick="togglePerfilMenu(event,${p.id})" title="Opções">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
                 </button>
-                ${!p.padrao ? `<button class="btn-icon-sm btn-icon-delete" onclick="confirmarExcluirPerfil(${p.id},'${p.nome}')" title="Excluir">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
-                </button>` : ''}
+                <div class="perfil-dropdown" id="perfilMenu_${p.id}">
+                  <button class="perfil-dropdown-item" onclick="closePerfilMenus();editarPerfil(${p.id})">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Editar perfil
+                  </button>
+                  <button class="perfil-dropdown-item" onclick="closePerfilMenus();duplicarPerfil(${p.id})">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                    Duplicar perfil
+                  </button>
+                  ${!p.padrao ? `<button class="perfil-dropdown-item" onclick="closePerfilMenus();definirPadrao(${p.id})">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    Definir como padrão
+                  </button>` : ''}
+                  <button class="perfil-dropdown-item" onclick="closePerfilMenus();selecionarPerfil(${p.id})">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    Visualizar permissões
+                  </button>
+                  ${!p.padrao ? `<button class="perfil-dropdown-item perfil-dropdown-danger" onclick="closePerfilMenus();confirmarExcluirPerfil(${p.id},'${p.nome}')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                    Excluir perfil
+                  </button>` : ''}
+                </div>
               </div>
             </div>`;
           }).join('')}
@@ -2077,6 +2096,65 @@ async function salvarPerfil() {
     btn.disabled = false;
     btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Salvar Perfil';
   }
+}
+
+
+function togglePerfilMenu(e, id) {
+  e.stopPropagation();
+  const menu = document.getElementById(`perfilMenu_${id}`);
+  const isOpen = menu.classList.contains('show');
+  closePerfilMenus();
+  if (!isOpen) {
+    menu.classList.add('show');
+    // Fechar ao clicar fora
+    setTimeout(() => {
+      document.addEventListener('click', closePerfilMenus, { once: true });
+    }, 0);
+  }
+}
+
+function closePerfilMenus() {
+  document.querySelectorAll('.perfil-dropdown.show').forEach(m => m.classList.remove('show'));
+}
+
+async function duplicarPerfil(id) {
+  const p = _perfis.find(x => x.id === id);
+  if (!p) return;
+  try {
+    const res = await fetch('/api/perfis', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        nome: p.nome + ' (cópia)',
+        descricao: p.descricao,
+        permissoes: p.permissoes,
+        ativo: true,
+      }),
+    });
+    if (!res.ok) throw new Error('Erro ao duplicar');
+    showToast('Perfil duplicado!', 'success');
+    await loadPerfis();
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function definirPadrao(id) {
+  try {
+    // Remove padrão de todos e define no selecionado
+    for (const p of _perfis) {
+      if (p.padrao && p.id !== id) {
+        await fetch(`/api/perfis/${p.id}`, {
+          method: 'PUT', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ padrao: false }),
+        });
+      }
+    }
+    await fetch(`/api/perfis/${id}`, {
+      method: 'PUT', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ padrao: true }),
+    });
+    showToast('Perfil definido como padrão!', 'success');
+    await loadPerfis();
+  } catch(e) { showToast('Erro ao definir padrão', 'error'); }
 }
 
 function confirmarExcluirPerfil(id, nome) {
