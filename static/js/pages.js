@@ -2108,3 +2108,180 @@ function renderPerfisArea() {
 =========================== */
 
 /* ===================== DASHBOARD ===================== */
+
+// ── Menu 3 pontinhos de perfil ────────────────────────────
+function togglePerfilMenu(e, id) {
+  e.stopPropagation();
+  const menu = document.getElementById(`perfilMenu_${id}`);
+  const isOpen = menu.classList.contains('show');
+  closePerfilMenus();
+  if (!isOpen) {
+    const btn  = e.currentTarget;
+    const rect = btn.getBoundingClientRect();
+    menu.style.top  = (rect.bottom + 4) + 'px';
+    menu.style.left = (rect.right - 190) + 'px';
+    menu.classList.add('show');
+    setTimeout(() => {
+      document.addEventListener('click', closePerfilMenus, { once: true });
+    }, 0);
+  }
+}
+
+function closePerfilMenus() {
+  document.querySelectorAll('.perfil-dropdown.show').forEach(m => m.classList.remove('show'));
+}
+
+async function duplicarPerfil(id) {
+  const p = _perfis.find(x => x.id === id);
+  if (!p) return;
+  try {
+    const base = (typeof API_BASE !== 'undefined') ? API_BASE : '';
+    const res = await fetch(base + '/api/perfis', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ nome: p.nome + ' (cópia)', descricao: p.descricao, permissoes: p.permissoes, ativo: true }),
+    });
+    if (!res.ok) throw new Error('Erro ao duplicar');
+    showToast('Perfil duplicado!', 'success');
+    await loadPerfis();
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function definirPadrao(id) {
+  try {
+    const base = (typeof API_BASE !== 'undefined') ? API_BASE : '';
+    for (const p of _perfis) {
+      if (p.padrao && p.id !== id) {
+        await fetch(`${base}/api/perfis/${p.id}`, {
+          method: 'PUT', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ padrao: false }),
+        });
+      }
+    }
+    await fetch(`${base}/api/perfis/${id}`, {
+      method: 'PUT', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ padrao: true }),
+    });
+    showToast('Perfil definido como padrão!', 'success');
+    await loadPerfis();
+  } catch(e) { showToast('Erro ao definir padrão', 'error'); }
+}
+
+function abrirNovoPerfil() {
+  _perfilEditando = null;
+  document.getElementById('perfilFormTitulo').textContent = 'Novo Perfil';
+  document.getElementById('pNome').value = '';
+  document.getElementById('pDesc').value = '';
+  document.getElementById('perfilFormErro').style.display = 'none';
+  renderPermsTbody({});
+  document.getElementById('perfilFormModal').style.display = 'flex';
+}
+
+function editarPerfil(id) {
+  _perfilEditando = _perfis.find(p => p.id === id);
+  if (!_perfilEditando) return;
+  document.getElementById('perfilFormTitulo').textContent = 'Editar Perfil';
+  document.getElementById('pNome').value = _perfilEditando.nome;
+  document.getElementById('pDesc').value = _perfilEditando.descricao || '';
+  document.getElementById('perfilFormErro').style.display = 'none';
+  renderPermsTbody(_perfilEditando.permissoes || {});
+  document.getElementById('perfilFormModal').style.display = 'flex';
+}
+
+function fecharFormPerfil() {
+  document.getElementById('perfilFormModal').style.display = 'none';
+}
+
+function renderPermsTbody(permsAtivas) {
+  const tbody = document.getElementById('perfilPermsTbody');
+  if (!tbody) return;
+  const MODULOS_F = [
+    {key:'dashboard',label:'Dashboard'},{key:'agenda',label:'Agenda'},
+    {key:'clientes',label:'Clientes'},{key:'servicos',label:'Serviços'},
+    {key:'profissionais',label:'Profissionais'},{key:'atendimentos',label:'Atendimentos'},
+    {key:'pdv',label:'PDV / Vendas'},{key:'estoque',label:'Estoque'},
+    {key:'financeiro',label:'Financeiro'},{key:'relatorios',label:'Relatórios'},
+    {key:'configuracoes',label:'Configurações'},
+  ];
+  const ACOES_F = ['visualizar','incluir','editar','excluir','imprimir','exportar'];
+  tbody.innerHTML = MODULOS_F.map(m => `
+    <tr>
+      <td><strong>${m.label}</strong></td>
+      ${ACOES_F.map(a => `<td style="text-align:center">
+        <input type="checkbox" class="perm-check" data-mod="${m.key}" data-acao="${a}"
+          ${permsAtivas[m.key]?.[a] ? 'checked' : ''}
+          style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer" />
+      </td>`).join('')}
+    </tr>`).join('');
+}
+
+function marcarColuna(acao, valor) {
+  document.querySelectorAll(`.perm-check[data-acao="${acao}"]`).forEach(cb => cb.checked = valor);
+}
+
+function coletarPermissoes() {
+  const perms = {};
+  document.querySelectorAll('.perm-check').forEach(cb => {
+    const mod = cb.dataset.mod, acao = cb.dataset.acao;
+    if (!perms[mod]) perms[mod] = {};
+    perms[mod][acao] = cb.checked;
+  });
+  return perms;
+}
+
+async function salvarPerfil() {
+  const nome  = document.getElementById('pNome').value.trim();
+  const desc  = document.getElementById('pDesc').value.trim();
+  const perms = coletarPermissoes();
+  const btn   = document.getElementById('btnSalvarPerfil');
+  if (!nome) {
+    document.getElementById('perfilFormErroTxt').textContent = 'Informe o nome do perfil.';
+    document.getElementById('perfilFormErro').style.display = 'flex';
+    return;
+  }
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner-sm"></div> Salvando...';
+  try {
+    const base = (typeof API_BASE !== 'undefined') ? API_BASE : '';
+    const body = { nome, descricao: desc, permissoes: perms };
+    if (_perfilEditando) {
+      const res = await fetch(`${base}/api/perfis/${_perfilEditando.id}`, {
+        method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error((await res.json()).erro || 'Erro ao salvar');
+      showToast('Perfil atualizado!', 'success');
+    } else {
+      const res = await fetch(base + '/api/perfis', {
+        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error((await res.json()).erro || 'Erro ao criar');
+      showToast('Perfil criado!', 'success');
+    }
+    fecharFormPerfil();
+    await loadPerfis();
+  } catch(e) {
+    document.getElementById('perfilFormErroTxt').textContent = e.message;
+    document.getElementById('perfilFormErro').style.display = 'flex';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Salvar Perfil';
+  }
+}
+
+function confirmarExcluirPerfil(id, nome) {
+  confirmDialog(`Deseja excluir o perfil <strong>${nome}</strong>?`, async () => {
+    try {
+      const base = (typeof API_BASE !== 'undefined') ? API_BASE : '';
+      const res = await fetch(`${base}/api/perfis/${id}`, { method: 'DELETE' });
+      if (!res.ok) { const d = await res.json(); showToast(d.erro || 'Erro', 'error'); return; }
+      showToast('Perfil excluído!', 'success');
+      if (_perfilSel?.id === id) _perfilSel = null;
+      await loadPerfis();
+    } catch(e) { showToast('Erro ao excluir', 'error'); }
+  });
+}
+
+function selecionarPerfil(id) {
+  _perfilSel = _perfis.find(p => p.id === id);
+  renderPerfisAreaConteudo();
+}
