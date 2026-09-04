@@ -671,6 +671,78 @@ function renderAgenda() {
 }
 
 
+function agendaBack() {
+  agendaDate = new Date(agendaDate);
+  agendaDate.setDate(agendaDate.getDate() - 1);
+  navigate('agenda');
+}
+function agendaNext() {
+  agendaDate = new Date(agendaDate);
+  agendaDate.setDate(agendaDate.getDate() + 1);
+  navigate('agenda');
+}
+function agendaToday() {
+  agendaDate = new Date();
+  navigate('agenda');
+}
+function setAgendaView(v) {
+  agendaView = v;
+  navigate('agenda');
+}
+function openAppointmentDetail(id) {
+  const a = DB.agendamentos.find(x => x.id === id);
+  if (!a) return;
+  const cli  = getCliente(a.clienteId);
+  const pro  = getProfissional(a.proId);
+  const serv = getServico(a.servicoId);
+  openModal({
+    title: 'Detalhe do Agendamento',
+    body: `
+      <div style="display:flex;gap:16px;margin-bottom:16px">
+        ${avatarHtml(cli?.nome,'avatar-lg',a.clienteId)}
+        <div>
+          <div style="font-weight:600;font-size:1rem">${cli?.nome||'—'}</div>
+          <div style="color:var(--gray-500);font-size:.85rem">${cli?.telefone||''}</div>
+        </div>
+      </div>
+      <div class="grid grid-2" style="gap:10px;margin-bottom:16px">
+        <div class="card" style="padding:12px 16px">
+          <div class="text-xs text-gray">Serviço</div>
+          <div style="font-weight:600;margin-top:4px">${serv?.nome||'—'}</div>
+        </div>
+        <div class="card" style="padding:12px 16px">
+          <div class="text-xs text-gray">Profissional</div>
+          <div style="font-weight:600;margin-top:4px">${pro?.nome||'—'}</div>
+        </div>
+        <div class="card" style="padding:12px 16px">
+          <div class="text-xs text-gray">Data / Hora</div>
+          <div style="font-weight:600;margin-top:4px">${formatDate(a.data)} às ${a.hora}</div>
+        </div>
+        <div class="card" style="padding:12px 16px">
+          <div class="text-xs text-gray">Valor</div>
+          <div style="font-weight:600;color:var(--primary);font-size:1.05rem;margin-top:4px">${formatCurrency(a.valor)}</div>
+        </div>
+      </div>
+      <div style="margin-bottom:12px">${statusBadge(a.status)}</div>
+      ${a.obs ? `<div class="alert alert-info" style="font-size:.82rem">💬 ${a.obs}</div>` : ''}`,
+    footer: `
+      <button class="btn btn-outline" onclick="closeModal()">Fechar</button>
+      <button class="btn btn-success" onclick="finalizeAppointment(${a.id})">Finalizar</button>
+      <button class="btn btn-danger" onclick="cancelAppointment(${a.id})">Cancelar</button>`
+  });
+}
+function finalizeAppointment(id) {
+  const a = DB.agendamentos.find(x=>x.id===id);
+  if (a) { a.status='finalizado'; closeModal(); showToast('Atendimento finalizado!','success'); navigate('agenda'); }
+}
+function cancelAppointment(id) {
+  closeModal();
+  confirmDialog('Deseja cancelar este agendamento?', () => {
+    const a = DB.agendamentos.find(x=>x.id===id);
+    if (a) { a.status='cancelado'; showToast('Agendamento cancelado','warning'); navigate('agenda'); }
+  });
+}
+
 /* ===================== CLIENTES ===================== */
 let clienteSearch = '';
 
