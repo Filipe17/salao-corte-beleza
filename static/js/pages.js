@@ -1882,13 +1882,20 @@ function editarAtendimento(id) {
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">Serviço</label>
-        <select class="form-control" id="na_serv_sel">
-          <option value="">Selecionar...</option>${servOptions}
-        </select>
-        <div id="na_servicos_lista" style="margin-top:8px"></div>
-        <div style="display:flex;justify-content:flex-end;margin-top:6px">
-          <span style="font-weight:700;color:var(--primary)">Total: <span id="na_total">${formatCurrency(a.valor)}</span></span>
+        <label class="form-label">Serviços</label>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <select class="form-control" id="na_serv_sel" style="flex:1">
+            <option value="">Selecionar serviço...</option>${servOptions}
+          </select>
+          <button class="btn btn-outline" onclick="naAdicionarServico()" type="button" style="white-space:nowrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Adicionar
+          </button>
+        </div>
+        <div id="na_servicos_lista" style="display:flex;flex-direction:column;gap:6px;min-height:40px"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--gray-100);padding-top:10px;margin-top:8px">
+          <div style="font-size:0.82rem;color:var(--gray-500)">Duração total: <strong id="na_duracao_total">0 min</strong></div>
+          <div style="font-size:0.95rem;font-weight:700;color:var(--primary)">Total: <span id="na_total">${formatCurrency(a.valor)}</span></div>
         </div>
       </div>
       <div class="form-group">
@@ -1903,7 +1910,7 @@ function editarAtendimento(id) {
     `
   });
 
-  setTimeout(() => naRenderServicos(), 100);
+  setTimeout(() => { naRenderServicos(); naAtualizarTotal(); }, 200);
 }
 
 async function salvarEdicaoAtendimento(id) {
