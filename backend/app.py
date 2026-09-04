@@ -302,7 +302,7 @@ def seed():
 
 def migrate():
     """Adiciona colunas novas em tabelas existentes sem derrubar dados."""
-    cols = [
+    cols_usuarios = [
         ("senha_padrao",  "BOOLEAN DEFAULT TRUE"),
         ("email",         "VARCHAR(120) DEFAULT ''"),
         ("telefone",      "VARCHAR(30) DEFAULT ''"),
@@ -310,14 +310,34 @@ def migrate():
         ("data_cadastro", "VARCHAR(20) DEFAULT ''"),
         ("foto",         "VARCHAR(200) DEFAULT ''"),
     ]
+    cols_perfis = [
+        ("data_criacao", "VARCHAR(20) DEFAULT ''"),
+    ]
     with db.engine.connect() as conn:
-        for col, definition in cols:
+        for col, definition in cols_usuarios:
             try:
                 conn.execute(db.text(f"ALTER TABLE usuarios ADD COLUMN {col} {definition}"))
                 conn.commit()
-                print(f"✅ Migration: coluna {col} adicionada.")
+                print(f"✅ Migration usuarios: coluna {col} adicionada.")
             except Exception:
                 conn.rollback()
+
+        for col, definition in cols_perfis:
+            try:
+                conn.execute(db.text(f"ALTER TABLE perfis_acesso ADD COLUMN {col} {definition}"))
+                conn.commit()
+                print(f"✅ Migration perfis_acesso: coluna {col} adicionada.")
+            except Exception:
+                conn.rollback()
+
+        # Preencher data_cadastro vazia nos usuários
+        try:
+            conn.execute(db.text(
+                "UPDATE usuarios SET data_cadastro = :d WHERE data_cadastro IS NULL OR data_cadastro = ''"
+            ), {'d': str(date.today())})
+            conn.commit()
+        except Exception:
+            conn.rollback()
 
 
 with app.app_context():
