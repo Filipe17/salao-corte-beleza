@@ -2707,12 +2707,43 @@ function renderFormasPagArea() {
 
     <!-- Sobre -->
     <div class="fp-sobre">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;color:var(--primary)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <strong>Sobre as Formas de Pagamento</strong>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:24px">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;color:var(--primary)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <strong>Sobre as Formas de Pagamento</strong>
+          </div>
+          <p style="font-size:0.82rem;color:var(--gray-600)">As formas de pagamento cadastradas serão utilizadas no PDV, atendimentos e financeiro.</p>
+          <p style="font-size:0.82rem;color:var(--gray-600);margin-top:4px">As taxas informadas são utilizadas para cálculo do valor líquido recebido.</p>
+        </div>
+        <!-- Ilustração -->
+        <svg width="110" height="90" viewBox="0 0 110 90" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;opacity:0.85">
+          <!-- Cartão -->
+          <rect x="4" y="20" width="68" height="44" rx="8" fill="#fce7f3" stroke="#f9a8d4" stroke-width="1.5"/>
+          <rect x="4" y="30" width="68" height="10" fill="#f9a8d4" opacity="0.5"/>
+          <rect x="12" y="46" width="20" height="4" rx="2" fill="#f472b6" opacity="0.6"/>
+          <rect x="12" y="53" width="14" height="3" rx="1.5" fill="#f472b6" opacity="0.4"/>
+          <rect x="44" y="46" width="20" height="4" rx="2" fill="#f472b6" opacity="0.6"/>
+          <!-- Chip -->
+          <rect x="12" y="36" width="12" height="9" rx="2" fill="#fbbf24" opacity="0.8"/>
+          <line x1="15" y1="36" x2="15" y2="45" stroke="#f59e0b" stroke-width="0.8"/>
+          <line x1="18" y1="36" x2="18" y2="45" stroke="#f59e0b" stroke-width="0.8"/>
+          <line x1="12" y1="40" x2="24" y2="40" stroke="#f59e0b" stroke-width="0.8"/>
+          <!-- Nota fiscal -->
+          <rect x="58" y="10" width="46" height="66" rx="4" fill="white" stroke="#e9d5ff" stroke-width="1.5"/>
+          <path d="M58 14a4 4 0 014-4h38v6H58V14z" fill="#f3e8ff"/>
+          <rect x="66" y="24" width="30" height="3" rx="1.5" fill="#c084fc" opacity="0.5"/>
+          <rect x="66" y="31" width="22" height="2.5" rx="1.25" fill="#e9d5ff"/>
+          <rect x="66" y="37" width="26" height="2.5" rx="1.25" fill="#e9d5ff"/>
+          <rect x="66" y="43" width="18" height="2.5" rx="1.25" fill="#e9d5ff"/>
+          <rect x="66" y="49" width="24" height="2.5" rx="1.25" fill="#e9d5ff"/>
+          <rect x="66" y="55" width="20" height="2.5" rx="1.25" fill="#e9d5ff"/>
+          <rect x="62" y="65" width="38" height="3" rx="1.5" fill="#c084fc" opacity="0.4"/>
+          <!-- Moeda -->
+          <circle cx="28" cy="72" r="12" fill="#fef9c3" stroke="#fde047" stroke-width="1.5"/>
+          <text x="28" y="77" text-anchor="middle" font-size="13" fill="#ca8a04" font-weight="bold" font-family="sans-serif">$</text>
+        </svg>
       </div>
-      <p style="font-size:0.82rem;color:var(--gray-600)">As formas de pagamento cadastradas serão utilizadas no PDV, atendimentos e financeiro.</p>
-      <p style="font-size:0.82rem;color:var(--gray-600);margin-top:4px">As taxas informadas são utilizadas para cálculo do valor líquido recebido.</p>
     </div>`;
 }
 
