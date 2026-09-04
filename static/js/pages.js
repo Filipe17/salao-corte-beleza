@@ -1798,7 +1798,7 @@ function renderPerfisAreaConteudo() {
   const area = document.getElementById('perfisArea');
   if (!area) return;
 
-  const iconesPerfil = { administrador:'🛡️', gerente:'💼', recepcionista:'🧑‍💼', profissional:'✂️', caixa:'💵' };
+  const iconesPerfil = { administrador:`<svg viewBox="0 0 24 24" fill="none" width="22" height="22"><path d="M12 2l2.4 4.8L20 8l-4 3.9.9 5.6L12 15l-4.9 2.5.9-5.6L4 8l5.6-.8z" fill="#f43f5e" stroke="#f43f5e" stroke-width="1.5" stroke-linejoin="round"/></svg>`, gerente:`<svg viewBox="0 0 24 24" fill="none" width="22" height="22"><rect x="2" y="7" width="20" height="14" rx="2" fill="#a855f7" opacity=".15"/><rect x="2" y="7" width="20" height="14" rx="2" stroke="#a855f7" stroke-width="1.5"/><path d="M8 7V5a4 4 0 018 0v2" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="14" r="2" fill="#a855f7"/></svg>`, recepcionista:`<svg viewBox="0 0 24 24" fill="none" width="22" height="22"><circle cx="12" cy="8" r="4" fill="#f59e0b" opacity=".2" stroke="#f59e0b" stroke-width="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/></svg>`, profissional:`<svg viewBox="0 0 24 24" fill="none" width="22" height="22"><circle cx="8" cy="8" r="3" fill="#ec4899" opacity=".2" stroke="#ec4899" stroke-width="1.5"/><circle cx="16" cy="8" r="3" fill="#ec4899" opacity=".2" stroke="#ec4899" stroke-width="1.5"/><path d="M12 12l-4 4 2 2 2-2 2 2 2-2z" fill="#ec4899" stroke="#ec4899" stroke-width="1" stroke-linejoin="round"/></svg>`, caixa:`<svg viewBox="0 0 24 24" fill="none" width="22" height="22"><rect x="2" y="6" width="20" height="14" rx="2" fill="#22c55e" opacity=".15" stroke="#22c55e" stroke-width="1.5"/><circle cx="12" cy="13" r="3" fill="#22c55e" opacity=".3" stroke="#22c55e" stroke-width="1.5"/><path d="M6 10h.01M18 10h.01" stroke="#22c55e" stroke-width="2" stroke-linecap="round"/></svg>` };
   const ACOES_V = ['visualizar','incluir','editar','excluir','imprimir','exportar'];
   const MODS = [
     {key:'dashboard',label:'Dashboard',icon:'▦'},{key:'agenda',label:'Agenda',icon:'📅'},
@@ -1832,7 +1832,7 @@ function renderPerfisAreaConteudo() {
           ${_perfis.length === 0 ? '<p style="padding:20px;text-align:center;color:var(--gray-400)">Nenhum perfil</p>' :
           _perfis.map(p => {
             const isSel = _perfilSel && p.id === _perfilSel.id;
-            const icon  = iconesPerfil[p.nome.toLowerCase()] || '👤';
+            const icon  = iconesPerfil[p.nome.toLowerCase()] || `<svg viewBox="0 0 24 24" fill="none" width="22" height="22"><circle cx="12" cy="8" r="4" fill="#6366f1" opacity=".2" stroke="#6366f1" stroke-width="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round"/></svg>`;
             return `
             <div class="perfil-item ${isSel ? 'ativo' : ''}" onclick="selecionarPerfil(${p.id})">
               <div class="perfil-item-icon">${icon}</div>
@@ -2022,10 +2022,10 @@ function renderTabelaPerfis2() {
 function renderListaPerfis() {
   const lista = document.getElementById('perfisListaInner');
   if (!lista) return;
-  const iconesPerfil = { administrador:'🛡️', gerente:'💼', recepcionista:'🧑‍💼', profissional:'✂️', caixa:'💵' };
+  const iconesPerfil = { administrador:`<svg viewBox="0 0 24 24" fill="none" width="22" height="22"><path d="M12 2l2.4 4.8L20 8l-4 3.9.9 5.6L12 15l-4.9 2.5.9-5.6L4 8l5.6-.8z" fill="#f43f5e" stroke="#f43f5e" stroke-width="1.5" stroke-linejoin="round"/></svg>`, gerente:`<svg viewBox="0 0 24 24" fill="none" width="22" height="22"><rect x="2" y="7" width="20" height="14" rx="2" fill="#a855f7" opacity=".15"/><rect x="2" y="7" width="20" height="14" rx="2" stroke="#a855f7" stroke-width="1.5"/><path d="M8 7V5a4 4 0 018 0v2" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="14" r="2" fill="#a855f7"/></svg>`, recepcionista:`<svg viewBox="0 0 24 24" fill="none" width="22" height="22"><circle cx="12" cy="8" r="4" fill="#f59e0b" opacity=".2" stroke="#f59e0b" stroke-width="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/></svg>`, profissional:`<svg viewBox="0 0 24 24" fill="none" width="22" height="22"><circle cx="8" cy="8" r="3" fill="#ec4899" opacity=".2" stroke="#ec4899" stroke-width="1.5"/><circle cx="16" cy="8" r="3" fill="#ec4899" opacity=".2" stroke="#ec4899" stroke-width="1.5"/><path d="M12 12l-4 4 2 2 2-2 2 2 2-2z" fill="#ec4899" stroke="#ec4899" stroke-width="1" stroke-linejoin="round"/></svg>`, caixa:`<svg viewBox="0 0 24 24" fill="none" width="22" height="22"><rect x="2" y="6" width="20" height="14" rx="2" fill="#22c55e" opacity=".15" stroke="#22c55e" stroke-width="1.5"/><circle cx="12" cy="13" r="3" fill="#22c55e" opacity=".3" stroke="#22c55e" stroke-width="1.5"/><path d="M6 10h.01M18 10h.01" stroke="#22c55e" stroke-width="2" stroke-linecap="round"/></svg>` };
   lista.innerHTML = _perfis.map(p => {
     const isSel = _perfilSel && p.id === _perfilSel.id;
-    const icon  = iconesPerfil[p.nome.toLowerCase()] || '👤';
+    const icon  = iconesPerfil[p.nome.toLowerCase()] || `<svg viewBox="0 0 24 24" fill="none" width="22" height="22"><circle cx="12" cy="8" r="4" fill="#6366f1" opacity=".2" stroke="#6366f1" stroke-width="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round"/></svg>`;
     return `
     <div class="perfil-item ${isSel ? 'ativo' : ''}" onclick="selecionarPerfil(${p.id})">
       <div class="perfil-item-icon">${icon}</div>
