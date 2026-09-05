@@ -821,6 +821,48 @@ function renderClientes() {
   return html;
 }
 
+function verHistoricoCompleto(id) {
+  const c    = DB.clientes.find(x => x.id === id);
+  if (!c) return;
+  const hist = DB.agendamentos.filter(a => a.clienteId === id)
+    .sort((a,b) => b.data?.localeCompare(a.data));
+
+  const rows = hist.map(a => {
+    const serv = getServico(a.servicoId);
+    const pro  = getProfissional(a.proId);
+    const transacao = DB.transacoes.find(t =>
+      t.data === a.data && t.tipo === 'entrada' &&
+      (t.descricao || '').toLowerCase().includes(c.nome.toLowerCase().split(' ')[0])
+    );
+    const forma = a.formaPgto || transacao?.forma || '—';
+    const formaBadge = {
+      'dinheiro':'badge-green','pix':'badge-purple',
+      'cartao':'badge-blue','credito':'badge-blue','debito':'badge-orange',
+    }[forma?.toLowerCase()] || 'badge-gray';
+    return `<tr>
+      <td>${formatDate(a.data)} ${a.hora ? '· '+a.hora : ''}</td>
+      <td>${serv?.emoji||''} ${serv?.nome||'—'}</td>
+      <td>${pro?.nome?.split(' ')[0]||'—'}</td>
+      <td style="font-weight:600;color:var(--success)">${formatCurrency(a.valor)}</td>
+      <td><span class="badge ${formaBadge}">${forma}</span></td>
+      <td>${statusBadge(a.status)}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:20px">Nenhum histórico</td></tr>';
+
+  openModal({
+    title: `Histórico completo — ${c.nome}`, size: 'modal-lg',
+    body: `
+      <div class="table-wrapper">
+        <table>
+          <thead><tr><th>Data</th><th>Serviço</th><th>Profissional</th><th>Valor</th><th>Forma Pgto.</th><th>Status</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`,
+    footer: `<button class="btn btn-outline" onclick="closeModal()">Fechar</button>`
+  });
+}
+
+
 function verDetalheAgendamento(id) {
   const a    = DB.agendamentos.find(x => x.id === id);
   if (!a) return;
@@ -1065,7 +1107,7 @@ function renderCliPerfil(id) {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           Editar Cliente
         </button>
-        <button class="btn btn-outline" onclick="">
+        <button class="btn btn-outline" onclick="verHistoricoCompleto(${id})">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           Histórico completo
         </button>
