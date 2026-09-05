@@ -78,7 +78,13 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.nav-item[data-page]').forEach(el => {
     el.addEventListener('click', (e) => {
       e.preventDefault();
-      navigate(el.dataset.page);
+      const page = el.dataset.page;
+      const reloadPages = ['financeiro', 'atendimento', 'agenda', 'estoque', 'dashboard'];
+      if (reloadPages.includes(page) && typeof reloadAndNavigate === 'function') {
+        reloadAndNavigate(page);
+      } else {
+        navigate(page);
+      }
     });
   });
 
