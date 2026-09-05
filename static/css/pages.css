@@ -1756,3 +1756,12 @@
   transition: all .15s;
 }
 .nc-pro-check.checked { border-color: var(--primary); background: var(--primary); color: white; }
+
+.cli-menu-item {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; padding: 9px 12px; border: none;
+  background: none; cursor: pointer; font-size: .875rem;
+  color: var(--gray-700); border-radius: 8px; text-align: left;
+  transition: background .15s;
+}
+.cli-menu-item:hover { background: var(--gray-50); }
