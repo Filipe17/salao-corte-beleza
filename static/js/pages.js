@@ -1689,7 +1689,7 @@ function salvarBloqueios() {
 }
 
 function getBloqueiosPro(proId) {
-  return cfgBloqueios[proId] || { horarioInicio: '08:00', horarioFim: '18:00', intervaloInicio: '', intervaloFim: '', diasBloqueados: [], bloqueiosEspecificos: [] };
+  return cfgBloqueios[proId] || { horarioInicio: '08:00', horarioFim: '18:00', diasBloqueados: [], bloqueios: [] };
 }
 
 function renderConfigAgenda() {
@@ -1707,15 +1707,19 @@ function renderConfigAgenda() {
       </div>
     </div>`).join('');
 
-  const bloqRows = (cfg.bloqueiosEspecificos || []).map((b, i) => `
-    <tr>
-      <td>${b.data ? formatDate(b.data) : 'Recorrente'}</td>
-      <td>${b.inicio} — ${b.fim}</td>
+  const bloqRows = (cfg.bloqueios || []).map((b, i) => {
+    const tipoLabel = b.tipo === 'recorrente'
+      ? `<span class="badge badge-purple">Todo dia</span>`
+      : `<span class="badge badge-blue">${formatDate(b.data)}</span>`;
+    return `<tr>
+      <td>${tipoLabel}</td>
+      <td style="font-weight:600">${b.inicio} — ${b.fim}</td>
       <td>${b.motivo || '—'}</td>
       <td><button class="btn-icon-sm btn-icon-delete" onclick="cfgRemoverBloqueio(${cfgProSel},${i})">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
       </button></td>
-    </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--gray-400);padding:16px">Nenhum bloqueio específico</td></tr>';
+    </tr>`;
+  }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--gray-400);padding:16px">Nenhum bloqueio ou intervalo cadastrado</td></tr>';
 
   return `
   <div class="page-header">
@@ -1732,13 +1736,11 @@ function renderConfigAgenda() {
   </div>
 
   <div class="cfg-layout">
-    <!-- Lista de profissionais -->
     <div class="cfg-left">
       <div class="cfg-section-title">Profissionais</div>
       ${proCards}
     </div>
 
-    <!-- Configurações do profissional selecionado -->
     <div class="cfg-main">
       ${cfgProSel ? `
         <div class="card" style="padding:24px;margin-bottom:16px">
@@ -1752,14 +1754,6 @@ function renderConfigAgenda() {
               <label class="nc-label">Fim do expediente</label>
               <input type="time" class="form-control" id="cfg_fim" value="${cfg.horarioFim}" />
             </div>
-            <div class="nc-field">
-              <label class="nc-label">Início do intervalo</label>
-              <input type="time" class="form-control" id="cfg_intInicio" value="${cfg.intervaloInicio || ''}" placeholder="Ex.: 12:00" />
-            </div>
-            <div class="nc-field">
-              <label class="nc-label">Fim do intervalo</label>
-              <input type="time" class="form-control" id="cfg_intFim" value="${cfg.intervaloFim || ''}" placeholder="Ex.: 13:00" />
-            </div>
           </div>
         </div>
 
@@ -1768,38 +1762,50 @@ function renderConfigAgenda() {
           <div class="cfg-dias-grid">
             ${dias.map((d, i) => `
               <button class="cfg-dia-btn ${(cfg.diasBloqueados||[]).includes(i) ? '' : 'active'}"
-                onclick="cfgToggleDia(${cfgProSel},${i})">
-                ${d}
-              </button>`).join('')}
+                onclick="cfgToggleDia(${cfgProSel},${i})">${d}</button>`).join('')}
           </div>
-          <p style="font-size:.75rem;color:var(--gray-400);margin-top:10px">Dias marcados = dias de atendimento. Dias desmarcados = bloqueados.</p>
+          <p style="font-size:.75rem;color:var(--gray-400);margin-top:10px">Dias marcados = atende. Dias desmarcados = bloqueados.</p>
         </div>
 
         <div class="card" style="padding:24px;margin-bottom:16px">
-          <div class="cfg-section-title" style="margin-bottom:16px">🚫 Bloqueios específicos</div>
-          <div class="nc-row" style="margin-bottom:14px">
-            <div class="nc-field">
-              <label class="nc-label">Data (deixe vazio para recorrente)</label>
+          <div class="cfg-section-title" style="margin-bottom:4px">🚫 Intervalos e bloqueios</div>
+          <p style="font-size:.78rem;color:var(--gray-400);margin-bottom:16px">
+            Adicione quantos intervalos quiser — almoço, pausa, folga em data específica, etc.
+          </p>
+
+          <div class="nc-row" style="margin-bottom:8px;align-items:flex-end">
+            <div class="nc-field" style="max-width:140px">
+              <label class="nc-label">Tipo</label>
+              <select class="form-control" id="cfg_blqTipo" onchange="cfgToggleTipoBloqueio()">
+                <option value="recorrente">Todo dia</option>
+                <option value="especifico">Data específica</option>
+              </select>
+            </div>
+            <div class="nc-field" id="cfg_blqDataField" style="display:none">
+              <label class="nc-label">Data</label>
               <input type="date" class="form-control" id="cfg_blqData" />
             </div>
-            <div class="nc-field">
-              <label class="nc-label">Horário início</label>
+            <div class="nc-field" style="max-width:120px">
+              <label class="nc-label">Início</label>
               <input type="time" class="form-control" id="cfg_blqInicio" />
             </div>
-            <div class="nc-field">
-              <label class="nc-label">Horário fim</label>
+            <div class="nc-field" style="max-width:120px">
+              <label class="nc-label">Fim</label>
               <input type="time" class="form-control" id="cfg_blqFim" />
             </div>
             <div class="nc-field">
               <label class="nc-label">Motivo</label>
-              <input type="text" class="form-control" id="cfg_blqMotivo" placeholder="Ex.: Almoço, Folga..." />
+              <input type="text" class="form-control" id="cfg_blqMotivo" placeholder="Ex.: Almoço, Pausa, Consulta..." />
+            </div>
+            <div class="nc-field" style="max-width:fit-content">
+              <label class="nc-label" style="visibility:hidden">.</label>
+              <button class="btn btn-primary btn-sm" onclick="cfgAdicionarBloqueio(${cfgProSel})">+ Adicionar</button>
             </div>
           </div>
-          <button class="btn btn-outline btn-sm" onclick="cfgAdicionarBloqueio(${cfgProSel})">+ Adicionar bloqueio</button>
 
           <div class="table-wrapper" style="margin-top:16px">
             <table>
-              <thead><tr><th>Data</th><th>Horário</th><th>Motivo</th><th>Ação</th></tr></thead>
+              <thead><tr><th>Recorrência</th><th>Horário</th><th>Motivo</th><th></th></tr></thead>
               <tbody>${bloqRows}</tbody>
             </table>
           </div>
@@ -1817,14 +1823,18 @@ function renderConfigAgenda() {
   </div>`;
 }
 
+function cfgToggleTipoBloqueio() {
+  const tipo = document.getElementById('cfg_blqTipo')?.value;
+  const dataField = document.getElementById('cfg_blqDataField');
+  if (dataField) dataField.style.display = tipo === 'especifico' ? 'flex' : 'none';
+}
+
 function cfgSalvar(proId) {
   if (!cfgBloqueios[proId]) cfgBloqueios[proId] = {};
-  cfgBloqueios[proId].horarioInicio  = document.getElementById('cfg_inicio')?.value || '08:00';
-  cfgBloqueios[proId].horarioFim     = document.getElementById('cfg_fim')?.value || '18:00';
-  cfgBloqueios[proId].intervaloInicio= document.getElementById('cfg_intInicio')?.value || '';
-  cfgBloqueios[proId].intervaloFim   = document.getElementById('cfg_intFim')?.value || '';
+  cfgBloqueios[proId].horarioInicio = document.getElementById('cfg_inicio')?.value || '08:00';
+  cfgBloqueios[proId].horarioFim    = document.getElementById('cfg_fim')?.value || '18:00';
   if (!cfgBloqueios[proId].diasBloqueados) cfgBloqueios[proId].diasBloqueados = [];
-  if (!cfgBloqueios[proId].bloqueiosEspecificos) cfgBloqueios[proId].bloqueiosEspecificos = [];
+  if (!cfgBloqueios[proId].bloqueios) cfgBloqueios[proId].bloqueios = [];
   salvarBloqueios();
   showToast('Configurações salvas!', 'success');
   navigate('agenda');
@@ -1843,11 +1853,14 @@ function cfgToggleDia(proId, dia) {
 function cfgAdicionarBloqueio(proId) {
   const inicio = document.getElementById('cfg_blqInicio')?.value;
   const fim    = document.getElementById('cfg_blqFim')?.value;
-  if (!inicio || !fim) { showToast('Informe início e fim do bloqueio', 'error'); return; }
+  const tipo   = document.getElementById('cfg_blqTipo')?.value || 'recorrente';
+  if (!inicio || !fim) { showToast('Informe início e fim', 'error'); return; }
+  if (inicio >= fim)   { showToast('Fim deve ser após o início', 'error'); return; }
   if (!cfgBloqueios[proId]) cfgBloqueios[proId] = getBloqueiosPro(proId);
-  if (!cfgBloqueios[proId].bloqueiosEspecificos) cfgBloqueios[proId].bloqueiosEspecificos = [];
-  cfgBloqueios[proId].bloqueiosEspecificos.push({
-    data:   document.getElementById('cfg_blqData')?.value || '',
+  if (!cfgBloqueios[proId].bloqueios) cfgBloqueios[proId].bloqueios = [];
+  cfgBloqueios[proId].bloqueios.push({
+    tipo,
+    data:   tipo === 'especifico' ? (document.getElementById('cfg_blqData')?.value || '') : '',
     inicio, fim,
     motivo: document.getElementById('cfg_blqMotivo')?.value || '',
   });
@@ -1856,10 +1869,11 @@ function cfgAdicionarBloqueio(proId) {
 }
 
 function cfgRemoverBloqueio(proId, idx) {
-  cfgBloqueios[proId]?.bloqueiosEspecificos?.splice(idx, 1);
+  cfgBloqueios[proId]?.bloqueios?.splice(idx, 1);
   salvarBloqueios();
   navigate('configAgenda');
 }
+
 
 
 function renderServicos() {
