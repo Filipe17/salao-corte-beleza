@@ -952,12 +952,22 @@ function renderCliPerfil(id) {
   const histRows = hist.slice(0, 10).map(a => {
     const serv = getServico(a.servicoId);
     const pro  = getProfissional(a.proId);
+    // Busca forma de pagamento: primeiro no agendamento, depois na transação do mesmo dia
+    const transacao = DB.transacoes.find(t =>
+      t.data === a.data && t.tipo === 'entrada' &&
+      (t.descricao || '').toLowerCase().includes((c.nome || '').toLowerCase().split(' ')[0])
+    );
+    const forma = a.formaPgto || transacao?.forma || '—';
+    const formaBadge = {
+      'dinheiro': 'badge-green', 'pix': 'badge-purple',
+      'cartao': 'badge-blue', 'credito': 'badge-blue', 'debito': 'badge-orange',
+    }[forma?.toLowerCase()] || 'badge-gray';
     return `<tr>
       <td>${formatDate(a.data)}</td>
       <td>${serv?.nome || '—'}</td>
       <td>${pro?.nome?.split(' ')[0] || '—'}</td>
       <td>${formatCurrency(a.valor)}</td>
-      <td><span class="badge badge-gray">${a.formaPgto || '—'}</span></td>
+      <td><span class="badge ${formaBadge}">${forma}</span></td>
       <td><button class="btn-icon-sm" title="Ver detalhes" onclick="verDetalheAgendamento(${a.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></td>
     </tr>`;
   }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:20px">Nenhum histórico</td></tr>';
