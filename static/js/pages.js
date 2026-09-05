@@ -1011,18 +1011,40 @@ function openClientEdit(id) {
   const c = DB.clientes.find(x => x.id === id);
   if (!c) return;
   openModal({
-    title: 'Editar Cliente',
+    title: 'Editar Cliente', size: 'modal-lg',
     body: `
-      <div class="form-group"><label class="form-label">Nome completo</label>
-        <input type="text" class="form-control" id="nc_nome" value="${c.nome}"></div>
+      <div class="form-group"><label class="form-label">Nome completo <span style="color:var(--danger)">*</span></label>
+        <input type="text" class="form-control" id="nc_nome" value="${c.nome||''}"></div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Telefone / WhatsApp</label>
           <input type="tel" class="form-control" id="nc_tel" value="${c.telefone||''}"></div>
+        <div class="form-group"><label class="form-label">Telefone fixo</label>
+          <input type="tel" class="form-control" id="nc_telFixo" value="${c.telefoneFixo||''}"></div>
         <div class="form-group"><label class="form-label">E-mail</label>
           <input type="email" class="form-control" id="nc_email" value="${c.email||''}"></div>
       </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Nome social</label>
+          <input type="text" class="form-control" id="nc_nomeSocial" value="${c.nomeSocial||''}"></div>
+        <div class="form-group"><label class="form-label">Data de nascimento</label>
+          <input type="date" class="form-control" id="nc_nascimento" value="${c.dataNascimento||''}"></div>
+        <div class="form-group"><label class="form-label">Sexo</label>
+          <select class="form-control" id="nc_sexo">
+            <option value="">Selecione</option>
+            <option value="F" ${c.sexo==='F'?'selected':''}>Feminino</option>
+            <option value="M" ${c.sexo==='M'?'selected':''}>Masculino</option>
+            <option value="O" ${c.sexo==='O'?'selected':''}>Outro</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Cidade</label>
+          <input type="text" class="form-control" id="nc_cidade" value="${c.cidade||''}"></div>
+        <div class="form-group"><label class="form-label">Estado</label>
+          <input type="text" class="form-control" id="nc_estado" maxlength="2" value="${c.estado||''}"></div>
+      </div>
       <div class="form-group"><label class="form-label">Observações</label>
-        <textarea class="form-control" id="nc_obs" rows="2">${c.observacoes||''}</textarea></div>`,
+        <textarea class="form-control" id="nc_obs" rows="3">${c.observacoes||''}</textarea></div>`,
     footer: `
       <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
       <button class="btn btn-primary" onclick="saveClienteEdit(${id})">Salvar</button>`
@@ -1037,9 +1059,15 @@ async function saveClienteEdit(id) {
       method: 'PUT',
       body: JSON.stringify({
         nome,
-        telefone: document.getElementById('nc_tel').value,
-        email:    document.getElementById('nc_email').value,
-        observacoes: document.getElementById('nc_obs').value,
+        nomeSocial:     document.getElementById('nc_nomeSocial')?.value || '',
+        telefone:       document.getElementById('nc_tel').value,
+        telefoneFixo:   document.getElementById('nc_telFixo')?.value || '',
+        email:          document.getElementById('nc_email').value,
+        sexo:           document.getElementById('nc_sexo')?.value || '',
+        dataNascimento: document.getElementById('nc_nascimento')?.value || '',
+        cidade:         document.getElementById('nc_cidade')?.value || '',
+        estado:         document.getElementById('nc_estado')?.value || '',
+        observacoes:    document.getElementById('nc_obs').value,
       }),
     });
     closeModal();
@@ -1047,6 +1075,7 @@ async function saveClienteEdit(id) {
     await reloadAndNavigate('clientes');
   } catch(e) { showToast(e.message,'error'); }
 }
+
 
 function openClientDetail(id) { cliSelecionarCliente(id); }
 
