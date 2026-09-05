@@ -821,6 +821,55 @@ function renderClientes() {
   return html;
 }
 
+function abrirMenuCliente(event, id) {
+  event.stopPropagation();
+  // Remove menu anterior se existir
+  document.getElementById('cliMenuDropdown')?.remove();
+  const c = DB.clientes.find(x => x.id === id);
+  if (!c) return;
+  const menu = document.createElement('div');
+  menu.id = 'cliMenuDropdown';
+  menu.style.cssText = `
+    position:fixed; background:white; border:1px solid var(--gray-200);
+    border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.12);
+    z-index:999; min-width:200px; overflow:hidden;
+    top:${event.clientY + 8}px; left:${event.clientX - 180}px;
+  `;
+  const tel = (c.telefone || '').replace(/\D/g, '');
+  menu.innerHTML = `
+    <div style="padding:8px">
+      <button class="cli-menu-item" onclick="openNewAppointment();document.getElementById('cliMenuDropdown')?.remove()">
+        📅 Novo agendamento
+      </button>
+      <button class="cli-menu-item" onclick="openClientEdit(${id});document.getElementById('cliMenuDropdown')?.remove()">
+        ✏️ Editar cliente
+      </button>
+      ${tel ? `<button class="cli-menu-item" onclick="window.open('https://wa.me/55${tel}','_blank');document.getElementById('cliMenuDropdown')?.remove()">
+        💬 Enviar mensagem WhatsApp
+      </button>` : ''}
+      <div style="height:1px;background:var(--gray-100);margin:4px 0"></div>
+      <button class="cli-menu-item" style="color:var(--danger)" onclick="confirmarExcluirCliente(${id});document.getElementById('cliMenuDropdown')?.remove()">
+        🗑️ Excluir cliente
+      </button>
+    </div>`;
+  document.body.appendChild(menu);
+  // Fecha ao clicar fora
+  setTimeout(() => document.addEventListener('click', () => menu.remove(), { once: true }), 50);
+}
+
+function confirmarExcluirCliente(id) {
+  const c = DB.clientes.find(x => x.id === id);
+  confirmDialog(`Excluir ${c?.nome}? Esta ação não pode ser desfeita.`, async () => {
+    try {
+      await apiFetch(`/api/clientes/${id}`, { method: 'DELETE' });
+      showToast('Cliente excluído', 'warning');
+      clienteSelId = null;
+      await reloadAndNavigate('clientes');
+    } catch(e) { showToast(e.message, 'error'); }
+  });
+}
+
+
 function verHistoricoCompleto(id) {
   const c    = DB.clientes.find(x => x.id === id);
   if (!c) return;
@@ -1063,7 +1112,7 @@ function renderCliPerfil(id) {
           ${telefoneNum ? `<a href="https://wa.me/55${telefoneNum}" target="_blank" class="cli-acao-btn wa" title="WhatsApp"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z"/><path d="M11.99 2C6.472 2 2 6.473 2 11.99c0 1.87.487 3.622 1.337 5.144L2 22l5.003-1.312A9.962 9.962 0 0011.99 22C17.508 22 22 17.527 22 12.01 22 6.473 17.508 2 11.99 2z"/></svg></a>` : ''}
           ${telefoneNum ? `<a href="tel:${c.telefone}" class="cli-acao-btn" title="Ligar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.22 1.2 2 2 0 012.22 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.09a16 16 0 006 6l.66-.66a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg></a>` : ''}
           ${c.email ? `<a href="mailto:${c.email}" class="cli-acao-btn" title="E-mail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></a>` : ''}
-          <button class="cli-acao-btn" title="Mais opções"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+          <button class="cli-acao-btn" title="Mais opções" onclick="abrirMenuCliente(event,${id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
         </div>
       </div>
 
