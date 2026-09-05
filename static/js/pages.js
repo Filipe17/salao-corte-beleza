@@ -428,15 +428,28 @@ function renderAgenda() {
   const dateLabel = agendaDate.toLocaleDateString('pt-BR', {day:'numeric', month:'long', year:'numeric'});
   const weekLabel = agendaDate.toLocaleDateString('pt-BR', {weekday:'long'});
   const hours   = ['08','09','10','11','12','13','14','15','16','17','18','19','20'];
-  const dayApts = DB.agendamentos.filter(a => a.data === dayStr);
   const uLogado  = getUsuarioLogado();
   const todosPos = DB.profissionais.filter(p => p.ativo !== false);
-  // Profissional só vê a própria coluna
   const pros = (uLogado.role === 'profissional')
     ? todosPos.filter(p => uLogado.nome && p.nome.toLowerCase().includes(uLogado.nome.split(' ')[0].toLowerCase())) || todosPos
     : todosPos;
 
-  // Mini calendário
+  // Aplica filtros nos agendamentos do dia
+  let dayApts = DB.agendamentos.filter(a => a.data === dayStr);
+  if (window._agFiltroServ)   dayApts = dayApts.filter(a => getServico(a.servicoId)?.nome === window._agFiltroServ);
+  if (window._agFiltroStatus) dayApts = dayApts.filter(a => {
+    const map = { 'agendado':'confirmado','confirmado':'confirmado','em andamento':'emandamento','concluído':'finalizado','cancelado':'cancelado' };
+    return a.status === (map[window._agFiltroStatus.toLowerCase()] || window._agFiltroStatus.toLowerCase());
+  });
+  if (window._agFiltroPeriodo) {
+    const periodos = { 'Manhã': [8,12], 'Tarde': [12,18], 'Noite': [18,23] };
+    const [pIni, pFim] = periodos[window._agFiltroPeriodo] || [0,24];
+    dayApts = dayApts.filter(a => { const h = parseInt(a.hora); return h >= pIni && h < pFim; });
+  }
+
+  const prosVisiveis = window._agFiltroPro
+    ? pros.filter(p => p.id === window._agFiltroPro)
+    : pros;
   function miniCal() {
     const m = agendaDate.getMonth(), y = agendaDate.getFullYear();
     const mesNome = agendaDate.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
@@ -559,7 +572,7 @@ function renderAgenda() {
         <!-- Header profissionais -->
         <div class="agenda-pro-grid-header">
           <div class="agenda-time-label-header"></div>
-          ${pros.map((pro,pi)=>`
+          ${prosVisiveis.map((pro,pi)=>`
             <div class="agenda-pro-header-cell ${!isAdmin() && !podeEditarAgenda(pro.id) ? 'col-bloqueada' : ''}">
               ${avatarHtml(pro.nome,'avatar-sm',pi)}
               <div>
@@ -577,7 +590,7 @@ function renderAgenda() {
             ${hours.map(h=>`<div class="agenda-time-cell">${h}:00</div>`).join('')}
           </div>
           <!-- Colunas dos profissionais -->
-          ${pros.map((pro,pi) => {
+          ${prosVisiveis.map((pro,pi) => {
             const proApts   = dayApts.filter(a => a.proId === pro.id);
             const bloqueada = !isAdmin() && !podeEditarAgenda(pro.id);
             const cfg       = getBloqueiosPro(pro.id);
@@ -644,41 +657,35 @@ function renderAgenda() {
       <div class="card" style="margin-top:16px">
         <div class="card-header" style="padding:14px 16px 10px">
           <div class="card-title" style="font-size:0.9rem">Filtros</div>
-          <button style="font-size:0.78rem;color:var(--primary);background:none;border:none;cursor:pointer">Limpar filtros</button>
+          <button style="font-size:0.78rem;color:var(--primary);background:none;border:none;cursor:pointer" onclick="agLimparFiltros()">Limpar filtros</button>
         </div>
         <div class="card-body" style="padding:0 16px 16px">
           <div class="form-group">
             <label class="form-label" style="font-size:0.78rem">Profissional</label>
-            <select class="form-control" style="font-size:0.82rem">
-              <option>Todos os profissionais</option>
-              ${pros.map(p=>`<option>${p.nome}</option>`).join('')}
+            <select class="form-control" style="font-size:0.82rem" onchange="agFiltrarPro(this.value)">
+              <option value="">Todos os profissionais</option>
+              ${pros.map(p=>`<option ${window._agFiltroPro===p.id?'selected':''} value="${p.id}">${p.nome}</option>`).join('')}
             </select>
           </div>
           <div class="form-group">
             <label class="form-label" style="font-size:0.78rem">Serviço</label>
-            <select class="form-control" style="font-size:0.82rem">
-              <option>Todos os serviços</option>
-              ${DB.servicos.filter(s=>s.ativo).map(s=>`<option>${s.nome}</option>`).join('')}
+            <select class="form-control" style="font-size:0.82rem" onchange="window._agFiltroServ=this.value||'';navigate('agenda')">
+              <option value="">Todos os serviços</option>
+              ${DB.servicos.filter(s=>s.ativo).map(s=>`<option ${window._agFiltroServ===s.nome?'selected':''} value="${s.nome}">${s.nome}</option>`).join('')}
             </select>
           </div>
           <div class="form-group">
             <label class="form-label" style="font-size:0.78rem">Situação</label>
-            <select class="form-control" style="font-size:0.82rem">
-              <option>Todas</option>
-              <option>Agendado</option>
-              <option>Confirmado</option>
-              <option>Em andamento</option>
-              <option>Concluído</option>
-              <option>Cancelado</option>
+            <select class="form-control" style="font-size:0.82rem" onchange="window._agFiltroStatus=this.value||'';navigate('agenda')">
+              <option value="">Todas</option>
+              ${['Agendado','Confirmado','Em andamento','Concluído','Cancelado'].map(s=>`<option ${window._agFiltroStatus===s?'selected':''} value="${s}">${s}</option>`).join('')}
             </select>
           </div>
           <div class="form-group" style="margin-bottom:0">
             <label class="form-label" style="font-size:0.78rem">Período</label>
-            <select class="form-control" style="font-size:0.82rem">
-              <option>Dia inteiro</option>
-              <option>Manhã</option>
-              <option>Tarde</option>
-              <option>Noite</option>
+            <select class="form-control" style="font-size:0.82rem" onchange="window._agFiltroPeriodo=this.value||'';navigate('agenda')">
+              <option value="">Dia inteiro</option>
+              ${['Manhã','Tarde','Noite'].map(p=>`<option ${window._agFiltroPeriodo===p?'selected':''} value="${p}">${p}</option>`).join('')}
             </select>
           </div>
         </div>
@@ -1716,6 +1723,19 @@ let cfgBloqueios = JSON.parse(localStorage.getItem('belezza_bloqueios') || '{}')
 function salvarBloqueios() {
   localStorage.setItem('belezza_bloqueios', JSON.stringify(cfgBloqueios));
 }
+
+function agFiltrarPro(val) {
+  window._agFiltroPro = val ? parseInt(val) : '';
+  navigate('agenda');
+}
+function agLimparFiltros() {
+  window._agFiltroPro = '';
+  window._agFiltroServ = '';
+  window._agFiltroStatus = '';
+  window._agFiltroPeriodo = '';
+  navigate('agenda');
+}
+
 
 function getBloqueiosPro(proId) {
   return cfgBloqueios[proId] || { horarioInicio: '08:00', horarioFim: '18:00', diasBloqueados: [], bloqueios: [] };
