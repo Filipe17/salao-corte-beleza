@@ -767,8 +767,9 @@ function openAppointmentDetail(id) {
       ${a.obs ? `<div class="alert alert-info" style="font-size:.82rem">💬 ${a.obs}</div>` : ''}`,
     footer: `
       <button class="btn btn-outline" onclick="closeModal()">Fechar</button>
-      <button class="btn btn-success" onclick="finalizeAppointment(${a.id})">Finalizar</button>
-      <button class="btn btn-danger" onclick="cancelAppointment(${a.id})">Cancelar</button>`
+      ${!['finalizado','cancelado'].includes(a.status) ? `
+        <button class="btn btn-success" onclick="finalizeAppointment(${a.id})">Finalizar</button>
+        <button class="btn btn-danger" onclick="cancelAppointment(${a.id})">Cancelar</button>` : ''}`
   });
 }
 function finalizeAppointment(id) {
