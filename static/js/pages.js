@@ -1182,7 +1182,7 @@ function renderNovoCliente() {
       <div class="nc-row">
         <div class="nc-field" style="max-width:160px">
           <label class="nc-label">CEP</label>
-          <input class="form-control" id="nc_cep" placeholder="00000-000" value="${ncDados.cep||''}" />
+          <input class="form-control" id="nc_cep" placeholder="00000-000" value="${ncDados.cep||''}" onblur="buscarCEP(this.value)" />
         </div>
         <div class="nc-field" style="flex:2">
           <label class="nc-label">Rua / Avenida</label>
@@ -1374,7 +1374,23 @@ function renderNovoCliente() {
   return html;
 }
 
-function ncSalvarEtapa1() {
+async function buscarCEP(cep) {
+  cep = cep.replace(/\D/g, '');
+  if (cep.length !== 8) return;
+  try {
+    const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    const d = await res.json();
+    if (d.erro) { showToast('CEP não encontrado', 'error'); return; }
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+    set('nc_rua',    d.logradouro || '');
+    set('nc_bairro', d.bairro     || '');
+    set('nc_cidade', d.localidade || '');
+    set('nc_estado', d.uf         || '');
+    showToast('Endereço preenchido!', 'success');
+  } catch(e) { showToast('Erro ao buscar CEP', 'error'); }
+}
+
+
   ncDados.nome      = document.getElementById('nc_nome')?.value.trim() || '';
   ncDados.nomeSocial= document.getElementById('nc_nomeSocial')?.value || '';
   ncDados.nascimento= document.getElementById('nc_nascimento')?.value || '';
