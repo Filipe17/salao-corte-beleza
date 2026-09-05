@@ -755,107 +755,323 @@ function cancelAppointment(id) {
 /* ===================== CLIENTES ===================== */
 let clienteSearch = '';
 
-function renderClientes() {
-  const list = filterList(DB.clientes, clienteSearch, ['nome','telefone','email']);
-  const cards = list.map((c,i) => `
-    <div class="client-card" onclick="openClientDetail(${c.id})">
-      ${avatarHtml(c.nome, '', i)}
-      <div class="client-info">
-        <div class="client-name">${c.nome}</div>
-        <div class="client-meta">${c.telefone} · Última visita: ${formatDate(c.ultimaVisita)}</div>
-      </div>
-      <div class="client-stats">
-        <div class="client-total">${formatCurrency(c.totalGasto)}</div>
-        <div class="client-visits">${c.visitas} visitas</div>
-      </div>
-    </div>`).join('');
+function avatarColor(i) {
+  const colors = ['#e91e8c','#7c3aed','#3b82f6','#10b981','#f59e0b','#ef4444','#06b6d4','#8b5cf6'];
+  return colors[i % colors.length];
+}
 
-  return `
+let clienteFiltro = 'todos';
+let clienteSelId  = null;
+let clienteAba    = 'historico';
+
+function renderClientes() {
+  const html = `
   <div class="page-header">
     <div class="page-header-left"><h1>Clientes</h1><p>Cadastro e histórico de clientes</p></div>
     <div class="page-header-right">
       <button class="btn btn-primary" onclick="openNewCliente()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Novo cliente
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        + Novo Cliente (F2)
       </button>
     </div>
   </div>
 
-  <div class="flex-between mb-20" style="flex-wrap:wrap;gap:12px">
-    <div class="search-input">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="text" class="form-control" placeholder="Buscar clientes..." value="${clienteSearch}"
-        oninput="clienteSearch=this.value;document.getElementById('clienteList').innerHTML=renderClienteList()">
-    </div>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-outline btn-sm">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-        Lista
-      </button>
-    </div>
-  </div>
-
-  <div id="clienteList" style="display:flex;flex-direction:column;gap:10px">${cards}</div>`;
-}
-
-function renderClienteList() {
-  const list = filterList(DB.clientes, clienteSearch, ['nome','telefone','email']);
-  return list.map((c,i) => `
-    <div class="client-card" onclick="openClientDetail(${c.id})">
-      ${avatarHtml(c.nome, '', i)}
-      <div class="client-info">
-        <div class="client-name">${c.nome}</div>
-        <div class="client-meta">${c.telefone} · Última visita: ${formatDate(c.ultimaVisita)}</div>
+  <div class="cli-layout">
+    <!-- Painel esquerdo -->
+    <div class="cli-left">
+      <!-- Filtros de aba -->
+      <div class="cli-abas">
+        <button class="cli-aba ${clienteFiltro==='todos'?'active':''}" onclick="cliSetFiltro('todos')">Todos</button>
+        <button class="cli-aba ${clienteFiltro==='ativos'?'active':''}" onclick="cliSetFiltro('ativos')">Ativos</button>
+        <button class="cli-aba ${clienteFiltro==='inativos'?'active':''}" onclick="cliSetFiltro('inativos')">Inativos</button>
+        <button class="cli-aba ${clienteFiltro==='aniversariantes'?'active':''}" onclick="cliSetFiltro('aniversariantes')">Aniversariantes</button>
       </div>
-      <div class="client-stats">
-        <div class="client-total">${formatCurrency(c.totalGasto)}</div>
-        <div class="client-visits">${c.visitas} visitas</div>
-      </div>
-    </div>`).join('');
-}
 
-function openClientDetail(id) {
-  const c = DB.clientes.find(x=>x.id===id);
-  const hist = DB.agendamentos.filter(a=>a.clienteId===id).slice(-5).reverse();
-  openModal({
-    title: c.nome, size: 'modal-lg',
-    body: `
-      <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:20px">
-        ${avatarHtml(c.nome,'avatar-xl',id)}
-        <div>
-          <div style="font-size:.85rem;color:var(--gray-500)">${c.email}</div>
-          <div style="font-size:.85rem;color:var(--gray-500)">${c.telefone}</div>
-          <div style="margin-top:8px;display:flex;gap:8px">
-            <span class="badge badge-pink">💰 ${formatCurrency(c.totalGasto)}</span>
-            <span class="badge badge-purple">${c.visitas} visitas</span>
-          </div>
+      <!-- Busca + Filtros -->
+      <div class="cli-search-row">
+        <div class="cli-search-input">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Buscar cliente..." id="cliSearchInput"
+            oninput="clienteSearch=this.value;renderCliListaInline()" value="${clienteSearch}" />
         </div>
+        <button class="btn btn-outline btn-sm">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="12" y1="18" x2="12" y2="18" stroke-linecap="round" stroke-width="3"/></svg>
+          Filtros
+        </button>
       </div>
-      ${c.observacoes ? `<div class="alert alert-warning" style="margin-bottom:16px;font-size:.82rem">⚠️ ${c.observacoes}</div>` : ''}
-      <div class="card-title" style="margin-bottom:12px">Histórico recente</div>
-      <div class="table-wrapper">
-        <table>
-          <thead><tr><th>Data</th><th>Serviço</th><th>Profissional</th><th>Valor</th><th>Status</th></tr></thead>
-          <tbody>
-            ${hist.map(a => {
-              const serv = getServico(a.servicoId);
-              const pro = getProfissional(a.proId);
-              return `<tr>
-                <td>${formatDate(a.data)}</td>
-                <td>${serv?.nome}</td>
-                <td>${pro?.nome?.split(' ')[0]}</td>
-                <td>${formatCurrency(a.valor)}</td>
-                <td>${statusBadge(a.status)}</td>
-              </tr>`;
-            }).join('') || '<tr><td colspan="5" class="text-center text-gray">Nenhum histórico</td></tr>'}
-          </tbody>
-        </table>
-      </div>`,
-    footer: `
-      <button class="btn btn-outline" onclick="closeModal()">Fechar</button>
-      <button class="btn btn-primary" onclick="openNewAppointment()">Agendar</button>`
+
+      <!-- Contador -->
+      <div class="cli-count" id="cliCount"></div>
+
+      <!-- Lista -->
+      <div class="cli-lista" id="cliLista"></div>
+    </div>
+
+    <!-- Painel direito -->
+    <div class="cli-right" id="cliRight">
+      <div class="cli-empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <p>Selecione um cliente</p>
+        <small>Clique em um cliente para ver o perfil</small>
+      </div>
+    </div>
+  </div>`;
+
+  setTimeout(() => { renderCliListaInline(); }, 0);
+  return html;
+}
+
+function cliSetFiltro(f) {
+  clienteFiltro = f;
+  renderCliListaInline();
+  // re-renderiza as abas
+  document.querySelectorAll('.cli-aba').forEach(el => {
+    el.classList.toggle('active', el.textContent.toLowerCase().includes(f === 'todos' ? 'todos' : f === 'ativos' ? 'ativo' : f === 'inativos' ? 'inativo' : 'aniver'));
   });
 }
+
+function getCliLista() {
+  let lista = DB.clientes.slice();
+  if (clienteFiltro === 'ativos')   lista = lista.filter(c => c.ativo !== false);
+  if (clienteFiltro === 'inativos') lista = lista.filter(c => c.ativo === false);
+  if (clienteFiltro === 'aniversariantes') {
+    const mes = new Date().getMonth() + 1;
+    lista = lista.filter(c => c.dataNascimento && new Date(c.dataNascimento).getMonth() + 1 === mes);
+  }
+  if (clienteSearch) lista = filterList(lista, clienteSearch, ['nome','telefone','email']);
+  return lista;
+}
+
+function renderCliListaInline() {
+  const lista = getCliLista();
+  const countEl = document.getElementById('cliCount');
+  if (countEl) countEl.textContent = `Total de ${lista.length} cliente${lista.length !== 1 ? 's' : ''}`;
+  const el = document.getElementById('cliLista');
+  if (!el) return;
+  if (!lista.length) {
+    el.innerHTML = '<div class="cli-nenhum">Nenhum cliente encontrado</div>';
+    return;
+  }
+  el.innerHTML = lista.map((c, i) => {
+    const hist = DB.agendamentos.filter(a => a.clienteId === c.id);
+    const ultima = hist.sort((a,b) => b.data?.localeCompare(a.data))[0];
+    const totalGasto = hist.filter(a => a.status === 'finalizado').reduce((s,a) => s + (a.valor||0), 0);
+    const ativo = clienteSelId === c.id;
+    return `
+    <div class="cli-item ${ativo ? 'active' : ''}" onclick="cliSelecionarCliente(${c.id})">
+      <div class="cli-item-av" style="background:${avatarColor(i)}">${c.nome[0].toUpperCase()}</div>
+      <div class="cli-item-info">
+        <div class="cli-item-nome">${c.nome}</div>
+        <div class="cli-item-tel">${c.telefone || ''}</div>
+      </div>
+      <div class="cli-item-stats">
+        <div class="cli-item-ultima">Última visita <strong>${ultima ? formatDate(ultima.data) : '—'}</strong></div>
+        <div class="cli-item-total">Total gasto <strong style="color:var(--primary)">${formatCurrency(totalGasto)}</strong></div>
+      </div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="color:var(--gray-300)"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>`;
+  }).join('');
+}
+
+function cliSelecionarCliente(id) {
+  clienteSelId = id;
+  clienteAba   = 'historico';
+  renderCliListaInline();
+  renderCliPerfil(id);
+}
+
+function renderCliPerfil(id) {
+  const c   = DB.clientes.find(x => x.id === id);
+  if (!c) return;
+  const hist = DB.agendamentos.filter(a => a.clienteId === id).sort((a,b) => b.data?.localeCompare(a.data));
+  const totalGasto  = hist.filter(a => a.status === 'finalizado').reduce((s,a) => s + (a.valor||0), 0);
+  const visitas     = hist.filter(a => a.status === 'finalizado').length;
+  const ticket      = visitas > 0 ? totalGasto / visitas : 0;
+  const ultima      = hist[0];
+  const telefoneNum = (c.telefone || '').replace(/\D/g,'');
+
+  const abas = ['historico','agendamentos','preferencias','observacoes','anexos','financeiro'];
+  const abasLabel = { historico:'Histórico', agendamentos:'Agendamentos', preferencias:'Preferências', observacoes:'Observações', anexos:'Anexos', financeiro:'Financeiro' };
+
+  const histRows = hist.slice(0, 10).map(a => {
+    const serv = getServico(a.servicoId);
+    const pro  = getProfissional(a.proId);
+    return `<tr>
+      <td>${formatDate(a.data)}</td>
+      <td>${serv?.nome || '—'}</td>
+      <td>${pro?.nome?.split(' ')[0] || '—'}</td>
+      <td>${formatCurrency(a.valor)}</td>
+      <td><span class="badge badge-gray">${a.formaPgto || '—'}</span></td>
+      <td><button class="btn-icon-sm" title="Ver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:20px">Nenhum histórico</td></tr>';
+
+  const agsRows = DB.agendamentos.filter(a => a.clienteId === id && (a.status === 'confirmado' || a.status === 'pendente'))
+    .sort((a,b) => a.data?.localeCompare(b.data)).slice(0,5)
+    .map(a => {
+      const serv = getServico(a.servicoId);
+      const pro  = getProfissional(a.proId);
+      return `<tr><td>${formatDate(a.data)}</td><td>${a.hora||''}</td><td>${serv?.nome||'—'}</td><td>${pro?.nome?.split(' ')[0]||'—'}</td><td>${statusBadge(a.status)}</td></tr>`;
+    }).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--gray-400);padding:20px">Nenhum agendamento futuro</td></tr>';
+
+  const abaConteudo = {
+    historico: `
+      <div class="table-wrapper">
+        <table>
+          <thead><tr><th>Data</th><th>Serviços / Produtos</th><th>Profissional</th><th>Valor</th><th>Forma Pgto.</th><th></th></tr></thead>
+          <tbody>${histRows}</tbody>
+        </table>
+      </div>`,
+    agendamentos: `
+      <div class="table-wrapper">
+        <table>
+          <thead><tr><th>Data</th><th>Hora</th><th>Serviço</th><th>Profissional</th><th>Status</th></tr></thead>
+          <tbody>${agsRows}</tbody>
+        </table>
+      </div>`,
+    preferencias: `<div style="padding:20px;color:var(--gray-400);text-align:center">Nenhuma preferência registrada</div>`,
+    observacoes:  `<div style="padding:12px">${c.observacoes ? `<p style="font-size:.875rem">${c.observacoes}</p>` : '<p style="color:var(--gray-400);font-size:.875rem">Nenhuma observação</p>'}</div>`,
+    anexos:       `<div style="padding:20px;color:var(--gray-400);text-align:center">Nenhum anexo</div>`,
+    financeiro:   `<div style="padding:20px;color:var(--gray-400);text-align:center">Resumo financeiro em breve</div>`,
+  };
+
+  document.getElementById('cliRight').innerHTML = `
+    <div class="cli-perfil">
+      <!-- Header do perfil -->
+      <div class="cli-perfil-header">
+        <div class="cli-perfil-av">${c.nome[0].toUpperCase()}</div>
+        <div class="cli-perfil-dados">
+          <div class="cli-perfil-nome">${c.nome} <span class="badge badge-green" style="font-size:.7rem">Ativo</span></div>
+          ${c.telefone ? `<div class="cli-perfil-linha"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.22 1.2 2 2 0 012.22 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.09a16 16 0 006 6l.66-.66a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg> ${c.telefone}</div>` : ''}
+          ${c.email ? `<div class="cli-perfil-linha"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> ${c.email}</div>` : ''}
+          ${c.dataNascimento ? `<div class="cli-perfil-linha"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> ${formatDate(c.dataNascimento)}</div>` : ''}
+        </div>
+        <div class="cli-perfil-acoes">
+          ${telefoneNum ? `<a href="https://wa.me/55${telefoneNum}" target="_blank" class="cli-acao-btn wa" title="WhatsApp"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z"/><path d="M11.99 2C6.472 2 2 6.473 2 11.99c0 1.87.487 3.622 1.337 5.144L2 22l5.003-1.312A9.962 9.962 0 0011.99 22C17.508 22 22 17.527 22 12.01 22 6.473 17.508 2 11.99 2z"/></svg></a>` : ''}
+          ${telefoneNum ? `<a href="tel:${c.telefone}" class="cli-acao-btn" title="Ligar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.22 1.2 2 2 0 012.22 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.09a16 16 0 006 6l.66-.66a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg></a>` : ''}
+          ${c.email ? `<a href="mailto:${c.email}" class="cli-acao-btn" title="E-mail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></a>` : ''}
+          <button class="cli-acao-btn" title="Mais opções"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="cli-kpis">
+        <div class="cli-kpi">
+          <div class="cli-kpi-icon" style="background:#fff0f7;color:#e91e8c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg></div>
+          <div class="cli-kpi-label">Total gasto</div>
+          <div class="cli-kpi-val">${formatCurrency(totalGasto)}</div>
+        </div>
+        <div class="cli-kpi">
+          <div class="cli-kpi-icon" style="background:#eff6ff;color:#3b82f6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+          <div class="cli-kpi-label">Total de visitas</div>
+          <div class="cli-kpi-val">${visitas}</div>
+        </div>
+        <div class="cli-kpi">
+          <div class="cli-kpi-icon" style="background:#f5f3ff;color:#7c3aed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+          <div class="cli-kpi-label">Ticket médio</div>
+          <div class="cli-kpi-val">${formatCurrency(ticket)}</div>
+        </div>
+        <div class="cli-kpi">
+          <div class="cli-kpi-icon" style="background:#fff7ed;color:#f59e0b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          <div class="cli-kpi-label">Cliente desde</div>
+          <div class="cli-kpi-val" style="font-size:.85rem">${formatDate(c.dataCadastro) || '—'}</div>
+        </div>
+      </div>
+
+      <!-- Abas -->
+      <div class="cli-perfil-abas">
+        ${abas.map(a => `<button class="cli-perfil-aba ${clienteAba===a?'active':''}" onclick="cliSetAba('${a}',${id})">${abasLabel[a]}</button>`).join('')}
+      </div>
+
+      <!-- Conteúdo da aba -->
+      <div class="cli-aba-conteudo" id="cliAbaConteudo">
+        ${abaConteudo[clienteAba] || ''}
+      </div>
+
+      <!-- Footer -->
+      <div class="cli-perfil-footer">
+        <button class="btn btn-outline" onclick="openClientEdit(${id})">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Editar Cliente
+        </button>
+        <button class="btn btn-outline" onclick="">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Histórico completo
+        </button>
+      </div>
+    </div>`;
+}
+
+function cliSetAba(aba, id) {
+  clienteAba = aba;
+  renderCliPerfil(id);
+}
+
+function openClientEdit(id) {
+  const c = DB.clientes.find(x => x.id === id);
+  if (!c) return;
+  openModal({
+    title: 'Editar Cliente',
+    body: `
+      <div class="form-group"><label class="form-label">Nome completo</label>
+        <input type="text" class="form-control" id="nc_nome" value="${c.nome}"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Telefone / WhatsApp</label>
+          <input type="tel" class="form-control" id="nc_tel" value="${c.telefone||''}"></div>
+        <div class="form-group"><label class="form-label">E-mail</label>
+          <input type="email" class="form-control" id="nc_email" value="${c.email||''}"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Observações</label>
+        <textarea class="form-control" id="nc_obs" rows="2">${c.observacoes||''}</textarea></div>`,
+    footer: `
+      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveClienteEdit(${id})">Salvar</button>`
+  });
+}
+
+async function saveClienteEdit(id) {
+  const nome = document.getElementById('nc_nome').value.trim();
+  if (!nome) { showToast('Informe o nome','error'); return; }
+  try {
+    await apiFetch(`/api/clientes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        nome,
+        telefone: document.getElementById('nc_tel').value,
+        email:    document.getElementById('nc_email').value,
+        observacoes: document.getElementById('nc_obs').value,
+      }),
+    });
+    closeModal();
+    showToast('Cliente atualizado!','success');
+    await reloadAndNavigate('clientes');
+  } catch(e) { showToast(e.message,'error'); }
+}
+
+function openClientDetail(id) { cliSelecionarCliente(id); }
+
+function renderClienteList() {
+  return getCliLista().map((c, i) => {
+    const hist = DB.agendamentos.filter(a => a.clienteId === c.id);
+    const ultima = hist.sort((a,b) => b.data?.localeCompare(a.data))[0];
+    const totalGasto = hist.filter(a => a.status === 'finalizado').reduce((s,a) => s + (a.valor||0), 0);
+    return `
+    <div class="cli-item ${clienteSelId === c.id ? 'active' : ''}" onclick="cliSelecionarCliente(${c.id})">
+      <div class="cli-item-av" style="background:${avatarColor(i)}">${c.nome[0].toUpperCase()}</div>
+      <div class="cli-item-info">
+        <div class="cli-item-nome">${c.nome}</div>
+        <div class="cli-item-tel">${c.telefone || ''}</div>
+      </div>
+      <div class="cli-item-stats">
+        <div class="cli-item-ultima">Última visita <strong>${ultima ? formatDate(ultima.data) : '—'}</strong></div>
+        <div class="cli-item-total">Total gasto <strong style="color:var(--primary)">${formatCurrency(totalGasto)}</strong></div>
+      </div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="color:var(--gray-300)"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>`;
+  }).join('');
+}
+
+
 
 function openNewCliente() {
   openModal({
