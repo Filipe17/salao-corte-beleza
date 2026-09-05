@@ -234,9 +234,9 @@ body {
   background: white;
   border-left: 1px solid var(--gray-200);
   display: flex; flex-direction: column;
-  overflow-y: auto;
-  padding: 14px 16px;
-  gap: 10px;
+  overflow: hidden;
+  padding: 10px 14px;
+  gap: 7px;
 }
 
 /* Card em volta das abas */
@@ -377,10 +377,10 @@ body {
   background: white;
   border: 1px solid var(--gray-200);
   border-radius: var(--radius);
-  padding: 14px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   box-shadow: var(--shadow);
 }
 
@@ -443,9 +443,9 @@ body {
 .pdv-pgto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .pdv-pgto-btn {
   display: flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 10px; border-radius: var(--radius);
+  padding: 8px; border-radius: var(--radius);
   border: 2px solid var(--gray-200); background: white;
-  font-size: 0.82rem; font-weight: 500; cursor: pointer;
+  font-size: 0.8rem; font-weight: 500; cursor: pointer;
   color: var(--gray-600); transition: all .15s;
 }
 .pdv-pgto-btn:hover { border-color: var(--primary); color: var(--primary); }
@@ -456,18 +456,18 @@ body {
 .pdv-acoes { display: flex; gap: 8px; margin-top: 4px; }
 .pdv-btn-cancelar {
   display: flex; align-items: center; gap: 6px;
-  flex: 1; padding: 12px; border-radius: var(--radius);
+  flex: 1; padding: 10px; border-radius: var(--radius);
   border: 1px solid var(--gray-200); background: white;
-  font-size: 0.875rem; font-weight: 500; cursor: pointer;
+  font-size: 0.85rem; font-weight: 500; cursor: pointer;
   color: var(--gray-600); justify-content: center;
   transition: background .15s;
 }
 .pdv-btn-cancelar:hover { background: var(--gray-50); }
 .pdv-btn-finalizar {
   display: flex; align-items: center; gap: 6px;
-  flex: 2; padding: 12px; border-radius: var(--radius);
+  flex: 2; padding: 10px; border-radius: var(--radius);
   border: none; background: var(--primary);
-  font-size: 0.875rem; font-weight: 600; cursor: pointer;
+  font-size: 0.85rem; font-weight: 600; cursor: pointer;
   color: white; justify-content: center;
   transition: background .15s;
 }
