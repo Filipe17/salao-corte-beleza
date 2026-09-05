@@ -560,9 +560,9 @@ function renderAgenda() {
             <button class="view-toggle-btn ${agendaView==='week'?'active':''}" onclick="setAgendaView('week')">Semana</button>
             <button class="view-toggle-btn ${agendaView==='month'?'active':''}" onclick="setAgendaView('month')">Mês</button>
           </div>
-          <select class="form-control" style="width:auto;font-size:0.82rem;padding:7px 12px">
-            <option>Todos os profissionais</option>
-            ${pros.map(p=>`<option>${p.nome}</option>`).join('')}
+          <select class="form-control" style="width:auto;font-size:0.82rem;padding:7px 12px" onchange="agFiltrarPro(this.value)">
+            <option value="">Todos os profissionais</option>
+            ${pros.map(p=>`<option value="${p.id}" ${window._agFiltroPro===p.id?'selected':''}>${p.nome}</option>`).join('')}
           </select>
         </div>
       </div>
