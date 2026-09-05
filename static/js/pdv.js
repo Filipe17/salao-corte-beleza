@@ -406,6 +406,7 @@ async function finalizarVenda() {
               duracao:   serv.duracao || 60,
               valor:     serv.preco * item.qty,
               status:    'finalizado',
+              formaPgto: pgtoSel,
               obs,
             }),
           });

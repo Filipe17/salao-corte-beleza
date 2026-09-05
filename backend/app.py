@@ -197,6 +197,7 @@ class Agendamento(db.Model):
     status      = db.Column(db.String(20), default='confirmado')
     valor       = db.Column(db.Float, default=0)
     obs         = db.Column(db.Text, default='')
+    forma_pgto  = db.Column(db.String(30), default='')
 
     def to_dict(self):
         return {
@@ -204,6 +205,7 @@ class Agendamento(db.Model):
             'servicoId': self.servico_id, 'data': self.data, 'hora': self.hora,
             'hora_fim': self.hora_fim or '', 'duracao': self.duracao,
             'status': self.status, 'valor': self.valor, 'obs': self.obs,
+            'formaPgto': self.forma_pgto or '',
         }
 
 
@@ -389,7 +391,8 @@ def migrate():
         ("data_criacao", "VARCHAR(20) DEFAULT ''"),
     ]
     cols_agendamentos = [
-        ("hora_fim", "VARCHAR(5) DEFAULT ''"),
+        ("hora_fim",    "VARCHAR(5) DEFAULT ''"),
+        ("forma_pgto",  "VARCHAR(30) DEFAULT ''"),
     ]
     cols_clientes = [
         ("nome_social",    "VARCHAR(120) DEFAULT ''"),
@@ -977,6 +980,7 @@ def create_agendamento():
         valor=body.get('valor', serv.preco if serv else 0),
         status=body.get('status', 'confirmado'),
         obs=body.get('obs', ''),
+        forma_pgto=body.get('formaPgto', ''),
     )
     db.session.add(a)
     db.session.commit()
