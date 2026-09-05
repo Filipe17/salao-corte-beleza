@@ -306,7 +306,7 @@ body {
 }
 
 /* Itens do carrinho */
-.pdv-cart-items { display: flex; flex-direction: column; gap: 6px; min-height: 60px; }
+.pdv-cart-items { display: flex; flex-direction: column; gap: 6px; min-height: 60px; max-height: 200px; overflow-y: auto; }
 .pdv-cart-empty {
   display: flex; flex-direction: column; align-items: center;
   justify-content: center; padding: 24px 0; color: var(--gray-300);
