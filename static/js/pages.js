@@ -1010,45 +1010,35 @@ function cliSetAba(aba, id) {
 function openClientEdit(id) {
   const c = DB.clientes.find(x => x.id === id);
   if (!c) return;
-  openModal({
-    title: 'Editar Cliente', size: 'modal-lg',
-    body: `
-      <div class="form-group"><label class="form-label">Nome completo <span style="color:var(--danger)">*</span></label>
-        <input type="text" class="form-control" id="nc_nome" value="${c.nome||''}"></div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Telefone / WhatsApp</label>
-          <input type="tel" class="form-control" id="nc_tel" value="${c.telefone||''}"></div>
-        <div class="form-group"><label class="form-label">Telefone fixo</label>
-          <input type="tel" class="form-control" id="nc_telFixo" value="${c.telefoneFixo||''}"></div>
-        <div class="form-group"><label class="form-label">E-mail</label>
-          <input type="email" class="form-control" id="nc_email" value="${c.email||''}"></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Nome social</label>
-          <input type="text" class="form-control" id="nc_nomeSocial" value="${c.nomeSocial||''}"></div>
-        <div class="form-group"><label class="form-label">Data de nascimento</label>
-          <input type="date" class="form-control" id="nc_nascimento" value="${c.dataNascimento||''}"></div>
-        <div class="form-group"><label class="form-label">Sexo</label>
-          <select class="form-control" id="nc_sexo">
-            <option value="">Selecione</option>
-            <option value="F" ${c.sexo==='F'?'selected':''}>Feminino</option>
-            <option value="M" ${c.sexo==='M'?'selected':''}>Masculino</option>
-            <option value="O" ${c.sexo==='O'?'selected':''}>Outro</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Cidade</label>
-          <input type="text" class="form-control" id="nc_cidade" value="${c.cidade||''}"></div>
-        <div class="form-group"><label class="form-label">Estado</label>
-          <input type="text" class="form-control" id="nc_estado" maxlength="2" value="${c.estado||''}"></div>
-      </div>
-      <div class="form-group"><label class="form-label">Observações</label>
-        <textarea class="form-control" id="nc_obs" rows="3">${c.observacoes||''}</textarea></div>`,
-    footer: `
-      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveClienteEdit(${id})">Salvar</button>`
-  });
+  ncEtapa = 1;
+  ncDados = {
+    editId:      id,
+    nome:        c.nome        || '',
+    nomeSocial:  c.nomeSocial  || '',
+    tel:         c.telefone    || '',
+    telFixo:     c.telefoneFixo|| '',
+    email:       c.email       || '',
+    sexo:        c.sexo        || '',
+    nascimento:  c.dataNascimento || '',
+    cep:         c.cep         || '',
+    rua:         c.rua         || '',
+    num:         c.numero      || '',
+    comp:        c.complemento || '',
+    bairro:      c.bairro      || '',
+    cidade:      c.cidade      || '',
+    estado:      c.estado      || '',
+    origem:      c.origem      || '',
+    profPref:    c.profPref    || '',
+    servPref:    c.servPref ? (typeof c.servPref === 'string' ? JSON.parse(c.servPref||'[]') : c.servPref) : [],
+    horaPref:    c.horaPref    || '',
+    esmalte:     c.esmalte     || '',
+    cor:         c.cor         || '',
+    tipoUnha:    c.tipoUnha    || '',
+    cabelo:      c.obsCabelo   || '',
+    obs:         c.observacoes || '',
+    obsInterna:  c.obsInterna  || '',
+  };
+  navigate('novoCliente');
 }
 
 async function saveClienteEdit(id) {
@@ -1344,7 +1334,12 @@ function renderNovoCliente() {
   const html = `
   <div class="page-header">
     <div class="page-header-left">
-      <h1>Novo Cliente</h1>
+      <h1>${ncDados.editId ? 'Editar Cliente' : 'Novo Cliente'}</h1>
+      <p style="font-size:.82rem;color:var(--gray-400)">
+        <span onclick="navigate('clientes')" style="cursor:pointer;color:var(--primary)">Clientes</span>
+        <span style="margin:0 4px">›</span> ${ncDados.editId ? 'Editar Cliente' : 'Novo Cliente'}
+      </p>
+    </div>
       <p style="font-size:.82rem;color:var(--gray-400)">
         <span onclick="navigate('clientes')" style="cursor:pointer;color:var(--primary)">Clientes</span>
         <span style="margin:0 4px">›</span> Novo Cliente
@@ -1440,18 +1435,40 @@ function ncToggleHora(h) {
 async function ncSalvar() {
   ncSalvarEtapa3();
   if (!ncDados.nome) { showToast('Nome obrigatório','error'); return; }
-  const obs = [ncDados.obs, ncDados.esmalte?`Esmalte: ${ncDados.esmalte}`:'', ncDados.cor?`Cor: ${ncDados.cor}`:'', ncDados.cabelo?`Cabelo: ${ncDados.cabelo}`:''].filter(Boolean).join('\n');
+  const payload = {
+    nome:           ncDados.nome,
+    nomeSocial:     ncDados.nomeSocial || '',
+    telefone:       ncDados.tel || '',
+    telefoneFixo:   ncDados.telFixo || '',
+    email:          ncDados.email || '',
+    sexo:           ncDados.sexo || '',
+    dataNascimento: ncDados.nascimento || '',
+    cep:            ncDados.cep || '',
+    rua:            ncDados.rua || '',
+    numero:         ncDados.num || '',
+    complemento:    ncDados.comp || '',
+    bairro:         ncDados.bairro || '',
+    cidade:         ncDados.cidade || '',
+    estado:         ncDados.estado || '',
+    origem:         ncDados.origem || '',
+    profPref:       ncDados.profPref || '',
+    servPref:       JSON.stringify(ncDados.servPref || []),
+    horaPref:       (ncDados.horaPref || []).join ? (ncDados.horaPref||[]).join(',') : (ncDados.horaPref||''),
+    esmalte:        ncDados.esmalte || '',
+    cor:            ncDados.cor || '',
+    tipoUnha:       ncDados.tipoUnha || '',
+    obsCabelo:      ncDados.cabelo || '',
+    observacoes:    ncDados.obs || '',
+    obsInterna:     ncDados.obsInterna || '',
+  };
   try {
-    await apiFetch('/api/clientes', {
-      method: 'POST',
-      body: JSON.stringify({
-        nome:        ncDados.nome,
-        telefone:    ncDados.tel,
-        email:       ncDados.email,
-        observacoes: obs,
-      }),
-    });
-    showToast('Cliente cadastrado com sucesso!','success');
+    if (ncDados.editId) {
+      await apiFetch(`/api/clientes/${ncDados.editId}`, { method: 'PUT', body: JSON.stringify(payload) });
+      showToast('Cliente atualizado com sucesso!', 'success');
+    } else {
+      await apiFetch('/api/clientes', { method: 'POST', body: JSON.stringify(payload) });
+      showToast('Cliente cadastrado com sucesso!', 'success');
+    }
     ncEtapa = 1; ncDados = {};
     await reloadAndNavigate('clientes');
   } catch(e) { showToast(e.message,'error'); }
