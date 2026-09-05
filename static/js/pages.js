@@ -1384,6 +1384,7 @@ async function buscarCEP(cep) {
 }
 
 
+function ncSalvarEtapa1() {
   ncDados.nome      = document.getElementById('nc_nome')?.value.trim() || '';
   ncDados.nomeSocial= document.getElementById('nc_nomeSocial')?.value || '';
   ncDados.nascimento= document.getElementById('nc_nascimento')?.value || '';
