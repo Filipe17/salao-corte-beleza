@@ -132,15 +132,18 @@ function pdvRender() {
     grid.innerHTML = '<div class="pdv-loading">Nenhum item encontrado</div>';
     return;
   }
-  grid.innerHTML = filtrado.map(i => `
-    <div class="pdv-card" onclick="addToCart(${i.id}, '${escapar(i.nome)}', ${i.preco}, '${i.emoji||'📦'}', ${i.duracao||0})">
-      <div class="pdv-card-img">${i.emoji || '📦'}</div>
+  grid.innerHTML = filtrado.map(i => {
+    const emoji = i.emoji || '📦';
+    const tipo  = tabAtual; // 'servicos' ou 'produtos'
+    return `
+    <div class="pdv-card" onclick="addToCart(${i.id},'${escapar(i.nome)}',${i.preco},'${emoji}',${i.duracao||0},'${tipo}')">
+      <div class="pdv-card-img">${emoji}</div>
       <div class="pdv-card-nome">${i.nome}</div>
       ${i.duracao ? `<div class="pdv-card-dur">${i.duracao} min</div>` : ''}
       <div class="pdv-card-preco">${fmt(i.preco)}</div>
-      <button class="pdv-card-add" onclick="event.stopPropagation();addToCart(${i.id},'${escapar(i.nome)}',${i.preco},'${i.emoji||'📦'}',${i.duracao||0})">+</button>
-    </div>
-  `).join('');
+      <button class="pdv-card-add" onclick="event.stopPropagation();addToCart(${i.id},'${escapar(i.nome)}',${i.preco},'${emoji}',${i.duracao||0},'${tipo}')">+</button>
+    </div>`
+  }).join('');
 }
 
 function setCategoria(cat) {
@@ -219,10 +222,11 @@ function renderModalClientes() {
 }
 
 // ── Carrinho ──────────────────────────────────────────────
-function addToCart(id, nome, preco, emoji, duracao) {
-  const existing = cart.find(i => i.id === id);
+function addToCart(id, nome, preco, emoji, duracao, tipo = 'servicos') {
+  const chave = `${tipo}-${id}`;
+  const existing = cart.find(i => i.chave === chave);
   if (existing) { existing.qty++; }
-  else { cart.push({ id, tmpId: ++cartIdCtr, nome, preco, emoji, duracao, qty: 1, proId: null }); }
+  else { cart.push({ id, chave, tmpId: ++cartIdCtr, nome, preco, emoji: emoji || '📦', duracao, qty: 1, proId: null, tipo }); }
   renderCart();
   atualizarTotais();
   toast(`${nome} adicionado`, 'success');
