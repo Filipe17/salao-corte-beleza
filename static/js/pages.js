@@ -578,9 +578,37 @@ function renderAgenda() {
           </div>
           <!-- Colunas dos profissionais -->
           ${pros.map((pro,pi) => {
-            const proApts = dayApts.filter(a => a.proId === pro.id);
+            const proApts   = dayApts.filter(a => a.proId === pro.id);
             const bloqueada = !isAdmin() && !podeEditarAgenda(pro.id);
-            return `<div class="agenda-pro-body-col ${bloqueada ? 'col-bloqueada' : ''}">
+            const cfg       = getBloqueiosPro(pro.id);
+            const diaSemana = agendaDate.getDay(); // 0=Dom ... 6=Sab
+            const diaBlq    = (cfg.diasBloqueados||[]).includes(diaSemana);
+            const dataStr   = agendaDate.toISOString().slice(0,10);
+
+            // Bloqueios válidos para este dia
+            const bloqueiosDia = (cfg.bloqueios||[]).filter(b =>
+              b.tipo === 'recorrente' || b.data === dataStr
+            );
+
+            // Faixas de bloqueio na grade
+            const blqFaixas = diaBlq
+              ? `<div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,#f3f4f6,#f3f4f6 6px,#e5e7eb 6px,#e5e7eb 12px);opacity:.7;z-index:1;border-radius:4px;display:flex;align-items:center;justify-content:center">
+                  <span style="font-size:.72rem;color:var(--gray-400);font-weight:600;background:white;padding:2px 8px;border-radius:10px">Dia bloqueado</span>
+                </div>`
+              : bloqueiosDia.map(b => {
+                  const [bh, bm] = b.inicio.split(':').map(Number);
+                  const [fh, fm] = b.fim.split(':').map(Number);
+                  const horaBase = parseInt(hours[0]);
+                  const topPx    = ((bh - horaBase) * 60 + bm) * (64/60);
+                  const durMin   = (fh*60+fm) - (bh*60+bm);
+                  const heightPx = durMin * (64/60);
+                  return `<div style="position:absolute;left:0;right:0;top:${topPx}px;height:${heightPx}px;background:repeating-linear-gradient(45deg,#f3f4f6,#f3f4f6 4px,#e5e7eb 4px,#e5e7eb 8px);z-index:1;border-radius:4px;display:flex;align-items:center;justify-content:center;border:1px solid #d1d5db">
+                    <span style="font-size:.68rem;color:var(--gray-500);font-weight:600;background:white;padding:1px 6px;border-radius:8px">${b.motivo||'Bloqueado'} · ${b.inicio}–${b.fim}</span>
+                  </div>`;
+                }).join('');
+
+            return `<div class="agenda-pro-body-col ${bloqueada ? 'col-bloqueada' : ''}" style="position:relative">
+              ${blqFaixas}
               ${hours.map(h => {
                 const slotApts = proApts.filter(a => a.hora && a.hora.startsWith(h+':'));
                 const blocks = slotApts.map(a => {
@@ -589,9 +617,9 @@ function renderAgenda() {
                   const topPx    = (parseInt((a.hora.split(':')[1]||'0')) / 60) * 64;
                   const durMin   = a.duracao || 60;
                   const heightPx = Math.max((durMin / 60) * 64 - 2, 30);
-                  const statusColors = {confirmado:'#c084fc',pendente:'#fbbf24',finalizado:'#34d399',cancelado:'#f87171',emandamento:'#60a5fa',confirmado:'#a78bfa'};
+                  const statusColors = {confirmado:'#c084fc',pendente:'#fbbf24',finalizado:'#34d399',cancelado:'#f87171',emandamento:'#60a5fa'};
                   const cor = statusColors[a.status] || '#a78bfa';
-                  return `<div class="apt-block" style="top:${topPx}px;height:${heightPx}px;border-left:3px solid ${cor};background:${cor}20"
+                  return `<div class="apt-block" style="top:${topPx}px;height:${heightPx}px;border-left:3px solid ${cor};background:${cor}20;z-index:2"
                     onclick="${bloqueada ? '' : 'openAppointmentDetail('+a.id+')'}"
                     title="${bloqueada ? 'Sem permissão para editar' : ''}">
                     <div style="font-weight:600;font-size:0.74rem;color:var(--gray-800);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${cli?.nome?.split(' ').slice(0,2).join(' ')||'—'}</div>
