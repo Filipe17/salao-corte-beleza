@@ -95,7 +95,7 @@ class Cliente(db.Model):
     estado        = db.Column(db.String(2), default='')
     # Preferências
     origem        = db.Column(db.String(30), default='')
-    prof_pref     = db.Column(db.Integer, default=None, nullable=True)
+    prof_pref     = db.Column(db.Text, default='')   # JSON lista de ids
     serv_pref     = db.Column(db.Text, default='')   # JSON lista de ids
     hora_pref     = db.Column(db.String(50), default='')
     esmalte_pref  = db.Column(db.String(100), default='')
@@ -404,7 +404,7 @@ def migrate():
         ("cidade",         "VARCHAR(100) DEFAULT ''"),
         ("estado",         "VARCHAR(2) DEFAULT ''"),
         ("origem",         "VARCHAR(30) DEFAULT ''"),
-        ("prof_pref",      "INTEGER DEFAULT NULL"),
+        ("prof_pref",      "TEXT DEFAULT ''"),
         ("serv_pref",      "TEXT DEFAULT ''"),
         ("hora_pref",      "VARCHAR(50) DEFAULT ''"),
         ("esmalte_pref",   "VARCHAR(100) DEFAULT ''"),
@@ -771,7 +771,7 @@ def create_cliente():
         cidade=body.get('cidade', ''),
         estado=body.get('estado', ''),
         origem=body.get('origem', ''),
-        prof_pref=body.get('profPref') or None,
+        prof_pref=body.get('profPref', ''),
         serv_pref=body.get('servPref', ''),
         hora_pref=body.get('horaPref', ''),
         esmalte_pref=body.get('esmalte', ''),
