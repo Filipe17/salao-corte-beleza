@@ -1609,3 +1609,118 @@
   padding: 14px 20px; border-top: 1px solid var(--gray-100);
   gap: 10px;
 }
+
+/* ═══════════════════════════════════════
+   NOVO CLIENTE — Formulário 4 etapas
+═══════════════════════════════════════ */
+.nc-steps {
+  display: flex; align-items: center; gap: 0;
+  margin-bottom: 24px; flex-wrap: wrap;
+}
+.nc-step {
+  display: flex; align-items: center; gap: 8px;
+  font-size: .82rem; color: var(--gray-400); font-weight: 500;
+}
+.nc-step.active { color: var(--primary); }
+.nc-step.done   { color: var(--success); }
+.nc-step-num {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 2px solid var(--gray-200); background: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .78rem; font-weight: 700; flex-shrink: 0;
+}
+.nc-step.active .nc-step-num { border-color: var(--primary); background: var(--primary); color: white; }
+.nc-step.done   .nc-step-num { border-color: var(--success); background: var(--success); color: white; }
+.nc-step-line {
+  flex: 1; height: 1px; background: var(--gray-200);
+  min-width: 40px; max-width: 120px; margin: 0 8px;
+}
+
+.nc-layout {
+  display: grid; grid-template-columns: 1fr 280px;
+  gap: 20px; align-items: start;
+}
+.nc-main { display: flex; flex-direction: column; gap: 16px; }
+.nc-section-title {
+  font-size: .9rem; font-weight: 700; color: var(--gray-800);
+  margin-bottom: 14px;
+}
+.nc-form-grid { display: flex; gap: 20px; }
+.nc-foto-col { display: flex; flex-direction: column; gap: 6px; }
+.nc-label { font-size: .8rem; font-weight: 500; color: var(--gray-600); margin-bottom: 4px; display: block; }
+.nc-req { color: var(--danger); }
+.nc-foto-box {
+  width: 130px; height: 130px; border: 2px dashed var(--gray-200);
+  border-radius: 12px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 6px;
+  cursor: pointer; color: var(--gray-400); font-size: .75rem;
+  transition: border-color .15s;
+}
+.nc-foto-box:hover { border-color: var(--primary); color: var(--primary); }
+.nc-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.nc-field { display: flex; flex-direction: column; flex: 1; min-width: 140px; }
+.nc-field .form-control { margin-top: 4px; }
+
+/* Origem */
+.nc-origem-grid { display: flex; gap: 10px; flex-wrap: wrap; }
+.nc-origem-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 14px 18px; border: 2px solid var(--gray-200); border-radius: 12px;
+  background: white; cursor: pointer; font-size: .8rem; font-weight: 500;
+  color: var(--gray-600); transition: all .15s;
+}
+.nc-origem-btn:hover { border-color: var(--primary); color: var(--primary); }
+.nc-origem-btn.active { border-color: var(--primary); background: var(--primary-bg); color: var(--primary); }
+
+/* Serviços preferidos */
+.nc-servicos-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+.nc-check-card {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border: 2px solid var(--gray-200); border-radius: 20px;
+  cursor: pointer; font-size: .8rem; font-weight: 500;
+  color: var(--gray-600); transition: all .15s;
+}
+.nc-check-card:hover { border-color: var(--primary); }
+.nc-check-card.active { border-color: var(--primary); background: var(--primary-bg); color: var(--primary); }
+
+/* Resumo lateral */
+.nc-resumo {
+  background: white; border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg); padding: 20px;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  text-align: center; position: sticky; top: 20px;
+}
+.nc-resumo-titulo { font-size: .78rem; font-weight: 700; color: var(--gray-500); text-transform: uppercase; letter-spacing: .04em; align-self: flex-start; }
+.nc-resumo-av {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: var(--primary-lt); color: var(--primary);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem; font-weight: 700;
+}
+.nc-resumo-nome { font-size: .95rem; font-weight: 600; color: var(--gray-800); }
+.nc-resumo-lista { align-self: stretch; display: flex; flex-direction: column; gap: 8px; margin-top: 8px; border-top: 1px solid var(--gray-100); padding-top: 12px; }
+.nc-resumo-item { display: flex; align-items: center; gap: 8px; font-size: .8rem; color: var(--gray-500); text-align: left; }
+.nc-resumo-aviso {
+  display: flex; align-items: flex-start; gap: 8px;
+  background: var(--primary-lt); border-radius: 8px; padding: 10px 12px;
+  font-size: .75rem; color: var(--primary); text-align: left; margin-top: 8px;
+}
+
+/* Confirmação */
+.nc-confirmacao { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 10px 0; }
+.nc-confirm-avatar {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: var(--primary); color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2rem; font-weight: 700;
+}
+.nc-confirm-grid { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 400px; }
+.nc-confirm-item { display: flex; align-items: center; gap: 10px; font-size: .875rem; color: var(--gray-600); }
+.nc-confirm-block { background: var(--gray-50); border-radius: 8px; padding: 10px 14px; width: 100%; max-width: 400px; font-size: .82rem; color: var(--gray-700); text-align: left; }
+
+/* Footer fixo */
+.nc-footer {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 0; margin-top: 20px;
+  border-top: 1px solid var(--gray-200);
+}

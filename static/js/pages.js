@@ -1073,40 +1073,364 @@ function renderClienteList() {
 
 
 
+// ── Estado do formulário de novo cliente ──────────────────
+let ncEtapa = 1;
+let ncDados = {};
+
 function openNewCliente() {
-  openModal({
-    title: 'Novo Cliente',
-    body: `
-      <div class="form-group"><label class="form-label">Nome completo</label>
-        <input type="text" class="form-control" id="nc_nome" placeholder="Ex: Maria Silva"></div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Telefone / WhatsApp</label>
-          <input type="tel" class="form-control" id="nc_tel" placeholder="(11) 99999-9999"></div>
-        <div class="form-group"><label class="form-label">E-mail</label>
-          <input type="email" class="form-control" id="nc_email" placeholder="email@exemplo.com"></div>
-      </div>
-      <div class="form-group"><label class="form-label">Observações</label>
-        <textarea class="form-control" id="nc_obs" rows="2" placeholder="Alergias, preferências..."></textarea></div>`,
-    footer: `
-      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveCliente()">Salvar</button>`
+  ncEtapa = 1;
+  ncDados = {};
+  navigate('novoCliente');
+}
+
+// Registrar página novoCliente no roteador
+if (typeof PAGES !== 'undefined') {
+  PAGES['novoCliente'] = { title: 'Novo Cliente', render: renderNovoCliente };
+} else {
+  document.addEventListener('DOMContentLoaded', () => {
+    if (typeof PAGES !== 'undefined') PAGES['novoCliente'] = { title: 'Novo Cliente', render: renderNovoCliente };
   });
 }
 
-function saveCliente() {
-  const nome = document.getElementById('nc_nome').value.trim();
-  if (!nome) { showToast('Informe o nome do cliente','error'); return; }
-  DB.clientes.push({
-    id: generateId(DB.clientes), nome,
-    telefone: document.getElementById('nc_tel').value,
-    email: document.getElementById('nc_email').value,
-    dataCadastro: today(), ultimaVisita: today(),
-    totalGasto: 0, visitas: 0,
-    observacoes: document.getElementById('nc_obs').value,
-    avatar: nome[0]
-  });
-  closeModal(); showToast('Cliente cadastrado!', 'success'); navigate('clientes');
+function renderNovoCliente() {
+  const etapas = ['Dados pessoais','Preferências','Observações','Confirmação'];
+  const steps = etapas.map((e,i) => `
+    <div class="nc-step ${i+1 === ncEtapa ? 'active' : i+1 < ncEtapa ? 'done' : ''}">
+      <div class="nc-step-num">${i+1 < ncEtapa ? '✓' : i+1}</div>
+      <span>${e}</span>
+    </div>
+    ${i < etapas.length-1 ? '<div class="nc-step-line"></div>' : ''}
+  `).join('');
+
+  const etapaConteudo = {
+    1: `
+      <div class="nc-section-title">Dados pessoais</div>
+      <div class="nc-form-grid">
+        <div class="nc-foto-col">
+          <label class="nc-label">Foto do cliente</label>
+          <div class="nc-foto-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span>Adicionar foto</span>
+            <small>JPG, PNG até 2MB</small>
+          </div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:14px">
+          <div class="nc-row">
+            <div class="nc-field" style="flex:2">
+              <label class="nc-label">Nome completo <span class="nc-req">*</span></label>
+              <input class="form-control" id="nc_nome" placeholder="Ex.: Juliana da Silva" value="${ncDados.nome||''}" />
+            </div>
+            <div class="nc-field">
+              <label class="nc-label">Nome social</label>
+              <input class="form-control" id="nc_nomeSocial" placeholder="Ex.: Ju" value="${ncDados.nomeSocial||''}" />
+            </div>
+          </div>
+          <div class="nc-row">
+            <div class="nc-field">
+              <label class="nc-label">Data de nascimento</label>
+              <input class="form-control" id="nc_nascimento" type="date" value="${ncDados.nascimento||''}" />
+            </div>
+            <div class="nc-field">
+              <label class="nc-label">Sexo</label>
+              <select class="form-control" id="nc_sexo">
+                <option value="">Selecione</option>
+                <option ${ncDados.sexo==='F'?'selected':''} value="F">Feminino</option>
+                <option ${ncDados.sexo==='M'?'selected':''} value="M">Masculino</option>
+                <option ${ncDados.sexo==='O'?'selected':''} value="O">Outro</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="nc-section-title" style="margin-top:20px">Contato</div>
+      <div class="nc-row">
+        <div class="nc-field">
+          <label class="nc-label">Telefone / WhatsApp <span class="nc-req">*</span></label>
+          <input class="form-control" id="nc_tel" type="tel" placeholder="(11) 99999-9999" value="${ncDados.tel||''}" />
+        </div>
+        <div class="nc-field">
+          <label class="nc-label">Telefone fixo</label>
+          <input class="form-control" id="nc_telFixo" type="tel" placeholder="(11) 3333-4444" value="${ncDados.telFixo||''}" />
+        </div>
+        <div class="nc-field">
+          <label class="nc-label">E-mail</label>
+          <input class="form-control" id="nc_email" type="email" placeholder="exemplo@email.com" value="${ncDados.email||''}" />
+        </div>
+      </div>
+
+      <div class="nc-section-title" style="margin-top:20px">Endereço</div>
+      <div class="nc-row">
+        <div class="nc-field" style="max-width:160px">
+          <label class="nc-label">CEP</label>
+          <input class="form-control" id="nc_cep" placeholder="00000-000" value="${ncDados.cep||''}" />
+        </div>
+        <div class="nc-field" style="flex:2">
+          <label class="nc-label">Rua / Avenida</label>
+          <input class="form-control" id="nc_rua" placeholder="Ex.: Rua das Flores" value="${ncDados.rua||''}" />
+        </div>
+        <div class="nc-field" style="max-width:100px">
+          <label class="nc-label">Número</label>
+          <input class="form-control" id="nc_num" placeholder="123" value="${ncDados.num||''}" />
+        </div>
+        <div class="nc-field">
+          <label class="nc-label">Complemento</label>
+          <input class="form-control" id="nc_comp" placeholder="Ex.: Apto 45" value="${ncDados.comp||''}" />
+        </div>
+      </div>
+      <div class="nc-row" style="margin-top:10px">
+        <div class="nc-field">
+          <label class="nc-label">Bairro</label>
+          <input class="form-control" id="nc_bairro" placeholder="Ex.: Centro" value="${ncDados.bairro||''}" />
+        </div>
+        <div class="nc-field" style="flex:2">
+          <label class="nc-label">Cidade</label>
+          <input class="form-control" id="nc_cidade" placeholder="Ex.: São Paulo" value="${ncDados.cidade||''}" />
+        </div>
+        <div class="nc-field" style="max-width:80px">
+          <label class="nc-label">Estado</label>
+          <input class="form-control" id="nc_estado" placeholder="UF" maxlength="2" value="${ncDados.estado||''}" />
+        </div>
+      </div>
+
+      <div class="nc-section-title" style="margin-top:20px">Como conheceu o salão?</div>
+      <div class="nc-origem-grid">
+        ${[
+          {k:'indicacao', icon:'👥', label:'Indicação de amigo'},
+          {k:'redes',     icon:'📸', label:'Redes sociais'},
+          {k:'google',    icon:'🔍', label:'Site / Google'},
+          {k:'panfleto',  icon:'📢', label:'Panfleto / Outdoor'},
+          {k:'outro',     icon:'💬', label:'Outro'},
+        ].map(o => `
+          <button class="nc-origem-btn ${ncDados.origem===o.k?'active':''}" onclick="ncSetOrigem('${o.k}')">
+            <span style="font-size:1.4rem">${o.icon}</span>
+            ${o.label}
+          </button>`).join('')}
+      </div>`,
+
+    2: `
+      <div class="nc-section-title">Profissional preferido</div>
+      <select class="form-control" id="nc_profPref" style="max-width:300px">
+        <option value="">Nenhum</option>
+        ${DB.profissionais.map(p => `<option value="${p.id}" ${ncDados.profPref==p.id?'selected':''}>${p.nome}</option>`).join('')}
+      </select>
+
+      <div class="nc-section-title" style="margin-top:20px">Serviços preferidos</div>
+      <div class="nc-servicos-grid">
+        ${DB.servicos.filter(s=>s.ativo).map(s => `
+          <label class="nc-check-card ${(ncDados.servPref||[]).includes(s.id)?'active':''}">
+            <input type="checkbox" ${(ncDados.servPref||[]).includes(s.id)?'checked':''} onchange="ncToggleServ(${s.id})" style="display:none" />
+            <span style="font-size:1.2rem">${s.emoji||'💅'}</span>
+            ${s.nome}
+          </label>`).join('')}
+      </div>
+
+      <div class="nc-section-title" style="margin-top:20px">Preferência de horário</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        ${['Manhã','Tarde','Noite'].map(h => `
+          <label class="nc-check-card ${(ncDados.horaPref||[]).includes(h)?'active':''}">
+            <input type="checkbox" ${(ncDados.horaPref||[]).includes(h)?'checked':''} onchange="ncToggleHora('${h}')" style="display:none" />
+            ${h==='Manhã'?'🌅':h==='Tarde'?'☀️':'🌙'} ${h}
+          </label>`).join('')}
+      </div>
+
+      <div class="nc-section-title" style="margin-top:20px">Preferências de atendimento</div>
+      <div class="nc-row">
+        <div class="nc-field">
+          <label class="nc-label">Esmalte preferido</label>
+          <input class="form-control" id="nc_esmalte" placeholder="Ex.: Vermelho" value="${ncDados.esmalte||''}" />
+        </div>
+        <div class="nc-field">
+          <label class="nc-label">Cor favorita</label>
+          <input class="form-control" id="nc_cor" placeholder="Ex.: Rosa" value="${ncDados.cor||''}" />
+        </div>
+        <div class="nc-field">
+          <label class="nc-label">Tipo de unha</label>
+          <select class="form-control" id="nc_tipoUnha">
+            <option value="">Selecione</option>
+            ${['Curta','Média','Longa','Oval','Quadrada','Stiletto'].map(t => `<option ${ncDados.tipoUnha===t?'selected':''} value="${t}">${t}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="nc-field" style="margin-top:10px">
+        <label class="nc-label">Observações sobre cabelo</label>
+        <textarea class="form-control" id="nc_cabelo" rows="2" placeholder="Ex.: Cabelo fino, sensível a químicas...">${ncDados.cabelo||''}</textarea>
+      </div>`,
+
+    3: `
+      <div class="nc-section-title">Observações gerais</div>
+      <textarea class="form-control" id="nc_obs" rows="5" placeholder="Ex.: Cliente prefere esmaltes claros. Gosta de agendar às sextas-feiras...">${ncDados.obs||''}</textarea>
+
+      <div class="nc-section-title" style="margin-top:20px">Observação interna</div>
+      <p style="font-size:.8rem;color:var(--gray-400);margin-bottom:8px">Visível apenas para funcionários autorizados.</p>
+      <textarea class="form-control" id="nc_obsInterna" rows="4" placeholder="Ex.: Cliente tem dificuldade de mobilidade, prefere cadeira mais baixa...">${ncDados.obsInterna||''}</textarea>`,
+
+    4: `
+      <div class="nc-confirmacao">
+        <div class="nc-confirm-avatar">${(ncDados.nome||'?')[0].toUpperCase()}</div>
+        <h3>${ncDados.nome || '—'}</h3>
+        <div class="nc-confirm-grid">
+          <div class="nc-confirm-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.22 1.2 2 2 0 012.22 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.09a16 16 0 006 6l.66-.66a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>
+            <span>${ncDados.tel || 'Não informado'}</span>
+          </div>
+          <div class="nc-confirm-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <span>${ncDados.email || 'Não informado'}</span>
+          </div>
+          ${ncDados.nascimento ? `<div class="nc-confirm-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>${formatDate(ncDados.nascimento)}</span>
+          </div>` : ''}
+          ${ncDados.cidade ? `<div class="nc-confirm-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span>${ncDados.cidade}${ncDados.estado?'/'+ncDados.estado:''}</span>
+          </div>` : ''}
+        </div>
+        ${ncDados.profPref ? `<div class="nc-confirm-block"><strong>Profissional preferido:</strong> ${DB.profissionais.find(p=>p.id==ncDados.profPref)?.nome||'—'}</div>` : ''}
+        ${(ncDados.servPref||[]).length ? `<div class="nc-confirm-block"><strong>Preferências:</strong> ${(ncDados.servPref||[]).map(id=>DB.servicos.find(s=>s.id===id)?.nome).filter(Boolean).join(', ')}</div>` : ''}
+        ${ncDados.obs ? `<div class="nc-confirm-block"><strong>Observações:</strong> ${ncDados.obs}</div>` : ''}
+      </div>`,
+  };
+
+  // Resumo lateral
+  const resumo = `
+    <div class="nc-resumo">
+      <div class="nc-resumo-titulo">Resumo do cliente</div>
+      <div class="nc-resumo-av">${(ncDados.nome||'?')[0].toUpperCase()}</div>
+      <div class="nc-resumo-nome">${ncDados.nome || 'Nome do cliente'}</div>
+      <small style="color:var(--gray-400);font-size:.75rem">${ncDados.nome ? '' : 'Será exibido após salvar'}</small>
+      <div class="nc-resumo-lista">
+        <div class="nc-resumo-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.22 1.2 2 2 0 012.22 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.09a16 16 0 006 6l.66-.66a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg><span>${ncDados.tel||'Não informado'}</span></div>
+        <div class="nc-resumo-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><span>${ncDados.email||'Não informado'}</span></div>
+        <div class="nc-resumo-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>${ncDados.nascimento?formatDate(ncDados.nascimento):'Não informado'}</span></div>
+        <div class="nc-resumo-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg><span>${ncDados.cidade?(ncDados.cidade+(ncDados.estado?'/'+ncDados.estado:'')):'Não informado'}</span></div>
+      </div>
+      <div class="nc-resumo-aviso">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Após salvar, você poderá adicionar preferências, observações e anexos do cliente.
+      </div>
+    </div>`;
+
+  const html = `
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>Novo Cliente</h1>
+      <p style="font-size:.82rem;color:var(--gray-400)">
+        <span onclick="navigate('clientes')" style="cursor:pointer;color:var(--primary)">Clientes</span>
+        <span style="margin:0 4px">›</span> Novo Cliente
+      </p>
+    </div>
+  </div>
+
+  <!-- Steps -->
+  <div class="nc-steps">${steps}</div>
+
+  <div class="nc-layout">
+    <div class="nc-main">
+      <div class="card" style="padding:24px">
+        ${etapaConteudo[ncEtapa] || ''}
+      </div>
+    </div>
+    ${resumo}
+  </div>
+
+  <!-- Footer fixo -->
+  <div class="nc-footer">
+    <span style="font-size:.8rem;color:var(--gray-400)">Campos obrigatórios <span style="color:var(--danger)">*</span></span>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-outline" onclick="${ncEtapa>1?'ncVoltarEtapa()':'navigate(\'clientes\')'}">${ncEtapa>1?'← Voltar':'Cancelar'}</button>
+      <button class="btn btn-primary" onclick="${ncEtapa<4?'ncProximaEtapa()':'ncSalvar()'}">
+        ${ncEtapa<4?'Próximo →':'✓ Salvar Cliente'}
+      </button>
+    </div>
+  </div>`;
+
+  setTimeout(() => {}, 0);
+  return html;
 }
+
+function ncSalvarEtapa1() {
+  ncDados.nome      = document.getElementById('nc_nome')?.value.trim() || '';
+  ncDados.nomeSocial= document.getElementById('nc_nomeSocial')?.value || '';
+  ncDados.nascimento= document.getElementById('nc_nascimento')?.value || '';
+  ncDados.sexo      = document.getElementById('nc_sexo')?.value || '';
+  ncDados.tel       = document.getElementById('nc_tel')?.value || '';
+  ncDados.telFixo   = document.getElementById('nc_telFixo')?.value || '';
+  ncDados.email     = document.getElementById('nc_email')?.value || '';
+  ncDados.cep       = document.getElementById('nc_cep')?.value || '';
+  ncDados.rua       = document.getElementById('nc_rua')?.value || '';
+  ncDados.num       = document.getElementById('nc_num')?.value || '';
+  ncDados.comp      = document.getElementById('nc_comp')?.value || '';
+  ncDados.bairro    = document.getElementById('nc_bairro')?.value || '';
+  ncDados.cidade    = document.getElementById('nc_cidade')?.value || '';
+  ncDados.estado    = document.getElementById('nc_estado')?.value || '';
+}
+function ncSalvarEtapa2() {
+  ncDados.profPref  = document.getElementById('nc_profPref')?.value || '';
+  ncDados.esmalte   = document.getElementById('nc_esmalte')?.value || '';
+  ncDados.cor       = document.getElementById('nc_cor')?.value || '';
+  ncDados.tipoUnha  = document.getElementById('nc_tipoUnha')?.value || '';
+  ncDados.cabelo    = document.getElementById('nc_cabelo')?.value || '';
+}
+function ncSalvarEtapa3() {
+  ncDados.obs       = document.getElementById('nc_obs')?.value || '';
+  ncDados.obsInterna= document.getElementById('nc_obsInterna')?.value || '';
+}
+
+function ncProximaEtapa() {
+  if (ncEtapa === 1) {
+    ncSalvarEtapa1();
+    if (!ncDados.nome) { showToast('Informe o nome do cliente','error'); return; }
+    if (!ncDados.tel)  { showToast('Informe o telefone','error'); return; }
+  }
+  if (ncEtapa === 2) ncSalvarEtapa2();
+  if (ncEtapa === 3) ncSalvarEtapa3();
+  ncEtapa++;
+  navigate('novoCliente');
+}
+function ncVoltarEtapa() {
+  if (ncEtapa === 1) { navigate('clientes'); return; }
+  if (ncEtapa === 2) ncSalvarEtapa2();
+  if (ncEtapa === 3) ncSalvarEtapa3();
+  ncEtapa--;
+  navigate('novoCliente');
+}
+function ncSetOrigem(k) { ncDados.origem = k; navigate('novoCliente'); }
+function ncToggleServ(id) {
+  if (!ncDados.servPref) ncDados.servPref = [];
+  const idx = ncDados.servPref.indexOf(id);
+  if (idx >= 0) ncDados.servPref.splice(idx,1); else ncDados.servPref.push(id);
+}
+function ncToggleHora(h) {
+  if (!ncDados.horaPref) ncDados.horaPref = [];
+  const idx = ncDados.horaPref.indexOf(h);
+  if (idx >= 0) ncDados.horaPref.splice(idx,1); else ncDados.horaPref.push(h);
+}
+
+async function ncSalvar() {
+  ncSalvarEtapa3();
+  if (!ncDados.nome) { showToast('Nome obrigatório','error'); return; }
+  const obs = [ncDados.obs, ncDados.esmalte?`Esmalte: ${ncDados.esmalte}`:'', ncDados.cor?`Cor: ${ncDados.cor}`:'', ncDados.cabelo?`Cabelo: ${ncDados.cabelo}`:''].filter(Boolean).join('\n');
+  try {
+    await apiFetch('/api/clientes', {
+      method: 'POST',
+      body: JSON.stringify({
+        nome:        ncDados.nome,
+        telefone:    ncDados.tel,
+        email:       ncDados.email,
+        observacoes: obs,
+      }),
+    });
+    showToast('Cliente cadastrado com sucesso!','success');
+    ncEtapa = 1; ncDados = {};
+    await reloadAndNavigate('clientes');
+  } catch(e) { showToast(e.message,'error'); }
+}
+
+function saveCliente() { ncSalvar(); }
+
+
 
 /* ===================== SERVIÇOS ===================== */
 function renderServicos() {

@@ -73,20 +73,55 @@ class Cliente(db.Model):
     __tablename__ = 'clientes'
     id            = db.Column(db.Integer, primary_key=True)
     nome          = db.Column(db.String(120), nullable=False)
+    nome_social   = db.Column(db.String(120), default='')
     telefone      = db.Column(db.String(30), default='')
+    telefone_fixo = db.Column(db.String(30), default='')
     email         = db.Column(db.String(120), default='')
+    sexo          = db.Column(db.String(1), default='')
+    data_nascimento = db.Column(db.String(10), default='')
     data_cadastro = db.Column(db.String(10), default=lambda: str(date.today()))
     ultima_visita = db.Column(db.String(10), default=lambda: str(date.today()))
     total_gasto   = db.Column(db.Float, default=0)
     visitas       = db.Column(db.Integer, default=0)
     observacoes   = db.Column(db.Text, default='')
+    obs_interna   = db.Column(db.Text, default='')
+    # Endereço
+    cep           = db.Column(db.String(10), default='')
+    rua           = db.Column(db.String(200), default='')
+    numero        = db.Column(db.String(20), default='')
+    complemento   = db.Column(db.String(100), default='')
+    bairro        = db.Column(db.String(100), default='')
+    cidade        = db.Column(db.String(100), default='')
+    estado        = db.Column(db.String(2), default='')
+    # Preferências
+    origem        = db.Column(db.String(30), default='')
+    prof_pref     = db.Column(db.Integer, default=None, nullable=True)
+    serv_pref     = db.Column(db.Text, default='')   # JSON lista de ids
+    hora_pref     = db.Column(db.String(50), default='')
+    esmalte_pref  = db.Column(db.String(100), default='')
+    cor_pref      = db.Column(db.String(100), default='')
+    tipo_unha     = db.Column(db.String(50), default='')
+    obs_cabelo    = db.Column(db.Text, default='')
+    foto          = db.Column(db.String(300), default='')
 
     def to_dict(self):
         return {
-            'id': self.id, 'nome': self.nome, 'telefone': self.telefone,
-            'email': self.email, 'dataCadastro': self.data_cadastro,
-            'ultimaVisita': self.ultima_visita, 'totalGasto': self.total_gasto,
-            'visitas': self.visitas, 'observacoes': self.observacoes,
+            'id': self.id, 'nome': self.nome, 'nomeSocial': self.nome_social,
+            'telefone': self.telefone, 'telefoneFixo': self.telefone_fixo,
+            'email': self.email, 'sexo': self.sexo,
+            'dataNascimento': self.data_nascimento,
+            'dataCadastro': self.data_cadastro,
+            'ultimaVisita': self.ultima_visita,
+            'totalGasto': self.total_gasto, 'visitas': self.visitas,
+            'observacoes': self.observacoes, 'obsInterna': self.obs_interna,
+            'cep': self.cep, 'rua': self.rua, 'numero': self.numero,
+            'complemento': self.complemento, 'bairro': self.bairro,
+            'cidade': self.cidade, 'estado': self.estado,
+            'origem': self.origem, 'profPref': self.prof_pref,
+            'servPref': self.serv_pref, 'horaPref': self.hora_pref,
+            'esmalte': self.esmalte_pref, 'cor': self.cor_pref,
+            'tipoUnha': self.tipo_unha, 'obsCabelo': self.obs_cabelo,
+            'foto': self.foto,
         }
 
 
@@ -355,6 +390,29 @@ def migrate():
     cols_agendamentos = [
         ("hora_fim", "VARCHAR(5) DEFAULT ''"),
     ]
+    cols_clientes = [
+        ("nome_social",    "VARCHAR(120) DEFAULT ''"),
+        ("telefone_fixo",  "VARCHAR(30) DEFAULT ''"),
+        ("sexo",           "VARCHAR(1) DEFAULT ''"),
+        ("data_nascimento","VARCHAR(10) DEFAULT ''"),
+        ("obs_interna",    "TEXT DEFAULT ''"),
+        ("cep",            "VARCHAR(10) DEFAULT ''"),
+        ("rua",            "VARCHAR(200) DEFAULT ''"),
+        ("numero",         "VARCHAR(20) DEFAULT ''"),
+        ("complemento",    "VARCHAR(100) DEFAULT ''"),
+        ("bairro",         "VARCHAR(100) DEFAULT ''"),
+        ("cidade",         "VARCHAR(100) DEFAULT ''"),
+        ("estado",         "VARCHAR(2) DEFAULT ''"),
+        ("origem",         "VARCHAR(30) DEFAULT ''"),
+        ("prof_pref",      "INTEGER DEFAULT NULL"),
+        ("serv_pref",      "TEXT DEFAULT ''"),
+        ("hora_pref",      "VARCHAR(50) DEFAULT ''"),
+        ("esmalte_pref",   "VARCHAR(100) DEFAULT ''"),
+        ("cor_pref",       "VARCHAR(100) DEFAULT ''"),
+        ("tipo_unha",      "VARCHAR(50) DEFAULT ''"),
+        ("obs_cabelo",     "TEXT DEFAULT ''"),
+        ("foto",           "VARCHAR(300) DEFAULT ''"),
+    ]
     with db.engine.connect() as conn:
         for col, definition in cols_usuarios:
             try:
@@ -377,6 +435,14 @@ def migrate():
                 conn.execute(db.text(f"ALTER TABLE perfis_acesso ADD COLUMN {col} {definition}"))
                 conn.commit()
                 print(f"✅ Migration perfis_acesso: coluna {col} adicionada.")
+            except Exception:
+                conn.rollback()
+
+        for col, definition in cols_clientes:
+            try:
+                conn.execute(db.text(f"ALTER TABLE clientes ADD COLUMN {col} {definition}"))
+                conn.commit()
+                print(f"✅ Migration clientes: {col}")
             except Exception:
                 conn.rollback()
 
@@ -689,9 +755,29 @@ def create_cliente():
         return jsonify({'erro': 'Nome obrigatório'}), 400
     c = Cliente(
         nome=body['nome'],
+        nome_social=body.get('nomeSocial', ''),
         telefone=body.get('telefone', ''),
+        telefone_fixo=body.get('telefoneFixo', ''),
         email=body.get('email', ''),
+        sexo=body.get('sexo', ''),
+        data_nascimento=body.get('dataNascimento', ''),
         observacoes=body.get('observacoes', ''),
+        obs_interna=body.get('obsInterna', ''),
+        cep=body.get('cep', ''),
+        rua=body.get('rua', ''),
+        numero=body.get('numero', ''),
+        complemento=body.get('complemento', ''),
+        bairro=body.get('bairro', ''),
+        cidade=body.get('cidade', ''),
+        estado=body.get('estado', ''),
+        origem=body.get('origem', ''),
+        prof_pref=body.get('profPref') or None,
+        serv_pref=body.get('servPref', ''),
+        hora_pref=body.get('horaPref', ''),
+        esmalte_pref=body.get('esmalte', ''),
+        cor_pref=body.get('cor', ''),
+        tipo_unha=body.get('tipoUnha', ''),
+        obs_cabelo=body.get('obsCabelo', ''),
     )
     db.session.add(c)
     db.session.commit()
@@ -702,9 +788,17 @@ def create_cliente():
 def update_cliente(id):
     c = Cliente.query.get_or_404(id)
     body = request.get_json()
+    campo_map = {
+        'nomeSocial': 'nome_social', 'telefoneFixo': 'telefone_fixo',
+        'dataNascimento': 'data_nascimento', 'dataCadastro': 'data_cadastro',
+        'ultimaVisita': 'ultima_visita', 'totalGasto': 'total_gasto',
+        'obsInterna': 'obs_interna', 'profPref': 'prof_pref',
+        'servPref': 'serv_pref', 'horaPref': 'hora_pref',
+        'esmalte': 'esmalte_pref', 'cor': 'cor_pref',
+        'tipoUnha': 'tipo_unha', 'obsCabelo': 'obs_cabelo',
+    }
     for k, v in body.items():
-        campo = {'dataCadastro': 'data_cadastro', 'ultimaVisita': 'ultima_visita',
-                 'totalGasto': 'total_gasto'}.get(k, k)
+        campo = campo_map.get(k, k)
         if hasattr(c, campo) and campo != 'id':
             setattr(c, campo, v)
     db.session.commit()
