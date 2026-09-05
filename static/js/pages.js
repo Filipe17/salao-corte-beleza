@@ -1102,14 +1102,7 @@ function openNewCliente() {
   navigate('novoCliente');
 }
 
-// Registrar página novoCliente no roteador
-if (typeof PAGES !== 'undefined') {
-  PAGES['novoCliente'] = { title: 'Novo Cliente', render: renderNovoCliente };
-} else {
-  document.addEventListener('DOMContentLoaded', () => {
-    if (typeof PAGES !== 'undefined') PAGES['novoCliente'] = { title: 'Novo Cliente', render: renderNovoCliente };
-  });
-}
+
 
 function renderNovoCliente() {
   const etapas = ['Dados pessoais','Preferências','Observações','Confirmação'];
