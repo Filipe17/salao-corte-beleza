@@ -827,7 +827,12 @@ function verDetalheAgendamento(id) {
   const serv = getServico(a.servicoId);
   const pro  = getProfissional(a.proId);
   const cli  = DB.clientes.find(x => x.id === a.clienteId);
-  const forma = a.formaPgto || '—';
+  const transacao = DB.transacoes.find(t =>
+    t.data === a.data && t.tipo === 'entrada' &&
+    (t.descricao || '').toLowerCase().includes((cli?.nome || '').toLowerCase().split(' ')[0])
+  );
+  const forma = a.formaPgto || transacao?.forma || '—';
+  const formaLabel = forma.charAt(0).toUpperCase() + forma.slice(1);
   openModal({
     title: 'Detalhes do Atendimento',
     body: `
@@ -855,7 +860,7 @@ function verDetalheAgendamento(id) {
           </div>
           <div>
             <div style="font-size:.75rem;color:var(--gray-400);margin-bottom:4px">Forma de pagamento</div>
-            <div style="font-weight:600">${forma.charAt(0).toUpperCase() + forma.slice(1)}</div>
+            <div style="font-weight:600">${formaLabel}</div>
           </div>
           <div>
             <div style="font-size:.75rem;color:var(--gray-400);margin-bottom:4px">Duração</div>
