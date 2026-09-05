@@ -430,17 +430,20 @@ function renderResumoDia() {
   const hoje = today();
   const d = new Date();
   const diasSemana = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
-  document.getElementById('pdvResumoData').textContent =
-    `${diasSemana[d.getDay()]}, ${d.toLocaleDateString('pt-BR')}`;
+  const dataEl = document.getElementById('pdvResumoData');
+  if (dataEl) dataEl.textContent = `${diasSemana[d.getDay()]}, ${d.toLocaleDateString('pt-BR')}`;
 
   const transHoje = DB.transacoes.filter(t => t.data === hoje && t.tipo === 'entrada');
   const vendas    = transHoje.reduce((s, t) => s + t.valor, 0);
   const atend     = DB.agendamentos.filter(a => a.data === hoje && a.status === 'finalizado').length;
   const ticket    = atend > 0 ? vendas / atend : 0;
 
-  document.getElementById('pdvResumoVendas').textContent  = fmt(vendas);
-  document.getElementById('pdvResumoAtend').textContent   = atend;
-  document.getElementById('pdvResumoTicket').textContent  = fmt(ticket);
+  const v = document.getElementById('pdvResumoVendas');
+  const a = document.getElementById('pdvResumoAtend');
+  const t = document.getElementById('pdvResumoTicket');
+  if (v) v.textContent = fmt(vendas);
+  if (a) a.textContent = atend;
+  if (t) t.textContent = fmt(ticket);
 }
 
 // ── Toast ─────────────────────────────────────────────────
