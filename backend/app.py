@@ -8,6 +8,7 @@ from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 import os
+import json
 from datetime import date
 import bcrypt
 import secrets
@@ -771,7 +772,7 @@ def create_cliente():
         cidade=body.get('cidade', ''),
         estado=body.get('estado', ''),
         origem=body.get('origem', ''),
-        prof_pref=body.get('profPref', ''),
+        prof_pref=json.dumps(body.get('profPref', [])) if isinstance(body.get('profPref'), list) else str(body.get('profPref', '') or ''),
         serv_pref=body.get('servPref', ''),
         hora_pref=body.get('horaPref', ''),
         esmalte_pref=body.get('esmalte', ''),
@@ -797,11 +798,48 @@ def update_cliente(id):
         'esmalte': 'esmalte_pref', 'cor': 'cor_pref',
         'tipoUnha': 'tipo_unha', 'obsCabelo': 'obs_cabelo',
     }
+    # Campos que devem ser sempre salvos como string (JSON ou texto)
+    campos_texto = {'prof_pref', 'serv_pref', 'hora_pref'}
     for k, v in body.items():
         campo = campo_map.get(k, k)
         if hasattr(c, campo) and campo != 'id':
+            # Garante que campos JSON sejam salvos como string
+            if campo in campos_texto:
+                if isinstance(v, list):
+                    import json
+                    v = json.dumps(v)
+                else:
+                    v = str(v) if v else ''
             setattr(c, campo, v)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        # Se falhar por tipo de coluna, tenta migration e re-salva
+        try:
+            with db.engine.connect() as conn:
+                conn.execute(db.text("ALTER TABLE clientes ADD COLUMN prof_pref_new TEXT DEFAULT ''"))
+                conn.execute(db.text("UPDATE clientes SET prof_pref_new = CAST(prof_pref AS TEXT)"))
+                conn.execute(db.text("ALTER TABLE clientes DROP COLUMN prof_pref"))
+                conn.execute(db.text("ALTER TABLE clientes RENAME COLUMN prof_pref_new TO prof_pref"))
+                conn.commit()
+            # Re-tenta salvar sem o prof_pref problemático
+            c2 = Cliente.query.get_or_404(id)
+            for k, v in body.items():
+                campo = campo_map.get(k, k)
+                if hasattr(c2, campo) and campo != 'id':
+                    if campo in campos_texto:
+                        if isinstance(v, list):
+                            import json
+                            v = json.dumps(v)
+                        else:
+                            v = str(v) if v else ''
+                    setattr(c2, campo, v)
+            db.session.commit()
+            return jsonify(c2.to_dict())
+        except Exception as e2:
+            db.session.rollback()
+            return jsonify({'erro': str(e2)}), 500
     return jsonify(c.to_dict())
 
 
