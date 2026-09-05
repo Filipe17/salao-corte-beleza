@@ -1221,32 +1221,50 @@ function renderNovoCliente() {
       </div>`,
 
     2: `
-      <div class="nc-section-title">Profissional preferido</div>
-      <select class="form-control" id="nc_profPref" style="max-width:300px">
-        <option value="">Nenhum</option>
-        ${DB.profissionais.map(p => `<option value="${p.id}" ${ncDados.profPref==p.id?'selected':''}>${p.nome}</option>`).join('')}
-      </select>
+      <div class="nc-section-title">Profissional(is) preferido(s)</div>
+      <p style="font-size:.78rem;color:var(--gray-400);margin-bottom:12px">Selecione um ou mais profissionais. Clique no card para ver a especialidade.</p>
+      <div class="nc-pros-grid">
+        ${DB.profissionais.filter(p=>p.status!=='inativo').map((p,i) => {
+          const selecionado = (ncDados.profsPref||[]).includes(p.id);
+          return `
+          <div class="nc-pro-card ${selecionado?'active':''}" onclick="ncTogglePro(${p.id})">
+            <div class="nc-pro-av" style="background:${avatarColor(i)}">${p.nome[0].toUpperCase()}</div>
+            <div class="nc-pro-info">
+              <div class="nc-pro-nome">${p.nome}</div>
+              <div class="nc-pro-func">${p.funcao||'Profissional'}</div>
+            </div>
+            <div class="nc-pro-check ${selecionado?'checked':''}">
+              ${selecionado?'✓':''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
 
-      <div class="nc-section-title" style="margin-top:20px">Serviços preferidos</div>
+      <div class="nc-section-title" style="margin-top:24px">Serviços preferidos</div>
+      <p style="font-size:.78rem;color:var(--gray-400);margin-bottom:12px">Selecione um ou mais serviços que a cliente costuma fazer.</p>
       <div class="nc-servicos-grid">
-        ${DB.servicos.filter(s=>s.ativo).map(s => `
-          <label class="nc-check-card ${(ncDados.servPref||[]).includes(s.id)?'active':''}">
-            <input type="checkbox" ${(ncDados.servPref||[]).includes(s.id)?'checked':''} onchange="ncToggleServ(${s.id})" style="display:none" />
+        ${DB.servicos.filter(s=>s.ativo).map(s => {
+          const ativo = (ncDados.servPref||[]).includes(s.id);
+          return `
+          <button class="nc-check-card ${ativo?'active':''}" onclick="ncToggleServ(${s.id})">
             <span style="font-size:1.2rem">${s.emoji||'💅'}</span>
             ${s.nome}
-          </label>`).join('')}
+          </button>`;
+        }).join('')}
       </div>
 
-      <div class="nc-section-title" style="margin-top:20px">Preferência de horário</div>
+      <div class="nc-section-title" style="margin-top:24px">Preferência de horário</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        ${['Manhã','Tarde','Noite'].map(h => `
-          <label class="nc-check-card ${(ncDados.horaPref||[]).includes(h)?'active':''}">
-            <input type="checkbox" ${(ncDados.horaPref||[]).includes(h)?'checked':''} onchange="ncToggleHora('${h}')" style="display:none" />
+        ${['Manhã','Tarde','Noite'].map(h => {
+          const ativo = (ncDados.horaPref||[]).includes(h);
+          return `
+          <button class="nc-check-card ${ativo?'active':''}" onclick="ncToggleHora('${h}')">
             ${h==='Manhã'?'🌅':h==='Tarde'?'☀️':'🌙'} ${h}
-          </label>`).join('')}
+          </button>`;
+        }).join('')}
       </div>
 
-      <div class="nc-section-title" style="margin-top:20px">Preferências de atendimento</div>
+      <div class="nc-section-title" style="margin-top:24px">Preferências de atendimento</div>
       <div class="nc-row">
         <div class="nc-field">
           <label class="nc-label">Esmalte preferido</label>
@@ -1260,7 +1278,7 @@ function renderNovoCliente() {
           <label class="nc-label">Tipo de unha</label>
           <select class="form-control" id="nc_tipoUnha">
             <option value="">Selecione</option>
-            ${['Curta','Média','Longa','Oval','Quadrada','Stiletto'].map(t => `<option ${ncDados.tipoUnha===t?'selected':''} value="${t}">${t}</option>`).join('')}
+            ${['Curta','Média','Longa','Oval','Quadrada','Stiletto'].map(t=>`<option ${ncDados.tipoUnha===t?'selected':''} value="${t}">${t}</option>`).join('')}
           </select>
         </div>
       </div>
@@ -1401,7 +1419,6 @@ function ncSalvarEtapa1() {
   ncDados.estado    = document.getElementById('nc_estado')?.value || '';
 }
 function ncSalvarEtapa2() {
-  ncDados.profPref  = document.getElementById('nc_profPref')?.value || '';
   ncDados.esmalte   = document.getElementById('nc_esmalte')?.value || '';
   ncDados.cor       = document.getElementById('nc_cor')?.value || '';
   ncDados.tipoUnha  = document.getElementById('nc_tipoUnha')?.value || '';
@@ -1431,15 +1448,23 @@ function ncVoltarEtapa() {
   navigate('novoCliente');
 }
 function ncSetOrigem(k) { ncDados.origem = k; navigate('novoCliente'); }
+function ncTogglePro(id) {
+  if (!ncDados.profsPref) ncDados.profsPref = [];
+  const idx = ncDados.profsPref.indexOf(id);
+  if (idx >= 0) ncDados.profsPref.splice(idx, 1); else ncDados.profsPref.push(id);
+  navigate('novoCliente');
+}
 function ncToggleServ(id) {
   if (!ncDados.servPref) ncDados.servPref = [];
   const idx = ncDados.servPref.indexOf(id);
-  if (idx >= 0) ncDados.servPref.splice(idx,1); else ncDados.servPref.push(id);
+  if (idx >= 0) ncDados.servPref.splice(idx, 1); else ncDados.servPref.push(id);
+  navigate('novoCliente');
 }
 function ncToggleHora(h) {
   if (!ncDados.horaPref) ncDados.horaPref = [];
   const idx = ncDados.horaPref.indexOf(h);
-  if (idx >= 0) ncDados.horaPref.splice(idx,1); else ncDados.horaPref.push(h);
+  if (idx >= 0) ncDados.horaPref.splice(idx, 1); else ncDados.horaPref.push(h);
+  navigate('novoCliente');
 }
 
 async function ncSalvar() {
@@ -1461,7 +1486,7 @@ async function ncSalvar() {
     cidade:         ncDados.cidade || '',
     estado:         ncDados.estado || '',
     origem:         ncDados.origem || '',
-    profPref:       ncDados.profPref || '',
+    profPref:       JSON.stringify(ncDados.profsPref || []),
     servPref:       JSON.stringify(ncDados.servPref || []),
     horaPref:       (ncDados.horaPref || []).join ? (ncDados.horaPref||[]).join(',') : (ncDados.horaPref||''),
     esmalte:        ncDados.esmalte || '',

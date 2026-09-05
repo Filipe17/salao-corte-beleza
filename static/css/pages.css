@@ -1724,3 +1724,35 @@
   padding: 16px 0; margin-top: 20px;
   border-top: 1px solid var(--gray-200);
 }
+
+/* Cards de profissional — etapa 2 */
+.nc-pros-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+.nc-pro-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border: 2px solid var(--gray-200);
+  border-radius: var(--radius); background: white;
+  cursor: pointer; transition: all .15s;
+}
+.nc-pro-card:hover { border-color: var(--primary); }
+.nc-pro-card.active { border-color: var(--primary); background: var(--primary-bg); }
+.nc-pro-av {
+  width: 40px; height: 40px; border-radius: 50%;
+  color: white; display: flex; align-items: center;
+  justify-content: center; font-weight: 700; font-size: .9rem;
+  flex-shrink: 0;
+}
+.nc-pro-info { flex: 1; }
+.nc-pro-nome { font-size: .875rem; font-weight: 600; color: var(--gray-800); }
+.nc-pro-func { font-size: .75rem; color: var(--gray-400); }
+.nc-pro-check {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid var(--gray-200); display: flex;
+  align-items: center; justify-content: center;
+  font-size: .75rem; font-weight: 700; flex-shrink: 0;
+  transition: all .15s;
+}
+.nc-pro-check.checked { border-color: var(--primary); background: var(--primary); color: white; }
