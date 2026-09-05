@@ -821,6 +821,62 @@ function renderClientes() {
   return html;
 }
 
+function verDetalheAgendamento(id) {
+  const a    = DB.agendamentos.find(x => x.id === id);
+  if (!a) return;
+  const serv = getServico(a.servicoId);
+  const pro  = getProfissional(a.proId);
+  const cli  = DB.clientes.find(x => x.id === a.clienteId);
+  const forma = a.formaPgto || '—';
+  openModal({
+    title: 'Detalhes do Atendimento',
+    body: `
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <div style="font-size:.75rem;color:var(--gray-400);margin-bottom:4px">Cliente</div>
+            <div style="font-weight:600">${cli?.nome || '—'}</div>
+          </div>
+          <div>
+            <div style="font-size:.75rem;color:var(--gray-400);margin-bottom:4px">Data</div>
+            <div style="font-weight:600">${formatDate(a.data)} ${a.hora ? '· ' + a.hora : ''}</div>
+          </div>
+          <div>
+            <div style="font-size:.75rem;color:var(--gray-400);margin-bottom:4px">Serviço</div>
+            <div style="font-weight:600">${serv?.emoji || ''} ${serv?.nome || '—'}</div>
+          </div>
+          <div>
+            <div style="font-size:.75rem;color:var(--gray-400);margin-bottom:4px">Profissional</div>
+            <div style="font-weight:600">${pro?.nome || '—'}</div>
+          </div>
+          <div>
+            <div style="font-size:.75rem;color:var(--gray-400);margin-bottom:4px">Valor</div>
+            <div style="font-weight:600;color:var(--success)">${formatCurrency(a.valor)}</div>
+          </div>
+          <div>
+            <div style="font-size:.75rem;color:var(--gray-400);margin-bottom:4px">Forma de pagamento</div>
+            <div style="font-weight:600">${forma.charAt(0).toUpperCase() + forma.slice(1)}</div>
+          </div>
+          <div>
+            <div style="font-size:.75rem;color:var(--gray-400);margin-bottom:4px">Duração</div>
+            <div style="font-weight:600">${a.duracao || '—'} min</div>
+          </div>
+          <div>
+            <div style="font-size:.75rem;color:var(--gray-400);margin-bottom:4px">Status</div>
+            <div>${statusBadge(a.status)}</div>
+          </div>
+        </div>
+        ${a.obs ? `
+          <div>
+            <div style="font-size:.75rem;color:var(--gray-400);margin-bottom:4px">Observações</div>
+            <div style="background:var(--gray-50);border-radius:8px;padding:10px 12px;font-size:.875rem">${a.obs}</div>
+          </div>` : ''}
+      </div>`,
+    footer: `<button class="btn btn-outline" onclick="closeModal()">Fechar</button>`
+  });
+}
+
+
 function cliSetFiltro(f) {
   clienteFiltro = f;
   renderCliListaInline();
@@ -896,24 +952,13 @@ function renderCliPerfil(id) {
   const histRows = hist.slice(0, 10).map(a => {
     const serv = getServico(a.servicoId);
     const pro  = getProfissional(a.proId);
-    // Busca a transação correspondente pelo mesmo dia e valor aproximado
-    const transacao = DB.transacoes.find(t =>
-      t.data === a.data && t.tipo === 'entrada' &&
-      (t.clienteId === id || (t.descricao || '').includes(c.nome))
-    );
-    const forma = a.formaPgto || transacao?.forma || '—';
-    const formaBadge = {
-      'dinheiro': 'badge-green', 'pix': 'badge-purple',
-      'cartao': 'badge-blue', 'credito': 'badge-blue',
-      'debito': 'badge-orange',
-    }[forma?.toLowerCase()] || 'badge-gray';
     return `<tr>
       <td>${formatDate(a.data)}</td>
       <td>${serv?.nome || '—'}</td>
       <td>${pro?.nome?.split(' ')[0] || '—'}</td>
       <td>${formatCurrency(a.valor)}</td>
-      <td><span class="badge ${formaBadge}">${forma}</span></td>
-      <td><button class="btn-icon-sm" title="Ver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></td>
+      <td><span class="badge badge-gray">${a.formaPgto || '—'}</span></td>
+      <td><button class="btn-icon-sm" title="Ver detalhes" onclick="verDetalheAgendamento(${a.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></td>
     </tr>`;
   }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:20px">Nenhum histórico</td></tr>';
 
