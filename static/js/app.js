@@ -15,7 +15,8 @@ const PAGES = {
   financeiro:     { title: 'Financeiro',       render: renderFinanceiro },
   relatorios:     { title: 'Relatórios',       render: renderRelatorios },
   configuracoes:  { title: 'Configurações',    render: renderConfiguracoes },
-  novoCliente:    { title: 'Novo Cliente',     render: renderNovoCliente },
+  novoCliente:    { title: 'Novo Cliente',          render: renderNovoCliente },
+  configAgenda:   { title: 'Configurar Agenda',      render: renderConfigAgenda },
 };
 
 let currentPage = 'dashboard';

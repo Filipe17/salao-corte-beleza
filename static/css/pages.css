@@ -1765,3 +1765,44 @@
   transition: background .15s;
 }
 .cli-menu-item:hover { background: var(--gray-50); }
+
+/* ═══════════════════════════════════════
+   CONFIGURAÇÃO DE AGENDA
+═══════════════════════════════════════ */
+.btn-icon-only {
+  width: 38px; height: 38px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.cfg-layout {
+  display: grid; grid-template-columns: 260px 1fr;
+  gap: 20px; align-items: start;
+}
+.cfg-left { display: flex; flex-direction: column; gap: 8px; }
+.cfg-section-title { font-size: .85rem; font-weight: 700; color: var(--gray-500); text-transform: uppercase; letter-spacing: .04em; }
+.cfg-pro-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border: 2px solid var(--gray-200);
+  border-radius: var(--radius); background: white;
+  cursor: pointer; transition: all .15s;
+}
+.cfg-pro-card:hover { border-color: var(--primary); }
+.cfg-pro-card.active { border-color: var(--primary); background: var(--primary-bg); }
+.cfg-pro-av {
+  width: 38px; height: 38px; border-radius: 50%;
+  color: white; display: flex; align-items: center;
+  justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0;
+}
+.cfg-pro-nome { font-size: .875rem; font-weight: 600; }
+.cfg-pro-func { font-size: .75rem; color: var(--gray-400); }
+.cfg-main { display: flex; flex-direction: column; }
+.cfg-dias-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+.cfg-dia-btn {
+  padding: 8px 14px; border-radius: 20px;
+  border: 2px solid var(--gray-200); background: white;
+  font-size: .82rem; font-weight: 500; cursor: pointer;
+  color: var(--gray-400); transition: all .15s;
+}
+.cfg-dia-btn.active {
+  border-color: var(--primary); background: var(--primary-bg);
+  color: var(--primary);
+}

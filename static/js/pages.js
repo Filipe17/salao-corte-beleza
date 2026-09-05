@@ -510,6 +510,9 @@ function renderAgenda() {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Novo Agendamento
       </button>
+      <button class="btn btn-outline btn-icon-only" onclick="navigate('configAgenda')" title="Configurar horários e bloqueios">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+      </button>
     </div>
   </div>
 
@@ -1675,7 +1678,190 @@ function saveCliente() { ncSalvar(); }
 
 
 
-/* ===================== SERVIÇOS ===================== */
+/* ═══════════════════════════════════════
+   CONFIGURAÇÃO DE AGENDA
+═══════════════════════════════════════ */
+let cfgProSel = null;
+let cfgBloqueios = JSON.parse(localStorage.getItem('belezza_bloqueios') || '{}');
+
+function salvarBloqueios() {
+  localStorage.setItem('belezza_bloqueios', JSON.stringify(cfgBloqueios));
+}
+
+function getBloqueiosPro(proId) {
+  return cfgBloqueios[proId] || { horarioInicio: '08:00', horarioFim: '18:00', intervaloInicio: '', intervaloFim: '', diasBloqueados: [], bloqueiosEspecificos: [] };
+}
+
+function renderConfigAgenda() {
+  const pros = DB.profissionais.filter(p => p.status !== 'inativo');
+  if (!cfgProSel && pros.length) cfgProSel = pros[0].id;
+  const cfg = getBloqueiosPro(cfgProSel);
+  const dias = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+  const proCards = pros.map((p, i) => `
+    <div class="cfg-pro-card ${cfgProSel === p.id ? 'active' : ''}" onclick="cfgProSel=${p.id};navigate('configAgenda')">
+      <div class="cfg-pro-av" style="background:${avatarColor(i)}">${p.nome[0].toUpperCase()}</div>
+      <div>
+        <div class="cfg-pro-nome">${p.nome}</div>
+        <div class="cfg-pro-func">${p.funcao || 'Profissional'}</div>
+      </div>
+    </div>`).join('');
+
+  const bloqRows = (cfg.bloqueiosEspecificos || []).map((b, i) => `
+    <tr>
+      <td>${b.data ? formatDate(b.data) : 'Recorrente'}</td>
+      <td>${b.inicio} — ${b.fim}</td>
+      <td>${b.motivo || '—'}</td>
+      <td><button class="btn-icon-sm btn-icon-delete" onclick="cfgRemoverBloqueio(${cfgProSel},${i})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+      </button></td>
+    </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--gray-400);padding:16px">Nenhum bloqueio específico</td></tr>';
+
+  return `
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>Configurar Agenda</h1>
+      <p style="font-size:.82rem;color:var(--gray-400)">
+        <span onclick="navigate('agenda')" style="cursor:pointer;color:var(--primary)">Agenda</span>
+        <span style="margin:0 4px">›</span> Configurações
+      </p>
+    </div>
+    <div class="page-header-right">
+      <button class="btn btn-outline" onclick="navigate('agenda')">← Voltar à Agenda</button>
+    </div>
+  </div>
+
+  <div class="cfg-layout">
+    <!-- Lista de profissionais -->
+    <div class="cfg-left">
+      <div class="cfg-section-title">Profissionais</div>
+      ${proCards}
+    </div>
+
+    <!-- Configurações do profissional selecionado -->
+    <div class="cfg-main">
+      ${cfgProSel ? `
+        <div class="card" style="padding:24px;margin-bottom:16px">
+          <div class="cfg-section-title" style="margin-bottom:16px">⏰ Horário de atendimento</div>
+          <div class="nc-row">
+            <div class="nc-field">
+              <label class="nc-label">Início do expediente</label>
+              <input type="time" class="form-control" id="cfg_inicio" value="${cfg.horarioInicio}" />
+            </div>
+            <div class="nc-field">
+              <label class="nc-label">Fim do expediente</label>
+              <input type="time" class="form-control" id="cfg_fim" value="${cfg.horarioFim}" />
+            </div>
+            <div class="nc-field">
+              <label class="nc-label">Início do intervalo</label>
+              <input type="time" class="form-control" id="cfg_intInicio" value="${cfg.intervaloInicio || ''}" placeholder="Ex.: 12:00" />
+            </div>
+            <div class="nc-field">
+              <label class="nc-label">Fim do intervalo</label>
+              <input type="time" class="form-control" id="cfg_intFim" value="${cfg.intervaloFim || ''}" placeholder="Ex.: 13:00" />
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="padding:24px;margin-bottom:16px">
+          <div class="cfg-section-title" style="margin-bottom:16px">📅 Dias de atendimento</div>
+          <div class="cfg-dias-grid">
+            ${dias.map((d, i) => `
+              <button class="cfg-dia-btn ${(cfg.diasBloqueados||[]).includes(i) ? '' : 'active'}"
+                onclick="cfgToggleDia(${cfgProSel},${i})">
+                ${d}
+              </button>`).join('')}
+          </div>
+          <p style="font-size:.75rem;color:var(--gray-400);margin-top:10px">Dias marcados = dias de atendimento. Dias desmarcados = bloqueados.</p>
+        </div>
+
+        <div class="card" style="padding:24px;margin-bottom:16px">
+          <div class="cfg-section-title" style="margin-bottom:16px">🚫 Bloqueios específicos</div>
+          <div class="nc-row" style="margin-bottom:14px">
+            <div class="nc-field">
+              <label class="nc-label">Data (deixe vazio para recorrente)</label>
+              <input type="date" class="form-control" id="cfg_blqData" />
+            </div>
+            <div class="nc-field">
+              <label class="nc-label">Horário início</label>
+              <input type="time" class="form-control" id="cfg_blqInicio" />
+            </div>
+            <div class="nc-field">
+              <label class="nc-label">Horário fim</label>
+              <input type="time" class="form-control" id="cfg_blqFim" />
+            </div>
+            <div class="nc-field">
+              <label class="nc-label">Motivo</label>
+              <input type="text" class="form-control" id="cfg_blqMotivo" placeholder="Ex.: Almoço, Folga..." />
+            </div>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="cfgAdicionarBloqueio(${cfgProSel})">+ Adicionar bloqueio</button>
+
+          <div class="table-wrapper" style="margin-top:16px">
+            <table>
+              <thead><tr><th>Data</th><th>Horário</th><th>Motivo</th><th>Ação</th></tr></thead>
+              <tbody>${bloqRows}</tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px">
+          <button class="btn btn-outline" onclick="navigate('agenda')">Cancelar</button>
+          <button class="btn btn-primary" onclick="cfgSalvar(${cfgProSel})">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13"/><polyline points="7 3 7 8 15 8"/></svg>
+            Salvar configurações
+          </button>
+        </div>
+      ` : '<div style="text-align:center;color:var(--gray-400);padding:40px">Selecione um profissional</div>'}
+    </div>
+  </div>`;
+}
+
+function cfgSalvar(proId) {
+  if (!cfgBloqueios[proId]) cfgBloqueios[proId] = {};
+  cfgBloqueios[proId].horarioInicio  = document.getElementById('cfg_inicio')?.value || '08:00';
+  cfgBloqueios[proId].horarioFim     = document.getElementById('cfg_fim')?.value || '18:00';
+  cfgBloqueios[proId].intervaloInicio= document.getElementById('cfg_intInicio')?.value || '';
+  cfgBloqueios[proId].intervaloFim   = document.getElementById('cfg_intFim')?.value || '';
+  if (!cfgBloqueios[proId].diasBloqueados) cfgBloqueios[proId].diasBloqueados = [];
+  if (!cfgBloqueios[proId].bloqueiosEspecificos) cfgBloqueios[proId].bloqueiosEspecificos = [];
+  salvarBloqueios();
+  showToast('Configurações salvas!', 'success');
+  navigate('agenda');
+}
+
+function cfgToggleDia(proId, dia) {
+  if (!cfgBloqueios[proId]) cfgBloqueios[proId] = getBloqueiosPro(proId);
+  if (!cfgBloqueios[proId].diasBloqueados) cfgBloqueios[proId].diasBloqueados = [];
+  const idx = cfgBloqueios[proId].diasBloqueados.indexOf(dia);
+  if (idx >= 0) cfgBloqueios[proId].diasBloqueados.splice(idx, 1);
+  else cfgBloqueios[proId].diasBloqueados.push(dia);
+  salvarBloqueios();
+  navigate('configAgenda');
+}
+
+function cfgAdicionarBloqueio(proId) {
+  const inicio = document.getElementById('cfg_blqInicio')?.value;
+  const fim    = document.getElementById('cfg_blqFim')?.value;
+  if (!inicio || !fim) { showToast('Informe início e fim do bloqueio', 'error'); return; }
+  if (!cfgBloqueios[proId]) cfgBloqueios[proId] = getBloqueiosPro(proId);
+  if (!cfgBloqueios[proId].bloqueiosEspecificos) cfgBloqueios[proId].bloqueiosEspecificos = [];
+  cfgBloqueios[proId].bloqueiosEspecificos.push({
+    data:   document.getElementById('cfg_blqData')?.value || '',
+    inicio, fim,
+    motivo: document.getElementById('cfg_blqMotivo')?.value || '',
+  });
+  salvarBloqueios();
+  navigate('configAgenda');
+}
+
+function cfgRemoverBloqueio(proId, idx) {
+  cfgBloqueios[proId]?.bloqueiosEspecificos?.splice(idx, 1);
+  salvarBloqueios();
+  navigate('configAgenda');
+}
+
+
 function renderServicos() {
   const cats = [...new Set(DB.servicos.map(s=>s.categoria))];
   const catBtns = cats.map(c => `<button class="btn btn-sm btn-outline">${c}</button>`).join('');
