@@ -1812,10 +1812,10 @@
 ═══════════════════════════════════════ */
 .prof-layout {
   display: grid;
-  grid-template-columns: 1fr 440px;
+  grid-template-columns: 440px 1fr;
   gap: 20px;
   align-items: start;
-  height: calc(100vh - 130px);
+  height: calc(100vh - 185px);
 }
 
 /* ── Card 1: Busca + Filtros (largura total, acima do grid) ── */
