@@ -2130,8 +2130,6 @@ function initProfissionais() {
   _profBusca        = '';
   _profPagAtual     = 1;
   profRenderLista();
-  const primeiro = (DB.profissionais || [])[0];
-  if (primeiro) profSelecionar(primeiro.id);
 }
 
 /* ── Filtrar ── */
