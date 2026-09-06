@@ -2032,6 +2032,35 @@ function renderProfissionais() {
     </div>
   </div>
 
+  <!-- ── Card 1: Busca + Filtros (largura total) ── -->
+  <div class="prof-filtros-card">
+    <div class="prof-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="profBuscaInput" placeholder="Buscar por nome, especialidade ou telefone..." oninput="profFiltrar()" />
+    </div>
+    <div class="prof-filtros-bar">
+      <div class="prof-filtro-grupo">
+        <span class="prof-filtro-label">Especialidade</span>
+        <select class="prof-filtro-select" id="profFiltroEsp" onchange="profFiltrar()">
+          <option value="">Todas</option>
+        </select>
+      </div>
+      <div class="prof-filtro-grupo">
+        <span class="prof-filtro-label">Status</span>
+        <select class="prof-filtro-select" id="profFiltroStatus" onchange="profFiltrar()">
+          <option value="">Todos</option>
+          <option value="ativo">Ativo</option>
+          <option value="inativo">Inativo</option>
+        </select>
+      </div>
+      <button class="btn-filtro">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        Filtros
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Cards 2 e 3: Lista + Perfil ── -->
   <div class="prof-layout" id="profLayout">
 
     <!-- ── Painel esquerdo: lista ── -->
@@ -2042,30 +2071,6 @@ function renderProfissionais() {
         <button class="prof-aba active" id="profAba_todos"    onclick="profMudarAba('todos')">Todos</button>
         <button class="prof-aba"        id="profAba_ativos"   onclick="profMudarAba('ativos')">Ativos</button>
         <button class="prof-aba"        id="profAba_inativos" onclick="profMudarAba('inativos')">Inativos</button>
-      </div>
-
-      <!-- Busca -->
-      <div class="prof-lista-header">
-        <div class="prof-search">
-          <input type="text" id="profBuscaInput" placeholder="Buscar por nome, especialidade ou telefone..." oninput="profFiltrar()" />
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        </div>
-      </div>
-
-      <!-- Filtros: Especialidade + Status + Filtros -->
-      <div class="prof-filtros-bar">
-        <select class="prof-filtro-select" id="profFiltroEsp" onchange="profFiltrar()">
-          <option value="">Especialidade</option>
-        </select>
-        <select class="prof-filtro-select" id="profFiltroStatus" onchange="profFiltrar()">
-          <option value="">Status</option>
-          <option value="ativo">Ativo</option>
-          <option value="inativo">Inativo</option>
-        </select>
-        <button class="btn-filtro" style="margin-left:auto">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-          Filtros
-        </button>
       </div>
 
       <!-- Total -->
