@@ -1821,33 +1821,35 @@
 /* ── Card 1: Busca + Filtros (largura total, acima do grid) ── */
 .prof-filtros-card {
   display: flex; align-items: center; gap: 0;
-  background: white; border-radius: var(--radius-lg);
-  border: 1px solid var(--gray-100);
-  margin-bottom: 16px; overflow: hidden;
+  background: var(--gray-50); border-radius: var(--radius-lg);
+  border: 1px solid var(--gray-200);
+  margin-bottom: 16px; overflow: hidden; padding: 10px 12px;
+  gap: 10px;
 }
 .prof-filtros-card .prof-search {
   flex: 1; position: relative;
-  border-right: 1px solid var(--gray-100);
+  background: white; border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius-md);
 }
 .prof-filtros-card .prof-search svg {
-  position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+  position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
   width: 16px; height: 16px; color: var(--gray-400); pointer-events: none;
 }
 .prof-filtros-card .prof-search input {
-  width: 100%; padding: 14px 16px 14px 44px;
-  border: none; font-size: .875rem;
-  font-family: var(--font-body); color: var(--gray-800);
-  background: white;
+  width: 100%; padding: 10px 16px 10px 40px;
+  border: none; border-radius: var(--radius-md);
+  font-size: .875rem; font-family: var(--font-body); color: var(--gray-800);
+  background: transparent;
 }
 .prof-filtros-card .prof-search input:focus { outline: none; }
 .prof-filtros-card .prof-search input::placeholder { color: var(--gray-400); }
 
 .prof-filtros-bar {
-  display: flex; align-items: center; gap: 12px; padding: 0 16px;
+  display: flex; align-items: center; gap: 10px;
 }
 .prof-filtro-grupo {
   display: flex; flex-direction: column;
-  padding: 7px 12px; min-width: 160px;
+  padding: 6px 12px; min-width: 160px;
   border: 1.5px solid var(--gray-200); border-radius: var(--radius-md);
   background: white; transition: border-color var(--t-fast);
 }
@@ -1868,7 +1870,7 @@
 
 .btn-filtro {
   display: flex; align-items: center; gap: 6px;
-  padding: 10px 18px; border: 1.5px solid var(--gray-200);
+  padding: 9px 16px; border: 1.5px solid var(--gray-200);
   border-radius: var(--radius-md); background: white;
   font-size: .875rem; font-weight: 500; color: var(--gray-600);
   cursor: pointer; white-space: nowrap; transition: all var(--t-fast);
