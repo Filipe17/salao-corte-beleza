@@ -2009,86 +2009,625 @@ function toggleServico(id) {
 function editServico(id) { showToast('Edição em desenvolvimento','warning'); }
 
 /* ===================== PROFISSIONAIS ===================== */
-function renderProfissionais() {
-  const cards = DB.profissionais.map((p,i) => `
-    <div class="pro-card">
-      <div class="pro-card-header">
-        ${avatarHtml(p.nome,'avatar-xl',i)}
-      </div>
-      <div class="pro-card-body">
-        <div class="pro-name">${p.nome}</div>
-        <div class="pro-role">${p.funcao}</div>
-        <div style="margin:10px 0 4px">${statusBadge(p.status)}</div>
-        <div class="pro-stats-row">
-          <div class="pro-stat">
-            <div class="pro-stat-value">${p.atendimentosMes}</div>
-            <div class="pro-stat-label">Atendimentos/mês</div>
-          </div>
-          <div class="pro-stat">
-            <div class="pro-stat-value">${p.comissao}%</div>
-            <div class="pro-stat-label">Comissão</div>
-          </div>
-          <div class="pro-stat">
-            <div class="pro-stat-value">${formatCurrency(p.faturamentoMes * p.comissao/100)}</div>
-            <div class="pro-stat-label">Comissão mês</div>
-          </div>
-        </div>
-        <div style="margin-top:12px">
-          <div class="text-xs text-gray" style="margin-bottom:6px">Serviços</div>
-          <div style="display:flex;gap:4px;flex-wrap:wrap">
-            ${p.servicos.map(s=>`<span class="badge badge-purple">${s}</span>`).join('')}
-          </div>
-        </div>
-      </div>
-      <div class="pro-card-footer" style="display:flex;justify-content:space-between;align-items:center">
-        <span class="text-xs text-gray">${p.horario}</span>
-        <div style="display:flex;gap:6px">
-          <button class="btn btn-sm btn-outline" onclick="showToast('Em desenvolvimento','warning')">Editar</button>
-        </div>
-      </div>
-    </div>`).join('');
+let _profSelecionado  = null;
+let _profAbaAtiva     = 'especialidades';
+let _profFiltroAba    = 'todos';
+let _profBusca        = '';
+let _profFiltroEsp    = '';
+let _profFiltroStatus = '';
+let _profPagAtual     = 1;
+const _PROF_POR_PAG   = 10;
+const _PROF_CORES     = ['#ec4899','#8b5cf6','#f59e0b','#10b981','#3b82f6','#ef4444','#14b8a6'];
+function _profCor(i)  { return _PROF_CORES[i % _PROF_CORES.length]; }
 
-  return `
+function renderProfissionais() {
+  const html = `
   <div class="page-header">
     <div class="page-header-left"><h1>Profissionais</h1></div>
     <div class="page-header-right">
-      <button class="btn btn-primary" onclick="showToast('Em desenvolvimento','warning')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Nova profissional
+      <button class="btn btn-primary" onclick="profAbrirNovo()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Novo Profissional
       </button>
     </div>
   </div>
-  <div class="grid grid-3" style="margin-bottom:20px">${cards}</div>
-  
-  <div class="card">
-    <div class="card-header"><div class="card-title">Comissões do mês</div></div>
-    <div class="card-body" style="padding-top:8px">
-      <div class="table-wrapper" style="border:none;box-shadow:none">
-        <table>
-          <thead><tr><th>Profissional</th><th>Atendimentos</th><th>Faturamento</th><th>Comissão %</th><th>A receber</th></tr></thead>
-          <tbody>
-            ${DB.profissionais.map(p=>`
-              <tr>
-                <td><div style="font-weight:500">${p.nome}</div><div class="text-xs text-gray">${p.funcao}</div></td>
-                <td>${p.atendimentosMes}</td>
-                <td>${formatCurrency(p.faturamentoMes)}</td>
-                <td>${p.comissao}%</td>
-                <td><strong style="color:var(--primary)">${formatCurrency(p.faturamentoMes * p.comissao/100)}</strong></td>
-              </tr>`).join('')}
-          </tbody>
-          <tfoot>
+
+  <div class="prof-layout" id="profLayout">
+
+    <!-- ── Painel esquerdo: lista ── -->
+    <div class="prof-lista-panel">
+      <div class="prof-lista-header">
+        <div class="prof-lista-topo">
+          <span class="prof-total" id="profTotal">Carregando...</span>
+        </div>
+        <div class="prof-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="profBuscaInput" placeholder="Buscar por nome, especialidade ou telefone..." oninput="profFiltrar()" />
+        </div>
+        <div class="prof-filtros-row">
+          <div class="prof-filtros-selects">
+            <select class="prof-filtro-select" id="profFiltroEsp" onchange="profFiltrar()">
+              <option value="">Especialidade — Todas</option>
+            </select>
+            <select class="prof-filtro-select" id="profFiltroStatus" onchange="profFiltrar()">
+              <option value="">Status — Todos</option>
+              <option value="ativo">Ativo</option>
+              <option value="inativo">Inativo</option>
+            </select>
+          </div>
+          <button class="btn-filtro">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            Filtros
+          </button>
+        </div>
+      </div>
+
+      <div class="prof-abas">
+        <button class="prof-aba active" id="profAba_todos"    onclick="profMudarAba('todos')">Todos</button>
+        <button class="prof-aba"        id="profAba_ativos"   onclick="profMudarAba('ativos')">Ativos</button>
+        <button class="prof-aba"        id="profAba_inativos" onclick="profMudarAba('inativos')">Inativos</button>
+      </div>
+
+      <div class="prof-tabela-wrap">
+        <table class="prof-tabela">
+          <thead>
             <tr>
-              <td>Total</td>
-              <td>${DB.profissionais.reduce((s,p)=>s+p.atendimentosMes,0)}</td>
-              <td>${formatCurrency(DB.profissionais.reduce((s,p)=>s+p.faturamentoMes,0))}</td>
-              <td>—</td>
-              <td>${formatCurrency(DB.profissionais.reduce((s,p)=>s+(p.faturamentoMes*p.comissao/100),0))}</td>
+              <th>Profissional</th>
+              <th>Especialidade</th>
+              <th>Telefone</th>
+              <th>Status</th>
+              <th style="width:40px"></th>
             </tr>
-          </tfoot>
+          </thead>
+          <tbody id="profTbody">
+            <tr><td colspan="5" style="text-align:center;padding:32px;color:var(--gray-400)">Carregando...</td></tr>
+          </tbody>
         </table>
       </div>
+
+      <div class="prof-paginacao" id="profPaginacao">
+        <span id="profPagInfo">—</span>
+        <div class="prof-pag-btns">
+          <button class="prof-pag-btn" onclick="profPagAnterior()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <button class="prof-pag-btn active" id="profPagNumero">1</button>
+          <button class="prof-pag-btn" onclick="profPagProxima()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Painel direito: perfil ── -->
+    <div class="prof-perfil-panel" id="profPerfilPanel">
+      <div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--gray-400);text-align:center;padding:40px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:52px;height:52px;opacity:0.2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <p style="font-size:0.875rem">Selecione um profissional para ver o perfil</p>
+      </div>
+    </div>
+
+  </div>`;
+
+  setTimeout(() => { initProfissionais(); }, 0);
+  return html;
+}
+
+/* ── Init chamado após render ── */
+function initProfissionais() {
+  _profSelecionado  = null;
+  _profFiltroAba    = 'todos';
+  _profBusca        = '';
+  _profPagAtual     = 1;
+  profRenderLista();
+  const primeiro = (DB.profissionais || [])[0];
+  if (primeiro) profSelecionar(primeiro.id);
+}
+
+/* ── Filtrar ── */
+function profFiltrar() {
+  _profBusca        = (document.getElementById('profBuscaInput')?.value || '').toLowerCase();
+  _profFiltroEsp    = document.getElementById('profFiltroEsp')?.value    || '';
+  _profFiltroStatus = document.getElementById('profFiltroStatus')?.value || '';
+  _profPagAtual     = 1;
+  profRenderLista();
+}
+
+function profMudarAba(aba) {
+  _profFiltroAba = aba;
+  _profPagAtual  = 1;
+  document.querySelectorAll('.prof-aba').forEach(b => b.classList.remove('active'));
+  document.getElementById('profAba_' + aba)?.classList.add('active');
+  profRenderLista();
+}
+
+function profGetFiltrados() {
+  return (DB.profissionais || []).filter(p => {
+    if (_profFiltroAba === 'ativos'   && p.ativo === false) return false;
+    if (_profFiltroAba === 'inativos' && p.ativo !== false) return false;
+    if (_profFiltroStatus === 'ativo'   && p.ativo === false) return false;
+    if (_profFiltroStatus === 'inativo' && p.ativo !== false) return false;
+    if (_profFiltroEsp && p.funcao !== _profFiltroEsp) return false;
+    if (_profBusca) {
+      const hay = [p.nome, p.funcao, p.telefone, p.email].join(' ').toLowerCase();
+      if (!hay.includes(_profBusca)) return false;
+    }
+    return true;
+  });
+}
+
+function profRenderLista() {
+  const todos  = profGetFiltrados();
+  const inicio = (_profPagAtual - 1) * _PROF_POR_PAG;
+  const pagina = todos.slice(inicio, inicio + _PROF_POR_PAG);
+
+  const totalEl = document.getElementById('profTotal');
+  if (totalEl) totalEl.textContent = `Total de ${todos.length} profissional${todos.length !== 1 ? 'is' : ''}`;
+
+  const infoEl = document.getElementById('profPagInfo');
+  if (infoEl) infoEl.textContent = todos.length
+    ? `Mostrando ${inicio + 1} a ${Math.min(inicio + _PROF_POR_PAG, todos.length)} de ${todos.length} profissionais`
+    : 'Nenhum profissional encontrado';
+
+  const numEl = document.getElementById('profPagNumero');
+  if (numEl) numEl.textContent = _profPagAtual;
+
+  const tbody = document.getElementById('profTbody');
+  if (!tbody) return;
+
+  if (!pagina.length) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--gray-400);font-size:0.875rem">Nenhum profissional encontrado</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = pagina.map(p => {
+    const idx   = (DB.profissionais || []).indexOf(p);
+    const cor   = _profCor(idx >= 0 ? idx : 0);
+    const ativo = p.ativo !== false;
+    const sel   = _profSelecionado?.id === p.id;
+    return `
+    <tr class="${sel ? 'selected' : ''}" onclick="profSelecionar(${p.id})">
+      <td>
+        <div style="display:flex;align-items:center;gap:10px">
+          ${p.foto
+            ? `<img src="${p.foto}" class="prof-av" style="background:none" onerror="this.outerHTML='<div class=prof-av style=background:${cor}>${(p.nome||'?')[0].toUpperCase()}</div>'">`
+            : `<div class="prof-av" style="background:${cor}">${(p.nome||'?')[0].toUpperCase()}</div>`}
+          <span style="font-weight:600;color:var(--gray-800)">${p.nome}</span>
+        </div>
+      </td>
+      <td>${p.funcao || '—'}</td>
+      <td>${p.telefone || '—'}</td>
+      <td><span class="prof-badge-status ${ativo ? 'ativo' : 'inativo'}">${ativo ? 'Ativo' : 'Inativo'}</span></td>
+      <td style="position:relative">
+        <button class="prof-row-menu-btn" onclick="profMenuLinha(event,${p.id})" title="Mais opções">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+        </button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Popular select de especialidades
+  const sel = document.getElementById('profFiltroEsp');
+  if (sel) {
+    const funcoes = [...new Set((DB.profissionais || []).map(p => p.funcao).filter(Boolean))];
+    const atual   = sel.value;
+    sel.innerHTML = `<option value="">Especialidade — Todas</option>` +
+      funcoes.map(f => `<option value="${f}" ${f === atual ? 'selected' : ''}>${f}</option>`).join('');
+  }
+}
+
+function profPagAnterior() {
+  if (_profPagAtual > 1) { _profPagAtual--; profRenderLista(); }
+}
+function profPagProxima() {
+  const total = Math.ceil(profGetFiltrados().length / _PROF_POR_PAG);
+  if (_profPagAtual < total) { _profPagAtual++; profRenderLista(); }
+}
+
+/* ── Selecionar profissional ── */
+function profSelecionar(id) {
+  const p = (DB.profissionais || []).find(x => x.id === id);
+  if (!p) return;
+  _profSelecionado = p;
+  _profAbaAtiva    = 'especialidades';
+  profRenderLista();
+  profRenderPerfil(p);
+}
+
+function profRenderPerfil(p) {
+  const panel = document.getElementById('profPerfilPanel');
+  if (!panel) return;
+
+  const idx   = (DB.profissionais || []).indexOf(p);
+  const cor   = _profCor(idx >= 0 ? idx : 0);
+  const ativo = p.ativo !== false;
+
+  const ags          = (DB.agendamentos || []).filter(a => a.pro_id === p.id);
+  const totalAtend   = ags.filter(a => a.status === 'finalizado').length;
+  const clientesUniq = new Set(ags.filter(a => a.status === 'finalizado').map(a => a.cliente_id)).size;
+  const mesAtual     = new Date().toISOString().slice(0, 7);
+  const comissaoMes  = ags
+    .filter(a => a.status === 'finalizado' && (a.data || '').startsWith(mesAtual))
+    .reduce((acc, a) => acc + (a.valor || 0) * ((p.comissao || 0) / 100), 0);
+
+  panel.innerHTML = `
+  <!-- Header -->
+  <div class="prof-perfil-header">
+    <div class="prof-perfil-topo">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div class="prof-perfil-av" style="background:${cor}">
+          ${p.foto ? `<img src="${p.foto}" style="width:100%;height:100%;border-radius:50%;object-fit:cover" onerror="this.style.display='none'">` : (p.nome||'?')[0].toUpperCase()}
+          <div class="prof-perfil-av-status ${ativo ? 'ativo' : 'inativo'}"></div>
+        </div>
+        <div>
+          <div class="prof-perfil-badge ${ativo ? 'ativo' : 'inativo'}">${ativo ? 'Ativo' : 'Inativo'}</div>
+          <div class="prof-perfil-nome">${p.nome}</div>
+          <div class="prof-perfil-func">${p.funcao || 'Profissional'}</div>
+        </div>
+      </div>
+      <button class="btn btn-outline" style="font-size:0.82rem;padding:7px 14px" onclick="profAbrirEdicao(${p.id})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Editar profissional
+      </button>
+    </div>
+
+    <div class="prof-contatos">
+      ${p.telefone ? `<div class="prof-contato-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 .18h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.18 6.18l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>${p.telefone}</div>` : ''}
+      ${p.email ? `<div class="prof-contato-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>${p.email}</div>` : ''}
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="prof-btn-wpp" onclick="profWhatsapp(${p.id})">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          WhatsApp
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <button class="btn btn-outline" style="padding:7px 10px" onclick="profAbrirEdicao(${p.id})" title="Editar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="prof-kpis">
+      <div class="prof-kpi">
+        <div class="prof-kpi-icon pink"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg></div>
+        <span class="prof-kpi-label">Total de atendimentos</span>
+        <span class="prof-kpi-val">${totalAtend}</span>
+      </div>
+      <div class="prof-kpi">
+        <div class="prof-kpi-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
+        <span class="prof-kpi-label">Clientes atendidos</span>
+        <span class="prof-kpi-val">${clientesUniq}</span>
+      </div>
+      <div class="prof-kpi">
+        <div class="prof-kpi-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+        <span class="prof-kpi-label">Comissão (mês)</span>
+        <span class="prof-kpi-val">${formatCurrency(comissaoMes)}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Abas -->
+  <div class="prof-perfil-abas">
+    <button class="prof-perfil-aba ${_profAbaAtiva==='especialidades'?'active':''}" onclick="profMudarAbaP('especialidades',this)">Especialidades</button>
+    <button class="prof-perfil-aba ${_profAbaAtiva==='horarios'?'active':''}"       onclick="profMudarAbaP('horarios',this)">Horários</button>
+    <button class="prof-perfil-aba ${_profAbaAtiva==='comissoes'?'active':''}"      onclick="profMudarAbaP('comissoes',this)">Comissões</button>
+    <button class="prof-perfil-aba ${_profAbaAtiva==='historico'?'active':''}"      onclick="profMudarAbaP('historico',this)">Histórico</button>
+    <button class="prof-perfil-aba ${_profAbaAtiva==='observacoes'?'active':''}"    onclick="profMudarAbaP('observacoes',this)">Observações</button>
+  </div>
+
+  <div class="prof-aba-conteudo" id="profAbaConteudo">
+    ${profRenderAbaConteudo(_profAbaAtiva, p)}
+  </div>`;
+}
+
+function profMudarAbaP(aba, btn) {
+  _profAbaAtiva = aba;
+  document.querySelectorAll('.prof-perfil-aba').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const cont = document.getElementById('profAbaConteudo');
+  if (cont && _profSelecionado) cont.innerHTML = profRenderAbaConteudo(aba, _profSelecionado);
+}
+
+function profRenderAbaConteudo(aba, p) {
+  if (aba === 'especialidades') return profAbaEspecialidades(p);
+  if (aba === 'horarios')       return profAbaHorarios(p);
+  if (aba === 'comissoes')      return profAbaComissoes(p);
+  if (aba === 'historico')      return profAbaHistorico(p);
+  if (aba === 'observacoes')    return profAbaObservacoes(p);
+  return '';
+}
+
+function profGetHorarios(proId) {
+  try { return JSON.parse(localStorage.getItem('belezza_config_agenda') || '{}')?.[proId] || null; } catch(e) { return null; }
+}
+
+function profAbaEspecialidades(p) {
+  const servicos = (DB.servicos || []).filter(s => s.ativo).slice(0, 5);
+  const cfg      = profGetHorarios(p.id);
+  const diasKeys = ['segunda','terca','quarta','quinta','sexta','sabado','domingo'];
+  const diasLbl  = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+
+  return `
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+    <div>
+      <div class="prof-secao-titulo">Especialidades</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
+        ${servicos.length ? servicos.map(s => `
+          <div class="prof-esp-item">
+            <div class="prof-esp-emoji">${s.emoji || '💅'}</div>
+            <span class="prof-esp-nome">${s.nome}</span>
+            <span class="prof-esp-preco">${formatCurrency(s.preco)}</span>
+            <span class="prof-esp-dur">${s.duracao || 30} min</span>
+          </div>`).join('') : '<p style="font-size:.82rem;color:var(--gray-400)">Nenhum serviço cadastrado.</p>'}
+      </div>
+    </div>
+    <div>
+      <div class="prof-secao-titulo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="color:var(--gray-400)"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Horários de atendimento
+      </div>
+      <div style="display:flex;flex-direction:column;gap:0">
+        ${diasLbl.map((d, i) => {
+          const k    = diasKeys[i];
+          const dc   = cfg?.dias?.[k];
+          const ativ = dc ? dc.ativo !== false : i < 6;
+          const ini  = dc?.inicio || '08:00';
+          const fim  = dc?.fim    || (i===5 ? '12:00' : i===4 ? '17:00' : '18:00');
+          return `<div class="prof-horario-item">
+            <span class="prof-horario-dia">${d}</span>
+            <span class="prof-horario-hr">${ativ ? `${ini} - ${fim}` : 'Fechado'}</span>
+            <span class="prof-horario-badge ${ativ ? 'disp' : 'fechado'}">${ativ ? 'Disponível' : 'Indisponível'}</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:20px">
+    <div class="prof-secao-titulo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="color:var(--gray-400)"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><path d="M12 16h.01"/></svg>
+      Comissões
+    </div>
+    <div class="prof-comissao-box" style="margin-bottom:20px">
+      <div class="prof-comissao-item"><span class="prof-comissao-label">Percentual da comissão</span><span class="prof-comissao-val">${p.comissao || 0}%</span></div>
+      <div class="prof-comissao-item"><span class="prof-comissao-label">Valor médio por atendimento</span><span class="prof-comissao-val">${formatCurrency(profValorMedio(p.id))}</span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="color:var(--gray-400)"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span class="prof-secao-titulo" style="margin-bottom:0">Documentos</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div><div class="prof-comissao-label">CPF (opcional)</div><div style="font-size:.82rem;font-weight:500;color:var(--gray-700)">${p.cpf || '000.000.000-00'}</div></div>
+      <div><div class="prof-comissao-label">RG (opcional)</div><div style="font-size:.82rem;font-weight:500;color:var(--gray-700)">${p.rg || '00.000.000-0'}</div></div>
     </div>
   </div>`;
+}
+
+function profAbaHorarios(p) {
+  const cfg      = profGetHorarios(p.id);
+  const diasKeys = ['segunda','terca','quarta','quinta','sexta','sabado','domingo'];
+  const diasLbl  = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+  return `
+  <div class="prof-secao-titulo">Horários de Atendimento</div>
+  <div style="display:flex;flex-direction:column;gap:0">
+    ${diasLbl.map((d, i) => {
+      const k    = diasKeys[i];
+      const dc   = cfg?.dias?.[k];
+      const ativ = dc ? dc.ativo !== false : i < 6;
+      const ini  = dc?.inicio || '08:00';
+      const fim  = dc?.fim    || (i===5 ? '12:00' : i===4 ? '17:00' : '18:00');
+      return `<div class="prof-horario-item">
+        <span class="prof-horario-dia">${d}</span>
+        <span class="prof-horario-hr">${ativ ? `${ini} - ${fim}` : 'Fechado'}</span>
+        <span class="prof-horario-badge ${ativ ? 'disp' : 'fechado'}">${ativ ? 'Disponível' : 'Indisponível'}</span>
+      </div>`;
+    }).join('')}
+  </div>
+  <div style="margin-top:16px">
+    <button class="btn btn-outline" onclick="navigate('configAgenda')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M12 2a10 10 0 000 20"/></svg>
+      Configurar Agenda
+    </button>
+  </div>`;
+}
+
+function profAbaComissoes(p) {
+  const ags     = (DB.agendamentos || []).filter(a => a.pro_id === p.id && a.status === 'finalizado');
+  const meses   = {};
+  ags.forEach(a => {
+    const mes = (a.data || '').slice(0, 7);
+    if (mes) meses[mes] = (meses[mes] || 0) + (a.valor || 0) * ((p.comissao || 0) / 100);
+  });
+  const arr = Object.entries(meses).sort((a,b) => b[0].localeCompare(a[0])).slice(0, 6);
+  return `
+  <div class="prof-secao-titulo">Comissões por Mês</div>
+  <div class="prof-comissao-box" style="margin-bottom:20px">
+    <div class="prof-comissao-item"><span class="prof-comissao-label">Percentual da comissão</span><span class="prof-comissao-val">${p.comissao || 0}%</span></div>
+    <div class="prof-comissao-item"><span class="prof-comissao-label">Valor médio por atendimento</span><span class="prof-comissao-val">${formatCurrency(profValorMedio(p.id))}</span></div>
+  </div>
+  ${arr.length ? `<div style="display:flex;flex-direction:column;gap:8px">
+    ${arr.map(([mes, val]) => {
+      const [ano, m] = mes.split('-');
+      const nome = new Date(ano, m-1).toLocaleString('pt-BR', { month:'long', year:'numeric' });
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--gray-50);border-radius:8px">
+        <span style="font-size:.875rem;color:var(--gray-700);text-transform:capitalize">${nome}</span>
+        <span style="font-size:.875rem;font-weight:700;color:var(--primary)">${formatCurrency(val)}</span>
+      </div>`;
+    }).join('')}
+  </div>` : '<p style="font-size:.82rem;color:var(--gray-400)">Nenhum atendimento finalizado registrado.</p>'}`;
+}
+
+function profAbaHistorico(p) {
+  const ags = (DB.agendamentos || [])
+    .filter(a => a.pro_id === p.id)
+    .sort((a,b) => (b.data||'').localeCompare(a.data||''))
+    .slice(0, 20);
+  if (!ags.length) return '<p style="font-size:.82rem;color:var(--gray-400)">Nenhum atendimento registrado.</p>';
+  const cores  = { finalizado:'#d1fae5', confirmado:'var(--primary-bg)', pendente:'#fef3c7', cancelado:'var(--gray-100)', emandamento:'#dbeafe' };
+  const textos = { finalizado:'Finalizado', confirmado:'Confirmado', pendente:'Pendente', cancelado:'Cancelado', emandamento:'Em andamento' };
+  return `
+  <div class="prof-secao-titulo">Histórico de Atendimentos</div>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    ${ags.map(a => {
+      const cli  = (DB.clientes||[]).find(c => c.id === a.cliente_id);
+      const serv = (DB.servicos||[]).find(s => s.id === a.servico_id);
+      return `<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--gray-50);border-radius:8px">
+        <div style="flex:1">
+          <div style="font-size:.875rem;font-weight:600;color:var(--gray-800)">${cli?.nome || 'Cliente'}</div>
+          <div style="font-size:.75rem;color:var(--gray-500)">${serv?.nome || 'Serviço'} — ${a.data||''} ${a.hora||''}</div>
+        </div>
+        <span style="padding:2px 8px;border-radius:20px;font-size:.72rem;font-weight:600;background:${cores[a.status]||'var(--gray-100)'}">${textos[a.status]||a.status}</span>
+        <span style="font-size:.875rem;font-weight:600;color:var(--gray-700)">${formatCurrency(a.valor)}</span>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function profAbaObservacoes(p) {
+  return `
+  <div class="prof-secao-titulo">Observações</div>
+  <div style="background:var(--gray-50);border-radius:8px;padding:14px 16px;font-size:.875rem;color:var(--gray-600);min-height:100px">
+    ${p.obs || '<span style="color:var(--gray-400)">Nenhuma observação cadastrada.</span>'}
+  </div>
+  <div style="margin-top:12px">
+    <button class="btn btn-outline" onclick="profAbrirEdicao(${p.id})">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Editar Observações
+    </button>
+  </div>`;
+}
+
+function profValorMedio(proId) {
+  const ags = (DB.agendamentos||[]).filter(a => a.pro_id===proId && a.status==='finalizado' && a.valor);
+  return ags.length ? ags.reduce((acc,a) => acc+(a.valor||0), 0) / ags.length : 0;
+}
+
+/* ── Menu 3 pontinhos ── */
+function profMenuLinha(e, id) {
+  e.stopPropagation();
+  document.querySelectorAll('.prof-row-dropdown').forEach(d => d.remove());
+  const btn  = e.currentTarget;
+  const rect = btn.getBoundingClientRect();
+  const drop = document.createElement('div');
+  drop.className = 'prof-row-dropdown';
+  drop.style.cssText = `position:fixed;top:${rect.bottom+4}px;right:${window.innerWidth-rect.right}px;`;
+  drop.innerHTML = `
+    <button onclick="profSelecionar(${id});document.querySelectorAll('.prof-row-dropdown').forEach(d=>d.remove())">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Ver perfil
+    </button>
+    <button onclick="profAbrirEdicao(${id})">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Editar
+    </button>
+    <button onclick="profWhatsapp(${id})">
+      <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> WhatsApp
+    </button>
+    <button style="color:var(--danger)" onclick="profConfirmarExcluir(${id})">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg> Excluir
+    </button>`;
+  document.body.appendChild(drop);
+  setTimeout(() => document.addEventListener('click', () => drop.remove(), { once:true }), 0);
+}
+
+/* ── Ações ── */
+function profAbrirNovo() {
+  openModal({
+    title: 'Novo Profissional', size: 'lg',
+    body: `
+      <div class="grid grid-2" style="gap:12px">
+        <div class="form-group"><label class="form-label">Nome completo <span style="color:var(--danger)">*</span></label><input type="text" class="form-control" id="npNome" placeholder="Nome do profissional" /></div>
+        <div class="form-group"><label class="form-label">Especialidade / Função <span style="color:var(--danger)">*</span></label><input type="text" class="form-control" id="npFuncao" placeholder="Ex: Manicure, Cabeleireira..." /></div>
+        <div class="form-group"><label class="form-label">Telefone / WhatsApp</label><input type="text" class="form-control" id="npTelefone" placeholder="(11) 99999-0000" /></div>
+        <div class="form-group"><label class="form-label">E-mail</label><input type="email" class="form-control" id="npEmail" placeholder="email@exemplo.com" /></div>
+        <div class="form-group"><label class="form-label">Comissão (%)</label><input type="number" class="form-control" id="npComissao" placeholder="Ex: 20" min="0" max="100" /></div>
+        <div class="form-group"><label class="form-label">Status</label><select class="form-control" id="npAtivo"><option value="true">Ativo</option><option value="false">Inativo</option></select></div>
+      </div>
+      <div class="form-group" style="margin-top:8px"><label class="form-label">Observações</label><textarea class="form-control" id="npObs" rows="2" placeholder="Observações sobre o profissional..."></textarea></div>`,
+    footer: `<button class="btn btn-outline" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="profSalvarNovo()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg> Salvar Profissional</button>`
+  });
+}
+
+async function profSalvarNovo() {
+  const nome     = document.getElementById('npNome')?.value.trim();
+  const funcao   = document.getElementById('npFuncao')?.value.trim();
+  const telefone = document.getElementById('npTelefone')?.value.trim();
+  const email    = document.getElementById('npEmail')?.value.trim();
+  const comissao = parseFloat(document.getElementById('npComissao')?.value) || 0;
+  const ativo    = document.getElementById('npAtivo')?.value === 'true';
+  const obs      = document.getElementById('npObs')?.value.trim();
+  if (!nome || !funcao) { showToast('Preencha nome e especialidade', 'error'); return; }
+  try {
+    const base = (typeof API_BASE !== 'undefined') ? API_BASE : '';
+    const resp = await fetch(base + '/api/profissionais', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nome,funcao,telefone,email,comissao,ativo,obs}) });
+    if (resp.ok) { showToast('Profissional cadastrado!','success'); closeModal(); if(typeof loadAllFromAPI==='function') await loadAllFromAPI(); profRenderLista(); }
+    else { const d = await resp.json(); showToast(d.error||'Erro ao salvar','error'); }
+  } catch(e) { showToast('Erro de conexão','error'); }
+}
+
+function profAbrirEdicao(id) {
+  const p = (DB.profissionais||[]).find(x => x.id===id);
+  if (!p) return;
+  openModal({
+    title: 'Editar Profissional', size: 'lg',
+    body: `
+      <div class="grid grid-2" style="gap:12px">
+        <div class="form-group"><label class="form-label">Nome completo <span style="color:var(--danger)">*</span></label><input type="text" class="form-control" id="epNome" value="${p.nome||''}" /></div>
+        <div class="form-group"><label class="form-label">Especialidade / Função <span style="color:var(--danger)">*</span></label><input type="text" class="form-control" id="epFuncao" value="${p.funcao||''}" /></div>
+        <div class="form-group"><label class="form-label">Telefone / WhatsApp</label><input type="text" class="form-control" id="epTelefone" value="${p.telefone||''}" /></div>
+        <div class="form-group"><label class="form-label">E-mail</label><input type="email" class="form-control" id="epEmail" value="${p.email||''}" /></div>
+        <div class="form-group"><label class="form-label">Comissão (%)</label><input type="number" class="form-control" id="epComissao" value="${p.comissao||0}" min="0" max="100" /></div>
+        <div class="form-group"><label class="form-label">Status</label><select class="form-control" id="epAtivo"><option value="true" ${p.ativo!==false?'selected':''}>Ativo</option><option value="false" ${p.ativo===false?'selected':''}>Inativo</option></select></div>
+      </div>
+      <div class="form-group" style="margin-top:8px"><label class="form-label">Observações</label><textarea class="form-control" id="epObs" rows="2">${p.obs||''}</textarea></div>`,
+    footer: `<button class="btn btn-outline" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="profSalvarEdicao(${id})">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg> Salvar Alterações</button>`
+  });
+}
+
+async function profSalvarEdicao(id) {
+  const nome     = document.getElementById('epNome')?.value.trim();
+  const funcao   = document.getElementById('epFuncao')?.value.trim();
+  const telefone = document.getElementById('epTelefone')?.value.trim();
+  const email    = document.getElementById('epEmail')?.value.trim();
+  const comissao = parseFloat(document.getElementById('epComissao')?.value) || 0;
+  const ativo    = document.getElementById('epAtivo')?.value === 'true';
+  const obs      = document.getElementById('epObs')?.value.trim();
+  if (!nome || !funcao) { showToast('Preencha nome e especialidade','error'); return; }
+  try {
+    const base = (typeof API_BASE !== 'undefined') ? API_BASE : '';
+    const resp = await fetch(`${base}/api/profissionais/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nome,funcao,telefone,email,comissao,ativo,obs}) });
+    if (resp.ok) {
+      showToast('Profissional atualizado!','success'); closeModal();
+      if(typeof loadAllFromAPI==='function') await loadAllFromAPI();
+      profRenderLista();
+      if(_profSelecionado?.id===id) { const p=(DB.profissionais||[]).find(x=>x.id===id); if(p) profRenderPerfil(p); }
+    } else { showToast('Erro ao salvar','error'); }
+  } catch(e) { showToast('Erro de conexão','error'); }
+}
+
+function profConfirmarExcluir(id) {
+  const p = (DB.profissionais||[]).find(x=>x.id===id);
+  confirmDialog(`Deseja excluir o profissional <strong>${p?.nome||''}</strong>? Esta ação não pode ser desfeita.`, async () => {
+    try {
+      const base = (typeof API_BASE !== 'undefined') ? API_BASE : '';
+      const resp = await fetch(`${base}/api/profissionais/${id}`, { method:'DELETE' });
+      if (resp.ok) {
+        showToast('Profissional excluído!','success');
+        if (_profSelecionado?.id===id) {
+          _profSelecionado = null;
+          const panel = document.getElementById('profPerfilPanel');
+          if (panel) panel.innerHTML = `<div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--gray-400);text-align:center;padding:40px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:52px;height:52px;opacity:0.2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><p style="font-size:0.875rem">Selecione um profissional para ver o perfil</p></div>`;
+        }
+        if(typeof loadAllFromAPI==='function') await loadAllFromAPI();
+        profRenderLista();
+      } else { showToast('Erro ao excluir','error'); }
+    } catch(e) { showToast('Erro de conexão','error'); }
+  });
+}
+
+function profWhatsapp(id) {
+  const p = (DB.profissionais||[]).find(x=>x.id===id);
+  if (!p?.telefone) { showToast('Profissional sem telefone cadastrado','warning'); return; }
+  window.open(`https://wa.me/55${p.telefone.replace(/\D/g,'')}`, '_blank');
 }
 
 /* ===================== PDV ===================== */
