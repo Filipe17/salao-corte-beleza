@@ -2764,11 +2764,11 @@ function renderNovoProfissional() {
   const html = `
   <div class="page-header">
     <div class="page-header-left">
-      <h1>Novo Profissional</h1>
+      <h1>${npDados.editId ? 'Editar Profissional' : 'Novo Profissional'}</h1>
       <p style="font-size:.82rem;color:var(--gray-400)">
         <span onclick="navigate('profissionais')" style="cursor:pointer;color:var(--primary)">Profissionais</span>
         <span style="margin:0 4px">›</span>
-        <span style="color:var(--primary)">Novo Profissional</span>
+        <span style="color:var(--primary)">${npDados.editId ? 'Editar Profissional' : 'Novo Profissional'}</span>
       </p>
     </div>
   </div>
@@ -2785,7 +2785,7 @@ function renderNovoProfissional() {
     <span style="font-size:.8rem;color:var(--gray-400)">Campos obrigatórios <span style="color:var(--danger)">*</span></span>
     <div style="display:flex;gap:10px">
       <button class="btn btn-outline" onclick="${npEtapa>1?'npVoltarEtapa()':'navigate(\'profissionais\')'}">${npEtapa>1?'← Voltar':'✕ Cancelar'}</button>
-      <button class="btn btn-primary" onclick="${npEtapa<4?'npProximaEtapa()':'npSalvar()'}">${npEtapa<4?'Próximo →':'✓ Salvar Profissional'}</button>
+      <button class="btn btn-primary" onclick="${npEtapa<4?'npProximaEtapa()':'npSalvar()'}">${npEtapa<4?'Próximo →':(npDados.editId?'✓ Salvar Alterações':'✓ Salvar Profissional')}</button>
     </div>
   </div>`;
 
@@ -2886,11 +2886,14 @@ async function npSalvar() {
   if(!npDados.nome){showToast('Nome obrigatório','error');return;}
   try {
     const base=(typeof API_BASE!=='undefined')?API_BASE:'';
-    const funcao=(npDados.especialidades||[]).map(id=>(DB.servicos||[]).find(s=>s.id===id)?.nome).filter(Boolean).join(', ')||'Profissional';
-    const body={nome:npDados.nome,funcao,telefone:npDados.tel,email:npDados.email,comissao:parseFloat(npDados.comissao)||0,ativo:true,obs:npDados.obs,cpf:npDados.cpf,rg:npDados.rg};
-    const resp=await fetch(base+'/api/profissionais',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const funcao=(npDados.especialidades||[]).map(id=>(DB.servicos||[]).find(s=>s.id===id)?.nome).filter(Boolean).join(', ')||npDados.funcao||'Profissional';
+    const body={nome:npDados.nome,funcao,telefone:npDados.tel,email:npDados.email,comissao:parseFloat(npDados.comissao)||0,ativo:npDados.ativo!==false,obs:npDados.obs,cpf:npDados.cpf,rg:npDados.rg};
+    const isEdit = !!npDados.editId;
+    const url  = isEdit ? `${base}/api/profissionais/${npDados.editId}` : `${base}/api/profissionais`;
+    const method = isEdit ? 'PUT' : 'POST';
+    const resp=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     if(resp.ok){
-      showToast('Profissional cadastrado com sucesso!','success');
+      showToast(isEdit?'Profissional atualizado!':'Profissional cadastrado com sucesso!','success');
       if(typeof loadAllFromAPI==='function') await loadAllFromAPI();
       npEtapa=1;npDados={};
       navigate('profissionais');
@@ -2919,21 +2922,24 @@ async function profSalvarNovo() {
 function profAbrirEdicao(id) {
   const p = (DB.profissionais||[]).find(x => x.id===id);
   if (!p) return;
-  openModal({
-    title: 'Editar Profissional', size: 'lg',
-    body: `
-      <div class="grid grid-2" style="gap:12px">
-        <div class="form-group"><label class="form-label">Nome completo <span style="color:var(--danger)">*</span></label><input type="text" class="form-control" id="epNome" value="${p.nome||''}" /></div>
-        <div class="form-group"><label class="form-label">Especialidade / Função <span style="color:var(--danger)">*</span></label><input type="text" class="form-control" id="epFuncao" value="${p.funcao||''}" /></div>
-        <div class="form-group"><label class="form-label">Telefone / WhatsApp</label><input type="text" class="form-control" id="epTelefone" value="${p.telefone||''}" /></div>
-        <div class="form-group"><label class="form-label">E-mail</label><input type="email" class="form-control" id="epEmail" value="${p.email||''}" /></div>
-        <div class="form-group"><label class="form-label">Comissão (%)</label><input type="number" class="form-control" id="epComissao" value="${p.comissao||0}" min="0" max="100" /></div>
-        <div class="form-group"><label class="form-label">Status</label><select class="form-control" id="epAtivo"><option value="true" ${p.ativo!==false?'selected':''}>Ativo</option><option value="false" ${p.ativo===false?'selected':''}>Inativo</option></select></div>
-      </div>
-      <div class="form-group" style="margin-top:8px"><label class="form-label">Observações</label><textarea class="form-control" id="epObs" rows="2">${p.obs||''}</textarea></div>`,
-    footer: `<button class="btn btn-outline" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="profSalvarEdicao(${id})">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg> Salvar Alterações</button>`
-  });
+  // Carregar dados do profissional no wizard
+  npEtapa = 1;
+  npDados = {
+    editId:     p.id,
+    nome:       p.nome       || '',
+    nomeSocial: p.nome_social|| '',
+    nascimento: p.data_nascimento || '',
+    sexo:       p.sexo       || '',
+    cpf:        p.cpf        || '',
+    rg:         p.rg         || '',
+    tel:        p.telefone   || '',
+    email:      p.email      || '',
+    obs:        p.obs        || '',
+    comissao:   p.comissao   || '',
+    tipoComissao: 'percentual',
+    ativo:      p.ativo !== false,
+  };
+  navigate('novoProfissional');
 }
 
 async function profSalvarEdicao(id) {
