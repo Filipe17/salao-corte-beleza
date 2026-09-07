@@ -2560,22 +2560,344 @@ function profMenuLinha(e, id) {
 
 /* ── Ações ── */
 function profAbrirNovo() {
-  openModal({
-    title: 'Novo Profissional', size: 'lg',
-    body: `
-      <div class="grid grid-2" style="gap:12px">
-        <div class="form-group"><label class="form-label">Nome completo <span style="color:var(--danger)">*</span></label><input type="text" class="form-control" id="npNome" placeholder="Nome do profissional" /></div>
-        <div class="form-group"><label class="form-label">Especialidade / Função <span style="color:var(--danger)">*</span></label><input type="text" class="form-control" id="npFuncao" placeholder="Ex: Manicure, Cabeleireira..." /></div>
-        <div class="form-group"><label class="form-label">Telefone / WhatsApp</label><input type="text" class="form-control" id="npTelefone" placeholder="(11) 99999-0000" /></div>
-        <div class="form-group"><label class="form-label">E-mail</label><input type="email" class="form-control" id="npEmail" placeholder="email@exemplo.com" /></div>
-        <div class="form-group"><label class="form-label">Comissão (%)</label><input type="number" class="form-control" id="npComissao" placeholder="Ex: 20" min="0" max="100" /></div>
-        <div class="form-group"><label class="form-label">Status</label><select class="form-control" id="npAtivo"><option value="true">Ativo</option><option value="false">Inativo</option></select></div>
+  npEtapa = 1;
+  npDados = {};
+  navigate('novoProfissional');
+}
+
+/* ══════════════════════════════════════
+   NOVO PROFISSIONAL — WIZARD 4 ETAPAS
+══════════════════════════════════════ */
+let npEtapa = 1;
+let npDados = {};
+
+function renderNovoProfissional() {
+  const etapas = ['Dados pessoais', 'Especialidades', 'Horários e Comissões', 'Confirmação'];
+  const steps = etapas.map((e, i) => `
+    <div class="nc-step ${i+1 === npEtapa ? 'active' : i+1 < npEtapa ? 'done' : ''}">
+      <div class="nc-step-num">${i+1 < npEtapa ? '✓' : i+1}</div>
+      <span>${e}</span>
+    </div>
+    ${i < etapas.length-1 ? '<div class="nc-step-line"></div>' : ''}
+  `).join('');
+
+  const diasSemana = [
+    { k:'segunda', label:'Segunda-feira' },
+    { k:'terca',   label:'Terça-feira'  },
+    { k:'quarta',  label:'Quarta-feira' },
+    { k:'quinta',  label:'Quinta-feira' },
+    { k:'sexta',   label:'Sexta-feira'  },
+    { k:'sabado',  label:'Sábado'       },
+    { k:'domingo', label:'Domingo'      },
+  ];
+  const horarios = npDados.horarios || {};
+
+  const etapa1 = `
+      <div class="nc-section-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Dados pessoais
       </div>
-      <div class="form-group" style="margin-top:8px"><label class="form-label">Observações</label><textarea class="form-control" id="npObs" rows="2" placeholder="Observações sobre o profissional..."></textarea></div>`,
-    footer: `<button class="btn btn-outline" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="profSalvarNovo()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg> Salvar Profissional</button>`
+      <div class="nc-form-grid">
+        <div class="nc-foto-col">
+          <label class="nc-label">Foto do profissional</label>
+          <div class="nc-foto-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span>Adicionar foto</span>
+            <small>JPG, PNG até 2MB</small>
+          </div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:14px">
+          <div class="nc-row">
+            <div class="nc-field" style="flex:2">
+              <label class="nc-label">Nome completo <span class="nc-req">*</span></label>
+              <input class="form-control" id="np_nome" placeholder="Ex.: Juliana da Silva" value="${npDados.nome||''}" />
+            </div>
+            <div class="nc-field">
+              <label class="nc-label">Nome social</label>
+              <input class="form-control" id="np_nomeSocial" placeholder="Ex.: Ju" value="${npDados.nomeSocial||''}" />
+            </div>
+          </div>
+          <div class="nc-row">
+            <div class="nc-field">
+              <label class="nc-label">Data de nascimento</label>
+              <input class="form-control" id="np_nascimento" type="date" value="${npDados.nascimento||''}" />
+            </div>
+            <div class="nc-field">
+              <label class="nc-label">Sexo</label>
+              <select class="form-control" id="np_sexo">
+                <option value="">Selecione</option>
+                <option ${npDados.sexo==='F'?'selected':''} value="F">Feminino</option>
+                <option ${npDados.sexo==='M'?'selected':''} value="M">Masculino</option>
+                <option ${npDados.sexo==='O'?'selected':''} value="O">Outro</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="nc-row" style="margin-top:14px">
+        <div class="nc-field"><label class="nc-label">CPF</label><input class="form-control" id="np_cpf" placeholder="000.000.000-00" value="${npDados.cpf||''}" /></div>
+        <div class="nc-field"><label class="nc-label">RG</label><input class="form-control" id="np_rg" placeholder="00.000.000-0" value="${npDados.rg||''}" /></div>
+        <div class="nc-field"><label class="nc-label">Órgão emissor</label><input class="form-control" id="np_orgao" placeholder="Ex.: SSP" value="${npDados.orgao||''}" /></div>
+        <div class="nc-field"><label class="nc-label">Data de emissão</label><input class="form-control" id="np_emissao" type="date" value="${npDados.emissao||''}" /></div>
+      </div>
+      <div class="nc-section-title" style="margin-top:24px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 .18h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.18 6.18l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+        Contato
+      </div>
+      <div class="nc-row">
+        <div class="nc-field"><label class="nc-label">Telefone celular <span class="nc-req">*</span></label><input class="form-control" id="np_tel" type="tel" placeholder="(11) 99999-1111" value="${npDados.tel||''}" /></div>
+        <div class="nc-field"><label class="nc-label">Telefone fixo</label><input class="form-control" id="np_telFixo" type="tel" placeholder="(11) 3333-4444" value="${npDados.telFixo||''}" /></div>
+        <div class="nc-field"><label class="nc-label">E-mail</label><input class="form-control" id="np_email" type="email" placeholder="exemplo@email.com" value="${npDados.email||''}" /></div>
+      </div>
+      <div class="nc-section-title" style="margin-top:24px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        Endereço
+      </div>
+      <div class="nc-row">
+        <div class="nc-field" style="max-width:160px"><label class="nc-label">CEP</label><input class="form-control" id="np_cep" placeholder="00000-000" value="${npDados.cep||''}" onblur="npBuscarCEP(this.value)" /></div>
+        <div class="nc-field" style="flex:2"><label class="nc-label">Rua / Avenida</label><input class="form-control" id="np_rua" placeholder="Ex.: Rua das Flores" value="${npDados.rua||''}" /></div>
+        <div class="nc-field" style="max-width:100px"><label class="nc-label">Número</label><input class="form-control" id="np_num" placeholder="123" value="${npDados.num||''}" /></div>
+        <div class="nc-field"><label class="nc-label">Complemento</label><input class="form-control" id="np_comp" placeholder="Ex.: Sala 2" value="${npDados.comp||''}" /></div>
+      </div>
+      <div class="nc-row" style="margin-top:10px">
+        <div class="nc-field"><label class="nc-label">Bairro</label><input class="form-control" id="np_bairro" placeholder="Ex.: Centro" value="${npDados.bairro||''}" /></div>
+        <div class="nc-field" style="flex:2"><label class="nc-label">Cidade</label><input class="form-control" id="np_cidade" placeholder="Ex.: São Paulo" value="${npDados.cidade||''}" /></div>
+        <div class="nc-field" style="max-width:80px"><label class="nc-label">Estado</label><input class="form-control" id="np_estado" placeholder="UF" maxlength="2" value="${npDados.estado||''}" /></div>
+      </div>
+      <div class="nc-section-title" style="margin-top:24px">Como conheceu o salão?</div>
+      <div class="nc-origem-grid">
+        ${[{k:'indicacao',icon:'👥',label:'Indicação de amigo'},{k:'redes',icon:'📸',label:'Redes sociais'},{k:'google',icon:'🔍',label:'Site / Google'},{k:'panfleto',icon:'📢',label:'Panfleto / Outdoor'},{k:'outro',icon:'💬',label:'Outro'}].map(o=>`<button class="nc-origem-btn ${npDados.origem===o.k?'active':''}" onclick="npSetOrigem('${o.k}')"><span style="font-size:1.4rem">${o.icon}</span>${o.label}</button>`).join('')}
+      </div>
+      <div class="nc-field" style="margin-top:20px">
+        <label class="nc-label">Observações</label>
+        <textarea class="form-control" id="np_obs" rows="3" placeholder="Informações adicionais sobre o profissional...">${npDados.obs||''}</textarea>
+      </div>`;
+
+  const servAtivos = (DB.servicos||[]).filter(s=>s.ativo);
+  const etapa2 = `
+      <div class="nc-section-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        Especialidades
+      </div>
+      <p style="font-size:.78rem;color:var(--gray-400);margin-bottom:14px">Selecione os serviços que este profissional está habilitado a realizar.</p>
+      <div class="nc-servicos-grid">
+        ${servAtivos.map(s=>{const ativo=(npDados.especialidades||[]).includes(s.id);return `<button class="nc-check-card ${ativo?'active':''}" onclick="npToggleEsp(${s.id})"><span style="font-size:1.2rem">${s.emoji||'💅'}</span>${s.nome}</button>`;}).join('')}
+      </div>
+      <div class="nc-section-title" style="margin-top:28px">Serviços e valores</div>
+      <p style="font-size:.78rem;color:var(--gray-400);margin-bottom:14px">Configure duração e valor para cada serviço habilitado.</p>
+      ${(npDados.especialidades||[]).length===0
+        ? '<p style="font-size:.82rem;color:var(--gray-400);padding:16px;background:var(--gray-50);border-radius:8px">Selecione especialidades acima para configurar os valores.</p>'
+        : `<div style="display:flex;flex-direction:column;gap:8px"><div style="display:grid;grid-template-columns:1fr 120px 140px;gap:10px;padding:8px 12px;font-size:.75rem;font-weight:600;color:var(--gray-500)"><span>Serviço</span><span>Duração (min)</span><span>Valor (R$)</span></div>${(npDados.especialidades||[]).map(sid=>{const s=(DB.servicos||[]).find(x=>x.id===sid);if(!s)return'';const sv=(npDados.servValores||{})[sid]||{};return`<div style="display:grid;grid-template-columns:1fr 120px 140px;gap:10px;align-items:center;padding:10px 12px;background:var(--gray-50);border-radius:8px"><span style="font-size:.875rem;font-weight:500;color:var(--gray-800)">${s.emoji||'💅'} ${s.nome}</span><input class="form-control" style="padding:7px 10px;font-size:.82rem" type="number" id="np_dur_${sid}" value="${sv.duracao||s.duracao||30}" /><input class="form-control" style="padding:7px 10px;font-size:.82rem" type="number" id="np_val_${sid}" value="${sv.valor||s.preco||0}" step="0.01" /></div>`;}).join('')}</div>`}`;
+
+  const etapa3 = `
+      <div class="nc-section-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Horários de atendimento
+      </div>
+      <div style="border:1px solid var(--gray-100);border-radius:var(--radius-lg);overflow:hidden">
+        <div style="display:grid;grid-template-columns:150px 100px 100px 80px;gap:0;padding:9px 16px;background:var(--gray-50);font-size:.75rem;font-weight:600;color:var(--gray-500);border-bottom:1px solid var(--gray-100)">
+          <span>Dia</span><span>Entrada</span><span>Saída</span><span>Status</span>
+        </div>
+        ${diasSemana.map((d,i)=>{const h=horarios[d.k]||{ativo:i<6,ini:'08:00',fim:i===5?'12:00':i===4?'17:00':'18:00'};return`<div style="display:grid;grid-template-columns:150px 100px 100px 80px;gap:0;align-items:center;padding:10px 16px;border-bottom:1px solid var(--gray-50)" id="np_row_${d.k}"><span style="font-size:.875rem;font-weight:500;color:var(--gray-700)">${d.label}</span><input class="form-control" style="padding:6px 8px;font-size:.82rem;width:88px" type="time" id="np_ini_${d.k}" value="${h.ini}" ${!h.ativo?'disabled':''} /><input class="form-control" style="padding:6px 8px;font-size:.82rem;width:88px" type="time" id="np_fim_${d.k}" value="${h.fim}" ${!h.ativo?'disabled':''} /><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.82rem;color:${h.ativo?'var(--success)':'var(--gray-400)'}"><input type="checkbox" id="np_ativo_${d.k}" ${h.ativo?'checked':''} onchange="npToggleDia('${d.k}')" style="accent-color:var(--primary);width:15px;height:15px" />${h.ativo?'Ativo':'Folga'}</label></div>`;}).join('')}
+      </div>
+      <div class="nc-section-title" style="margin-top:28px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        Comissão
+      </div>
+      <div class="nc-row" style="align-items:flex-end">
+        <div class="nc-field" style="max-width:200px">
+          <label class="nc-label">Tipo de comissão</label>
+          <select class="form-control" id="np_tipoComissao" onchange="npAtualizarComissao()">
+            <option value="percentual" ${(npDados.tipoComissao||'percentual')==='percentual'?'selected':''}>Percentual (%)</option>
+            <option value="fixo" ${npDados.tipoComissao==='fixo'?'selected':''}>Valor fixo (R$)</option>
+          </select>
+        </div>
+        <div class="nc-field" style="max-width:160px">
+          <label class="nc-label" id="np_comissaoLabel">${npDados.tipoComissao==='fixo'?'Valor fixo (R$)':'Percentual (%)'}</label>
+          <input class="form-control" type="number" id="np_comissao" placeholder="${npDados.tipoComissao==='fixo'?'0.00':'20'}" value="${npDados.comissao||''}" min="0" step="0.01" />
+        </div>
+      </div>
+      <p style="font-size:.78rem;color:var(--gray-400);margin-top:8px">O sistema calculará automaticamente a comissão ao finalizar cada atendimento.</p>`;
+
+  const espNomes = (npDados.especialidades||[]).map(id=>(DB.servicos||[]).find(s=>s.id===id)?.nome).filter(Boolean).join(', ');
+  const etapa4 = `
+      <div class="nc-confirmacao">
+        <div class="nc-confirm-avatar" style="background:var(--primary)">${(npDados.nome||'?')[0].toUpperCase()}</div>
+        <h3>${npDados.nome||'—'}</h3>
+        ${espNomes?`<p style="color:var(--gray-500);font-size:.875rem;margin-top:4px">${espNomes}</p>`:''}
+        <div class="nc-confirm-grid">
+          ${npDados.tel?`<div class="nc-confirm-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 .18h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.18 6.18l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg><span>${npDados.tel}</span></div>`:''}
+          ${npDados.email?`<div class="nc-confirm-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><span>${npDados.email}</span></div>`:''}
+          ${npDados.cidade?`<div class="nc-confirm-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg><span>${npDados.cidade}${npDados.estado?'/'+npDados.estado:''}</span></div>`:''}
+        </div>
+        ${espNomes?`<div class="nc-confirm-block"><strong>Especialidades:</strong> ${espNomes}</div>`:''}
+        ${npDados.comissao?`<div class="nc-confirm-block"><strong>Comissão:</strong> ${npDados.comissao}${npDados.tipoComissao==='fixo'?' (valor fixo)':'%'}</div>`:''}
+        ${npDados.obs?`<div class="nc-confirm-block"><strong>Observações:</strong> ${npDados.obs}</div>`:''}
+      </div>`;
+
+  const etapaConteudo = { 1: etapa1, 2: etapa2, 3: etapa3, 4: etapa4 };
+
+  const espResumidas = (npDados.especialidades||[]).length
+    ? (npDados.especialidades||[]).map(id=>(DB.servicos||[]).find(s=>s.id===id)?.nome).filter(Boolean).join(', ')
+    : 'Especialidade';
+
+  const resumo = `
+    <div class="nc-resumo">
+      <div class="nc-resumo-titulo">Resumo do cadastro</div>
+      <div class="nc-resumo-av" style="background:var(--primary)">${(npDados.nome||'?')[0].toUpperCase()}</div>
+      <div class="nc-resumo-nome">${npDados.nome||'Foto do profissional'}</div>
+      <small style="color:var(--gray-400);font-size:.75rem">${npDados.nome?'':'A foto será exibida após salvar o cadastro.'}</small>
+      <div class="nc-resumo-lista">
+        <div class="nc-resumo-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>${npDados.nome||'Nome completo'}</span></div>
+        <div class="nc-resumo-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg><span>${espResumidas}</span></div>
+        <div class="nc-resumo-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 .18h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.18 6.18l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg><span>${npDados.tel||'Telefone'}</span></div>
+        <div class="nc-resumo-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><span>${npDados.email||'E-mail'}</span></div>
+        <div class="nc-resumo-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg><span>${npDados.cidade?(npDados.cidade+(npDados.estado?'/'+npDados.estado:'')):'Endereço'}</span></div>
+      </div>
+      <div class="nc-resumo-aviso">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Após salvar, você poderá adicionar as especialidades, horários, comissões e outros dados do profissional.
+      </div>
+      ${npEtapa>=2?`<div style="margin-top:16px;padding:14px;background:#fffbeb;border:1px solid #fde68a;border-radius:var(--radius-md)"><div style="font-size:.75rem;font-weight:700;color:#92400e;margin-bottom:4px">💡 Dica</div><div style="font-size:.75rem;color:#78350f">Você pode cadastrar mais de uma especialidade e definir os serviços que o profissional realiza. Isso facilita a agenda e o controle de atendimentos.</div></div>`:''}
+    </div>`;
+
+  const html = `
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>Novo Profissional</h1>
+      <p style="font-size:.82rem;color:var(--gray-400)">
+        <span onclick="navigate('profissionais')" style="cursor:pointer;color:var(--primary)">Profissionais</span>
+        <span style="margin:0 4px">›</span>
+        <span style="color:var(--primary)">Novo Profissional</span>
+      </p>
+    </div>
+  </div>
+  <div class="nc-steps">${steps}</div>
+  <div class="nc-layout">
+    <div class="nc-main">
+      <div class="card" style="padding:24px">
+        ${etapaConteudo[npEtapa]||''}
+      </div>
+    </div>
+    ${resumo}
+  </div>
+  <div class="nc-footer">
+    <span style="font-size:.8rem;color:var(--gray-400)">Campos obrigatórios <span style="color:var(--danger)">*</span></span>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-outline" onclick="${npEtapa>1?'npVoltarEtapa()':'navigate(\'profissionais\')'}">${npEtapa>1?'← Voltar':'✕ Cancelar'}</button>
+      <button class="btn btn-primary" onclick="${npEtapa<4?'npProximaEtapa()':'npSalvar()'}">${npEtapa<4?'Próximo →':'✓ Salvar Profissional'}</button>
+    </div>
+  </div>`;
+
+  setTimeout(()=>{},0);
+  return html;
+}
+
+function npSetOrigem(k) { npDados.origem=k; navigate('novoProfissional'); }
+function npToggleEsp(id) {
+  if(!npDados.especialidades) npDados.especialidades=[];
+  const idx=npDados.especialidades.indexOf(id);
+  if(idx>=0) npDados.especialidades.splice(idx,1); else npDados.especialidades.push(id);
+  navigate('novoProfissional');
+}
+function npToggleDia(k) {
+  const cb=document.getElementById('np_ativo_'+k);
+  const row=document.getElementById('np_row_'+k);
+  if(!cb||!row) return;
+  const ativo=cb.checked;
+  row.querySelectorAll('input[type=time]').forEach(el=>el.disabled=!ativo);
+  const lbl=cb.parentElement;
+  lbl.style.color=ativo?'var(--success)':'var(--gray-400)';
+  lbl.lastChild.textContent=ativo?' Ativo':' Folga';
+}
+function npAtualizarComissao() {
+  const tipo=document.getElementById('np_tipoComissao')?.value;
+  const lbl=document.getElementById('np_comissaoLabel');
+  if(lbl) lbl.textContent=tipo==='fixo'?'Valor fixo (R$)':'Percentual (%)';
+}
+async function npBuscarCEP(cep) {
+  cep=cep.replace(/\D/g,'');
+  if(cep.length!==8) return;
+  try {
+    const res=await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    const d=await res.json();
+    if(d.erro){showToast('CEP não encontrado','error');return;}
+    const set=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val;};
+    set('np_rua',d.logradouro||'');set('np_bairro',d.bairro||'');set('np_cidade',d.localidade||'');set('np_estado',d.uf||'');
+    showToast('Endereço preenchido!','success');
+  } catch(e){showToast('Erro ao buscar CEP','error');}
+}
+function npSalvarEtapa1() {
+  npDados.nome=document.getElementById('np_nome')?.value.trim()||'';
+  npDados.nomeSocial=document.getElementById('np_nomeSocial')?.value||'';
+  npDados.nascimento=document.getElementById('np_nascimento')?.value||'';
+  npDados.sexo=document.getElementById('np_sexo')?.value||'';
+  npDados.cpf=document.getElementById('np_cpf')?.value||'';
+  npDados.rg=document.getElementById('np_rg')?.value||'';
+  npDados.orgao=document.getElementById('np_orgao')?.value||'';
+  npDados.emissao=document.getElementById('np_emissao')?.value||'';
+  npDados.tel=document.getElementById('np_tel')?.value||'';
+  npDados.telFixo=document.getElementById('np_telFixo')?.value||'';
+  npDados.email=document.getElementById('np_email')?.value||'';
+  npDados.cep=document.getElementById('np_cep')?.value||'';
+  npDados.rua=document.getElementById('np_rua')?.value||'';
+  npDados.num=document.getElementById('np_num')?.value||'';
+  npDados.comp=document.getElementById('np_comp')?.value||'';
+  npDados.bairro=document.getElementById('np_bairro')?.value||'';
+  npDados.cidade=document.getElementById('np_cidade')?.value||'';
+  npDados.estado=document.getElementById('np_estado')?.value||'';
+  npDados.obs=document.getElementById('np_obs')?.value||'';
+}
+function npSalvarEtapa2() {
+  if(!npDados.servValores) npDados.servValores={};
+  (npDados.especialidades||[]).forEach(sid=>{
+    npDados.servValores[sid]={
+      duracao:document.getElementById('np_dur_'+sid)?.value||'',
+      valor:document.getElementById('np_val_'+sid)?.value||'',
+    };
   });
 }
+function npSalvarEtapa3() {
+  const dias=['segunda','terca','quarta','quinta','sexta','sabado','domingo'];
+  if(!npDados.horarios) npDados.horarios={};
+  dias.forEach(k=>{
+    const ativo=document.getElementById('np_ativo_'+k)?.checked??(k!=='domingo');
+    npDados.horarios[k]={ativo,ini:document.getElementById('np_ini_'+k)?.value||'08:00',fim:document.getElementById('np_fim_'+k)?.value||'18:00'};
+  });
+  npDados.tipoComissao=document.getElementById('np_tipoComissao')?.value||'percentual';
+  npDados.comissao=document.getElementById('np_comissao')?.value||'';
+}
+function npProximaEtapa() {
+  if(npEtapa===1){npSalvarEtapa1();if(!npDados.nome){showToast('Informe o nome do profissional','error');return;}if(!npDados.tel){showToast('Informe o telefone celular','error');return;}}
+  if(npEtapa===2) npSalvarEtapa2();
+  if(npEtapa===3) npSalvarEtapa3();
+  npEtapa++;
+  navigate('novoProfissional');
+}
+function npVoltarEtapa() {
+  if(npEtapa===1){navigate('profissionais');return;}
+  if(npEtapa===2) npSalvarEtapa2();
+  if(npEtapa===3) npSalvarEtapa3();
+  npEtapa--;
+  navigate('novoProfissional');
+}
+async function npSalvar() {
+  npSalvarEtapa3();
+  if(!npDados.nome){showToast('Nome obrigatório','error');return;}
+  try {
+    const base=(typeof API_BASE!=='undefined')?API_BASE:'';
+    const funcao=(npDados.especialidades||[]).map(id=>(DB.servicos||[]).find(s=>s.id===id)?.nome).filter(Boolean).join(', ')||'Profissional';
+    const body={nome:npDados.nome,funcao,telefone:npDados.tel,email:npDados.email,comissao:parseFloat(npDados.comissao)||0,ativo:true,obs:npDados.obs,cpf:npDados.cpf,rg:npDados.rg};
+    const resp=await fetch(base+'/api/profissionais',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(resp.ok){
+      showToast('Profissional cadastrado com sucesso!','success');
+      if(typeof loadAllFromAPI==='function') await loadAllFromAPI();
+      npEtapa=1;npDados={};
+      navigate('profissionais');
+    } else {const d=await resp.json();showToast(d.error||'Erro ao salvar','error');}
+  } catch(e){showToast('Erro de conexão','error');}
+}
+
 
 async function profSalvarNovo() {
   const nome     = document.getElementById('npNome')?.value.trim();

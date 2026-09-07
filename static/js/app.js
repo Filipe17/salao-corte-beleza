@@ -10,6 +10,7 @@ const PAGES = {
   pdv:            { title: 'PDV / Vendas',     render: renderPDV },
   clientes:       { title: 'Clientes',         render: renderClientes },
   profissionais:  { title: 'Profissionais',    render: renderProfissionais },
+  novoProfissional: { title: 'Novo Profissional', render: renderNovoProfissional },
   servicos:       { title: 'Serviços',         render: renderServicos },
   estoque:        { title: 'Estoque',          render: renderEstoque },
   financeiro:     { title: 'Financeiro',       render: renderFinanceiro },
