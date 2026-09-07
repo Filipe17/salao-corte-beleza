@@ -2631,6 +2631,13 @@ function renderNovoProfissional() {
                 <option ${npDados.sexo==='O'?'selected':''} value="O">Outro</option>
               </select>
             </div>
+            <div class="nc-field">
+              <label class="nc-label">Status</label>
+              <select class="form-control" id="np_ativoStatus">
+                <option value="true"  ${npDados.ativo!==false?'selected':''}>Ativo</option>
+                <option value="false" ${npDados.ativo===false?'selected':''}>Inativo</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -2832,6 +2839,7 @@ function npSalvarEtapa1() {
   npDados.nomeSocial=document.getElementById('np_nomeSocial')?.value||'';
   npDados.nascimento=document.getElementById('np_nascimento')?.value||'';
   npDados.sexo=document.getElementById('np_sexo')?.value||'';
+  npDados.ativo=document.getElementById('np_ativoStatus')?.value!=='false';
   npDados.cpf=document.getElementById('np_cpf')?.value||'';
   npDados.rg=document.getElementById('np_rg')?.value||'';
   npDados.orgao=document.getElementById('np_orgao')?.value||'';
