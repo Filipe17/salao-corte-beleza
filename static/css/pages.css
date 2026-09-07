@@ -2035,16 +2035,19 @@
 /* KPIs */
 .prof-kpis {
   display: grid; grid-template-columns: repeat(3,1fr);
-  border-top: 1px solid var(--gray-100); margin: 0 -20px;
+  gap: 12px; padding: 16px 20px;
+  border-top: 1px solid var(--gray-100);
 }
 .prof-kpi {
-  display: flex; flex-direction: column; align-items: flex-start;
-  padding: 14px 18px; border-right: 1px solid var(--gray-100); gap: 2px;
+  display: flex; flex-direction: row; align-items: center;
+  gap: 14px; padding: 14px 16px;
+  border: 1px solid var(--gray-100); border-radius: var(--radius-lg);
+  background: white;
 }
-.prof-kpi:last-child { border-right: none; }
+.prof-kpi:last-child { border-right: 1px solid var(--gray-100); }
 .prof-kpi-icon {
-  width: 38px; height: 38px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center; margin-bottom: 6px;
+  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
 }
 .prof-kpi-icon.pink   { background: #fce7f3; }
 .prof-kpi-icon.pink svg   { color: #ec4899; }
@@ -2052,7 +2055,8 @@
 .prof-kpi-icon.purple svg { color: #9333ea; }
 .prof-kpi-icon.green  { background: #d1fae5; }
 .prof-kpi-icon.green svg  { color: #059669; }
-.prof-kpi-label { font-size: .72rem; color: var(--gray-500); line-height: 1.3; }
+.prof-kpi-texts { display: flex; flex-direction: column; gap: 2px; }
+.prof-kpi-label { font-size: .75rem; color: var(--gray-500); line-height: 1.3; }
 .prof-kpi-val   { font-size: 1.15rem; font-weight: 700; color: var(--gray-900); }
 
 /* Abas do perfil */

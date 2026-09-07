@@ -2310,19 +2310,25 @@ function profRenderPerfil(p) {
     <!-- KPIs -->
     <div class="prof-kpis">
       <div class="prof-kpi">
-        <div class="prof-kpi-icon pink"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg></div>
-        <span class="prof-kpi-label">Total de atendimentos</span>
-        <span class="prof-kpi-val">${totalAtend}</span>
+        <div class="prof-kpi-icon pink"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg></div>
+        <div class="prof-kpi-texts">
+          <span class="prof-kpi-label">Total de atendimentos</span>
+          <span class="prof-kpi-val">${totalAtend}</span>
+        </div>
       </div>
       <div class="prof-kpi">
-        <div class="prof-kpi-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
-        <span class="prof-kpi-label">Clientes atendidos</span>
-        <span class="prof-kpi-val">${clientesUniq}</span>
+        <div class="prof-kpi-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
+        <div class="prof-kpi-texts">
+          <span class="prof-kpi-label">Clientes atendidos</span>
+          <span class="prof-kpi-val">${clientesUniq}</span>
+        </div>
       </div>
       <div class="prof-kpi">
-        <div class="prof-kpi-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
-        <span class="prof-kpi-label">Comissão (mês)</span>
-        <span class="prof-kpi-val">${formatCurrency(comissaoMes)}</span>
+        <div class="prof-kpi-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+        <div class="prof-kpi-texts">
+          <span class="prof-kpi-label">Comissão (mês)</span>
+          <span class="prof-kpi-val">${formatCurrency(comissaoMes)}</span>
+        </div>
       </div>
     </div>
   </div>
