@@ -1814,7 +1814,7 @@
   display: grid;
   grid-template-columns: 440px 1fr;
   gap: 20px;
-  align-items: start;
+  align-items: stretch;
 }
 
 /* ── Card 1: Busca + Filtros (largura total, acima do grid) ── */
@@ -1882,7 +1882,7 @@
   background: white; border-radius: var(--radius-lg);
   border: 1px solid var(--gray-100);
   display: flex; flex-direction: column;
-  max-height: calc(100vh - 220px); overflow: hidden;
+  overflow: hidden;
 }
 
 /* Abas no topo */
