@@ -2369,10 +2369,10 @@ function profAbaEspecialidades(p) {
   const diasLbl  = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
 
   return `
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
-    <div>
+  <div class="prof-esp-grid">
+    <div class="prof-esp-card">
       <div class="prof-secao-titulo">Especialidades</div>
-      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
+      <div style="display:flex;flex-direction:column;gap:6px">
         ${servicos.length ? servicos.map(s => `
           <div class="prof-esp-item">
             <div class="prof-esp-emoji">${s.emoji || '💅'}</div>
@@ -2382,12 +2382,12 @@ function profAbaEspecialidades(p) {
           </div>`).join('') : '<p style="font-size:.82rem;color:var(--gray-400)">Nenhum serviço cadastrado.</p>'}
       </div>
     </div>
-    <div>
+    <div class="prof-esp-card">
       <div class="prof-secao-titulo">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="color:var(--gray-400)"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         Horários de atendimento
       </div>
-      <div style="display:flex;flex-direction:column;gap:0">
+      <div style="display:flex;flex-direction:column">
         ${diasLbl.map((d, i) => {
           const k    = diasKeys[i];
           const dc   = cfg?.dias?.[k];
@@ -2403,22 +2403,26 @@ function profAbaEspecialidades(p) {
       </div>
     </div>
   </div>
-  <div style="margin-top:20px">
-    <div class="prof-secao-titulo">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="color:var(--gray-400)"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><path d="M12 16h.01"/></svg>
-      Comissões
+  <div class="prof-esp-grid" style="margin-top:14px">
+    <div class="prof-esp-card">
+      <div class="prof-secao-titulo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="color:var(--gray-400)"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><path d="M12 16h.01"/></svg>
+        Comissões
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div><div class="prof-comissao-label">Percentual da comissão</div><div class="prof-comissao-val">${p.comissao || 0}%</div></div>
+        <div><div class="prof-comissao-label">Valor médio por atendimento</div><div class="prof-comissao-val">${formatCurrency(profValorMedio(p.id))}</div></div>
+      </div>
     </div>
-    <div class="prof-comissao-box" style="margin-bottom:20px">
-      <div class="prof-comissao-item"><span class="prof-comissao-label">Percentual da comissão</span><span class="prof-comissao-val">${p.comissao || 0}%</span></div>
-      <div class="prof-comissao-item"><span class="prof-comissao-label">Valor médio por atendimento</span><span class="prof-comissao-val">${formatCurrency(profValorMedio(p.id))}</span></div>
-    </div>
-    <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="color:var(--gray-400)"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      <span class="prof-secao-titulo" style="margin-bottom:0">Documentos</span>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div><div class="prof-comissao-label">CPF (opcional)</div><div style="font-size:.82rem;font-weight:500;color:var(--gray-700)">${p.cpf || '000.000.000-00'}</div></div>
-      <div><div class="prof-comissao-label">RG (opcional)</div><div style="font-size:.82rem;font-weight:500;color:var(--gray-700)">${p.rg || '00.000.000-0'}</div></div>
+    <div class="prof-esp-card">
+      <div class="prof-secao-titulo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="color:var(--gray-400)"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Documentos
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div><div class="prof-comissao-label">CPF (opcional)</div><div style="font-size:.875rem;font-weight:500;color:var(--gray-700)">${p.cpf || '000.000.000-00'}</div></div>
+        <div><div class="prof-comissao-label">RG (opcional)</div><div style="font-size:.875rem;font-weight:500;color:var(--gray-700)">${p.rg || '00.000.000-0'}</div></div>
+      </div>
     </div>
   </div>`;
 }
