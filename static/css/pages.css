@@ -2088,8 +2088,12 @@
   padding: 16px;
 }
 .prof-esp-card-pink {
-  background: var(--primary-bg);
-  border-color: var(--plum-200, #fbcfe8);
+  background: #fdf2f8;
+  border-color: #fbcfe8;
+}
+.prof-esp-card-blue {
+  background: #eff6ff;
+  border-color: #bfdbfe;
 }
 
 /* Conteúdo das abas */
@@ -2160,3 +2164,10 @@ input[type=number]::-webkit-outer-spin-button {
   margin: 0;
 }
 input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+
+/* ── Remover seta nativa de selects ── */
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}

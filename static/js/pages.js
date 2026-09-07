@@ -2420,9 +2420,9 @@ function profAbaEspecialidades(p) {
         <div><div class="prof-comissao-label">Valor médio por atendimento</div><div class="prof-comissao-val">${formatCurrency(profValorMedio(p.id))}</div></div>
       </div>
     </div>
-    <div class="prof-esp-card prof-esp-card-pink">
+    <div class="prof-esp-card prof-esp-card-blue">
       <div class="prof-secao-titulo">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="color:var(--primary)"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="color:#3b82f6"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
         Documentos
       </div>
       <div style="display:flex;flex-direction:row;gap:32px">
