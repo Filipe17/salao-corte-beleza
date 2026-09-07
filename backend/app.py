@@ -130,19 +130,67 @@ class Profissional(db.Model):
     __tablename__ = 'profissionais'
     id                 = db.Column(db.Integer, primary_key=True)
     nome               = db.Column(db.String(120), nullable=False)
-    funcao             = db.Column(db.String(80), default='')
-    telefone           = db.Column(db.String(30), default='')
-    comissao           = db.Column(db.Integer, default=40)
-    atendimentos_mes   = db.Column(db.Integer, default=0)
-    faturamento_mes    = db.Column(db.Float, default=0)
-    status             = db.Column(db.String(20), default='ativo')
+    nome_social        = db.Column(db.String(120), default='')
+    funcao             = db.Column(db.String(80),  default='')
+    telefone           = db.Column(db.String(30),  default='')
+    telefone_fixo      = db.Column(db.String(30),  default='')
+    email              = db.Column(db.String(120), default='')
+    sexo               = db.Column(db.String(1),   default='')
+    data_nascimento    = db.Column(db.String(10),  default='')
+    cpf                = db.Column(db.String(20),  default='')
+    rg                 = db.Column(db.String(20),  default='')
+    orgao_emissor      = db.Column(db.String(30),  default='')
+    data_emissao       = db.Column(db.String(10),  default='')
+    cep                = db.Column(db.String(10),  default='')
+    rua                = db.Column(db.String(200), default='')
+    numero             = db.Column(db.String(20),  default='')
+    complemento        = db.Column(db.String(100), default='')
+    bairro             = db.Column(db.String(100), default='')
+    cidade             = db.Column(db.String(100), default='')
+    estado             = db.Column(db.String(2),   default='')
+    origem             = db.Column(db.String(30),  default='')
+    obs                = db.Column(db.Text,        default='')
+    foto               = db.Column(db.String(300), default='')
+    comissao           = db.Column(db.Integer,     default=0)
+    tipo_comissao      = db.Column(db.String(20),  default='percentual')
+    atendimentos_mes   = db.Column(db.Integer,     default=0)
+    faturamento_mes    = db.Column(db.Float,       default=0)
+    status             = db.Column(db.String(20),  default='ativo')
+    ativo              = db.Column(db.Boolean,     default=True)
+    data_cadastro      = db.Column(db.String(10),  default=lambda: str(date.today()))
 
     def to_dict(self):
         return {
-            'id': self.id, 'nome': self.nome, 'funcao': self.funcao,
-            'telefone': self.telefone, 'comissao': self.comissao,
-            'atendimentosMes': self.atendimentos_mes,
-            'faturamentoMes': self.faturamento_mes, 'status': self.status,
+            'id':              self.id,
+            'nome':            self.nome,
+            'nome_social':     self.nome_social      or '',
+            'funcao':          self.funcao            or '',
+            'telefone':        self.telefone          or '',
+            'telefone_fixo':   self.telefone_fixo     or '',
+            'email':           self.email             or '',
+            'sexo':            self.sexo              or '',
+            'data_nascimento': self.data_nascimento   or '',
+            'cpf':             self.cpf               or '',
+            'rg':              self.rg                or '',
+            'orgao_emissor':   self.orgao_emissor     or '',
+            'data_emissao':    self.data_emissao      or '',
+            'cep':             self.cep               or '',
+            'rua':             self.rua               or '',
+            'numero':          self.numero            or '',
+            'complemento':     self.complemento       or '',
+            'bairro':          self.bairro            or '',
+            'cidade':          self.cidade            or '',
+            'estado':          self.estado            or '',
+            'origem':          self.origem            or '',
+            'obs':             self.obs               or '',
+            'foto':            self.foto              or '',
+            'comissao':        self.comissao          or 0,
+            'tipo_comissao':   self.tipo_comissao     or 'percentual',
+            'atendimentosMes': self.atendimentos_mes  or 0,
+            'faturamentoMes':  self.faturamento_mes   or 0,
+            'status':          self.status            or 'ativo',
+            'ativo':           self.ativo if self.ativo is not None else True,
+            'data_cadastro':   self.data_cadastro     or '',
         }
 
 
@@ -394,6 +442,30 @@ def migrate():
         ("hora_fim",    "VARCHAR(5) DEFAULT ''"),
         ("forma_pgto",  "VARCHAR(30) DEFAULT ''"),
     ]
+    cols_profissionais = [
+        ("nome_social",     "VARCHAR(120) DEFAULT ''"),
+        ("telefone_fixo",   "VARCHAR(30)  DEFAULT ''"),
+        ("email",           "VARCHAR(120) DEFAULT ''"),
+        ("sexo",            "VARCHAR(1)   DEFAULT ''"),
+        ("data_nascimento", "VARCHAR(10)  DEFAULT ''"),
+        ("cpf",             "VARCHAR(20)  DEFAULT ''"),
+        ("rg",              "VARCHAR(20)  DEFAULT ''"),
+        ("orgao_emissor",   "VARCHAR(30)  DEFAULT ''"),
+        ("data_emissao",    "VARCHAR(10)  DEFAULT ''"),
+        ("cep",             "VARCHAR(10)  DEFAULT ''"),
+        ("rua",             "VARCHAR(200) DEFAULT ''"),
+        ("numero",          "VARCHAR(20)  DEFAULT ''"),
+        ("complemento",     "VARCHAR(100) DEFAULT ''"),
+        ("bairro",          "VARCHAR(100) DEFAULT ''"),
+        ("cidade",          "VARCHAR(100) DEFAULT ''"),
+        ("estado",          "VARCHAR(2)   DEFAULT ''"),
+        ("origem",          "VARCHAR(30)  DEFAULT ''"),
+        ("obs",             "TEXT         DEFAULT ''"),
+        ("foto",            "VARCHAR(300) DEFAULT ''"),
+        ("tipo_comissao",   "VARCHAR(20)  DEFAULT 'percentual'"),
+        ("ativo",           "BOOLEAN      DEFAULT TRUE"),
+        ("data_cadastro",   "VARCHAR(10)  DEFAULT ''"),
+    ]
     cols_clientes = [
         ("nome_social",    "VARCHAR(120) DEFAULT ''"),
         ("telefone_fixo",  "VARCHAR(30) DEFAULT ''"),
@@ -431,6 +503,14 @@ def migrate():
                 conn.execute(db.text(f"ALTER TABLE agendamentos ADD COLUMN {col} {definition}"))
                 conn.commit()
                 print(f"✅ Migration agendamentos: {col}")
+            except Exception:
+                conn.rollback()
+
+        for col, definition in cols_profissionais:
+            try:
+                conn.execute(db.text(f"ALTER TABLE profissionais ADD COLUMN {col} {definition}"))
+                conn.commit()
+                print(f"✅ Migration profissionais: {col}")
             except Exception:
                 conn.rollback()
 
@@ -869,10 +949,31 @@ def create_profissional():
     if not body.get('nome'):
         return jsonify({'erro': 'Nome obrigatório'}), 400
     p = Profissional(
-        nome=body['nome'],
-        funcao=body.get('funcao', ''),
-        telefone=body.get('telefone', ''),
-        comissao=int(body.get('comissao', 40)),
+        nome            = body.get('nome', ''),
+        nome_social     = body.get('nome_social', ''),
+        funcao          = body.get('funcao', ''),
+        telefone        = body.get('telefone', ''),
+        telefone_fixo   = body.get('telefone_fixo', ''),
+        email           = body.get('email', ''),
+        sexo            = body.get('sexo', ''),
+        data_nascimento = body.get('data_nascimento', ''),
+        cpf             = body.get('cpf', ''),
+        rg              = body.get('rg', ''),
+        orgao_emissor   = body.get('orgao_emissor', ''),
+        data_emissao    = body.get('data_emissao', ''),
+        cep             = body.get('cep', ''),
+        rua             = body.get('rua', ''),
+        numero          = body.get('numero', ''),
+        complemento     = body.get('complemento', ''),
+        bairro          = body.get('bairro', ''),
+        cidade          = body.get('cidade', ''),
+        estado          = body.get('estado', ''),
+        origem          = body.get('origem', ''),
+        obs             = body.get('obs', ''),
+        comissao        = int(body.get('comissao', 0)),
+        tipo_comissao   = body.get('tipo_comissao', 'percentual'),
+        ativo           = body.get('ativo', True),
+        status          = 'ativo' if body.get('ativo', True) else 'inativo',
     )
     db.session.add(p)
     db.session.commit()
@@ -883,11 +984,26 @@ def create_profissional():
 def update_profissional(id):
     p = Profissional.query.get_or_404(id)
     body = request.get_json()
-    mapa = {'atendimentosMes': 'atendimentos_mes', 'faturamentoMes': 'faturamento_mes'}
+    mapa = {
+        'atendimentosMes': 'atendimentos_mes',
+        'faturamentoMes':  'faturamento_mes',
+        'nome_social':     'nome_social',
+        'telefone_fixo':   'telefone_fixo',
+        'data_nascimento': 'data_nascimento',
+        'orgao_emissor':   'orgao_emissor',
+        'data_emissao':    'data_emissao',
+        'tipo_comissao':   'tipo_comissao',
+        'data_cadastro':   'data_cadastro',
+    }
     for k, v in body.items():
         campo = mapa.get(k, k)
         if hasattr(p, campo) and campo != 'id':
             setattr(p, campo, v)
+    # Sincronizar status <-> ativo
+    if 'ativo' in body:
+        p.status = 'ativo' if body['ativo'] else 'inativo'
+    elif 'status' in body:
+        p.ativo = (body['status'] == 'ativo')
     db.session.commit()
     return jsonify(p.to_dict())
 
