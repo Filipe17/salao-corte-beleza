@@ -2087,6 +2087,10 @@
   border-radius: var(--radius-lg);
   padding: 16px;
 }
+.prof-esp-card-pink {
+  background: var(--primary-bg);
+  border-color: var(--plum-200, #fbcfe8);
+}
 
 /* Conteúdo das abas */
 .prof-secao-titulo {

@@ -2410,22 +2410,22 @@ function profAbaEspecialidades(p) {
     </div>
   </div>
   <div class="prof-esp-grid" style="margin-top:14px">
-    <div class="prof-esp-card">
+    <div class="prof-esp-card prof-esp-card-pink">
       <div class="prof-secao-titulo">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="color:var(--gray-400)"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><path d="M12 16h.01"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="color:var(--primary)"><circle cx="12" cy="12" r="10"/><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
         Comissões
       </div>
-      <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;flex-direction:row;gap:32px">
         <div><div class="prof-comissao-label">Percentual da comissão</div><div class="prof-comissao-val">${p.comissao || 0}%</div></div>
         <div><div class="prof-comissao-label">Valor médio por atendimento</div><div class="prof-comissao-val">${formatCurrency(profValorMedio(p.id))}</div></div>
       </div>
     </div>
-    <div class="prof-esp-card">
+    <div class="prof-esp-card prof-esp-card-pink">
       <div class="prof-secao-titulo">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="color:var(--gray-400)"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="color:var(--primary)"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
         Documentos
       </div>
-      <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;flex-direction:row;gap:32px">
         <div><div class="prof-comissao-label">CPF (opcional)</div><div style="font-size:.875rem;font-weight:500;color:var(--gray-700)">${p.cpf || '000.000.000-00'}</div></div>
         <div><div class="prof-comissao-label">RG (opcional)</div><div style="font-size:.875rem;font-weight:500;color:var(--gray-700)">${p.rg || '00.000.000-0'}</div></div>
       </div>
