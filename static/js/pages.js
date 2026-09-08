@@ -320,7 +320,7 @@ function naHtmlServLista(servs) {
     const bg = s.foto ? `url(${s.foto}) center/cover` : '#fce7f3';
     const jaAdicionado = _naServicos.some(x => x.id === s.id);
     return `<div class="na-serv-item ${jaAdicionado?'na-serv-adicionado':''}">
-      <div class="na-serv-foto" style="background:${bg}">${s.foto?'':'<span style="font-size:1.2rem">${s.emoji||'💅'}</span>'}</div>
+      <div class="na-serv-foto" style="background:${bg}">${s.foto ? '' : `<span style="font-size:1.2rem">${s.emoji||'💅'}</span>`}</div>
       <div style="flex:1;min-width:0">
         <div style="font-weight:600;font-size:.875rem;color:var(--gray-800)">${s.nome}</div>
         <div style="font-size:.75rem;color:var(--gray-400)">${s.categoria||''} ${s.duracao?'• '+s.duracao+' min':''}</div>
