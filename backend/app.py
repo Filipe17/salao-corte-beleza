@@ -267,7 +267,9 @@ class Agendamento(db.Model):
     status      = db.Column(db.String(20), default='confirmado')
     valor       = db.Column(db.Float, default=0)
     obs         = db.Column(db.Text, default='')
-    forma_pgto  = db.Column(db.String(30), default='')
+    forma_pgto       = db.Column(db.String(30), default='')
+    tipo_atendimento = db.Column(db.String(20), default='presencial')
+    desconto         = db.Column(db.Float, default=0)
 
     def to_dict(self):
         return {
@@ -276,6 +278,8 @@ class Agendamento(db.Model):
             'hora_fim': self.hora_fim or '', 'duracao': self.duracao,
             'status': self.status, 'valor': self.valor, 'obs': self.obs,
             'formaPgto': self.forma_pgto or '',
+            'tipoAtendimento': self.tipo_atendimento or 'presencial',
+            'desconto': self.desconto or 0,
         }
 
 
@@ -461,8 +465,10 @@ def migrate():
         ("data_criacao", "VARCHAR(20) DEFAULT ''"),
     ]
     cols_agendamentos = [
-        ("hora_fim",    "VARCHAR(5) DEFAULT ''"),
-        ("forma_pgto",  "VARCHAR(30) DEFAULT ''"),
+        ("hora_fim",         "VARCHAR(5)  DEFAULT ''"),
+        ("forma_pgto",       "VARCHAR(30) DEFAULT ''"),
+        ("tipo_atendimento", "VARCHAR(20) DEFAULT 'presencial'"),
+        ("desconto",         "FLOAT       DEFAULT 0"),
     ]
     cols_servicos = [
         ("descricao",       "TEXT        DEFAULT ''"),
@@ -1218,6 +1224,8 @@ def create_agendamento():
         status=body.get('status', 'confirmado'),
         obs=body.get('obs', ''),
         forma_pgto=body.get('formaPgto', ''),
+        tipo_atendimento=body.get('tipoAtendimento', 'presencial'),
+        desconto=body.get('desconto', 0),
     )
     db.session.add(a)
     db.session.commit()
@@ -1238,7 +1246,9 @@ def update_agendamento(id):
     if 'duracao'    in body: a.duracao     = body['duracao']
     if 'valor'      in body: a.valor       = body['valor']
     if 'status'     in body: a.status      = body['status']
-    if 'obs'        in body: a.obs         = body['obs']
+    if 'obs'             in body: a.obs              = body['obs']
+    if 'tipoAtendimento' in body: a.tipo_atendimento = body['tipoAtendimento']
+    if 'desconto'        in body: a.desconto         = body['desconto']
     db.session.commit()
     return jsonify(_enrich(a))
 

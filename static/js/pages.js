@@ -41,87 +41,622 @@ function atualizarSidebarHoje() {
 // FORMULÁRIO UNIFICADO DE AGENDAMENTO / ATENDIMENTO
 // ══════════════════════════════════════════════════════════
 
-let _naServicos = []; // lista de serviços adicionados
-let _naModo     = 'agenda'; // 'agenda' | 'atendimento'
+// ══════════════════════════════════════════════════════════
+// NOVO ATENDIMENTO — Tela cheia (agenda + atendimentos)
+// ══════════════════════════════════════════════════════════
+let _naServicos      = [];
+let _naModo          = 'agenda';
+let _naCliSelecionado = null;
+let _naServBusca     = '';
+let _naServCat       = '';
+let _naPreData       = '';
+let _naPreHora       = '';
+let _naPreProId      = null;
 
-function openNewAppointment(modo = 'agenda', horaInicial = null) {
-  _naModo     = modo;
-  _naServicos = [];
+function openNewAppointment(modo = 'agenda', horaInicial = null, proId = null, dataInicial = null) {
+  _naModo           = modo;
+  _naServicos       = [];
+  _naCliSelecionado = null;
+  _naServBusca      = '';
+  _naServCat        = '';
+  _naPreData        = dataInicial || today();
+  _naPreHora        = horaInicial || '09:00';
+  _naPreProId       = proId || null;
+  navigate('novoAtendimento');
+}
 
-  const titulo    = modo === 'agenda' ? 'Novo Agendamento' : 'Novo Atendimento';
-  const btnLabel  = modo === 'agenda' ? '💾 Salvar Agendamento' : '▶ Iniciar Atendimento';
-  const statusOpts = modo === 'agenda'
-    ? '<label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="na_status" value="confirmado" checked /> Agendado</label><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="na_status" value="confirmado2" /> Confirmado</label>'
-    : '';
+function renderNovoAtendimento() {
+  const pros   = DB.profissionais.filter(p => p.ativo !== false);
+  const servs  = DB.servicos.filter(s => s.ativo);
+  const cats   = ['Todas as categorias', ...new Set(servs.map(s => s.categoria).filter(Boolean))];
+  const cli    = _naCliSelecionado;
 
-  const cliOptions = DB.clientes.map(c => `<option value="${c.id}">${c.nome} — ${c.telefone||''}</option>`).join('');
-  const proOptions = DB.profissionais.filter(p=>p.ativo!==false).map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
-  const servOptions = DB.servicos.filter(s=>s.ativo).map(s => `<option value="${s.id}" data-preco="${s.preco}" data-dur="${s.duracao}">${s.nome} — ${formatCurrency(s.preco)}</option>`).join('');
-
-  openModal({
-    title: titulo,
-    size: 'lg',
-    body: `
-      <div class="grid grid-2" style="gap:12px">
-        <div class="form-group">
-          <label class="form-label">Cliente <span style="color:var(--danger)">*</span></label>
-          <div class="search-input">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <select class="form-control" id="na_cli" style="padding-left:36px">
-              <option value="">Buscar cliente...</option>${cliOptions}
-            </select>
-          </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Profissional <span style="color:var(--danger)">*</span></label>
-          <select class="form-control" id="na_pro"><option value="">Selecionar...</option>${proOptions}</select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Data <span style="color:var(--danger)">*</span></label>
-          <input type="date" class="form-control" id="na_data" value="${today()}" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Horário <span style="color:var(--danger)">*</span></label>
-          <input type="time" class="form-control" id="na_hora" value="${horaInicial||'09:00'}" />
-        </div>
-      </div>
-
-      <!-- Serviços -->
-      <div style="margin-top:4px">
-        <label class="form-label">Serviços <span style="color:var(--danger)">*</span></label>
-        <div style="display:flex;gap:8px;margin-bottom:8px">
-          <select class="form-control" id="na_serv_sel" style="flex:1">
-            <option value="">Selecionar serviço...</option>${servOptions}
-          </select>
-          <button class="btn btn-outline" onclick="naAdicionarServico()" type="button" style="white-space:nowrap">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Adicionar
-          </button>
-        </div>
-        <div id="na_servicos_lista" style="display:flex;flex-direction:column;gap:6px;min-height:40px"></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--gray-100);padding-top:10px;margin-top:8px">
-          <div style="font-size:0.82rem;color:var(--gray-500)">Duração total: <strong id="na_duracao_total">0 min</strong></div>
-          <div style="font-size:0.95rem;font-weight:700;color:var(--primary)">Total: <span id="na_total">R$ 0,00</span></div>
-        </div>
-      </div>
-
-      <div class="form-group" style="margin-top:12px">
-        <label class="form-label">Observações</label>
-        <textarea class="form-control" id="na_obs" rows="2" placeholder="Alguma observação sobre o atendimento..."></textarea>
-      </div>
-
-      ${statusOpts ? `<div style="display:flex;gap:20px;margin-top:8px;font-size:0.875rem">${statusOpts}</div>` : ''}
-    `,
-    footer: `
-      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="naSalvar()">${btnLabel}</button>
-    `
+  // Serviços filtrados
+  const servsFiltrados = servs.filter(s => {
+    const matchCat  = !_naServCat || _naServCat === 'Todas as categorias' || s.categoria === _naServCat;
+    const matchBusca = !_naServBusca || s.nome.toLowerCase().includes(_naServBusca.toLowerCase());
+    return matchCat && matchBusca;
   });
 
-  // Atualizar total ao trocar serviço
-  setTimeout(() => {
-    document.getElementById('na_serv_sel')?.addEventListener('change', naAtualizarTotal);
-  }, 100);
+  // Totais
+  const subtotal  = _naServicos.reduce((t, x) => t + x.preco, 0);
+  const desconto  = parseFloat(document.getElementById('na_desconto')?.value || 0) || 0;
+  const total     = Math.max(subtotal - desconto, 0);
+
+  // Produtos dos serviços selecionados (união dos produtos_json de cada serviço)
+  const produtosAuto = [];
+  for (const ns of _naServicos) {
+    const servDB = DB.servicos.find(s => s.id === ns.id);
+    try {
+      const prods = JSON.parse(servDB?.produtos_json || '[]');
+      prods.forEach(p => {
+        if (!produtosAuto.find(x => x.nome === p.nome)) produtosAuto.push(p);
+      });
+    } catch(e) {}
+  }
+
+  // Status disponíveis conforme modo
+  const statusOpts = [
+    { v: 'confirmado',  l: 'Agendado' },
+    { v: 'confirmado2', l: 'Confirmado' },
+    { v: 'emandamento', l: 'Em andamento' },
+    { v: 'finalizado',  l: 'Concluído' },
+    { v: 'cancelado',   l: 'Cancelado' },
+  ];
+  const statusDefault = _naModo === 'atendimento' ? 'emandamento' : 'confirmado';
+
+  const statusColors = { confirmado:'#16a34a', confirmado2:'#16a34a', emandamento:'#2563eb', finalizado:'#7c3aed', cancelado:'#dc2626' };
+
+  setTimeout(() => { _naIniciarEventos(); }, 80);
+
+  return `
+  <div class="na-page">
+    <!-- Cabeçalho -->
+    <div class="na-header">
+      <div style="display:flex;align-items:center;gap:12px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="28" height="28"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+        <div>
+          <h1 style="font-size:1.5rem;font-weight:700;color:var(--gray-800);margin:0">Novo Atendimento</h1>
+          <p style="font-size:.82rem;color:var(--gray-400);margin:2px 0 0">Registre um novo atendimento ou inicie um atendimento em andamento</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="na-grid">
+
+      <!-- COLUNA ESQUERDA: Cliente + Serviços -->
+      <div class="na-col-left">
+
+        <!-- Card Cliente -->
+        <div class="na-card">
+          <div class="na-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Cliente
+          </div>
+          <!-- Busca -->
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <div class="na-search-box" style="flex:1">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="naCliBusca" placeholder="Buscar cliente por nome, telefone ou CPF..." oninput="naFiltrarCli(this.value)" />
+            </div>
+            <button class="btn btn-outline" style="white-space:nowrap;font-size:.82rem;gap:4px" onclick="openNewCliente()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Novo Cliente
+            </button>
+          </div>
+          <!-- Cliente selecionado ou lista -->
+          <div id="naCliArea">
+            ${cli ? naRenderCliSelecionado(cli) : '<div id="naCliLista" class="na-cli-lista"></div>'}
+          </div>
+        </div>
+
+        <!-- Card Serviços -->
+        <div class="na-card">
+          <div class="na-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            Serviços
+          </div>
+          <!-- Busca + filtro categoria -->
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <div class="na-search-box" style="flex:1">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="naServBusca" placeholder="Buscar serviço..." value="${_naServBusca}" oninput="_naServBusca=this.value;naRenderServLista()" />
+            </div>
+            <div class="ag-select-wrap" style="min-width:160px">
+              <select class="ag-select" id="naServCat" onchange="_naServCat=this.value;naRenderServLista()">
+                ${cats.map(c=>`<option value="${c}" ${_naServCat===c?'selected':''}>${c}</option>`).join('')}
+              </select>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+          </div>
+          <!-- Lista de serviços -->
+          <div id="naServLista" class="na-serv-lista">
+            ${naHtmlServLista(servsFiltrados)}
+          </div>
+        </div>
+      </div>
+
+      <!-- COLUNA CENTRO: Dados + Serviços selecionados + Produtos -->
+      <div class="na-col-center">
+
+        <!-- Card Dados do Atendimento -->
+        <div class="na-card">
+          <div class="na-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Dados do Atendimento
+          </div>
+          <div class="grid grid-2" style="gap:12px">
+            <div class="form-group" style="margin:0">
+              <label class="na-label">Data</label>
+              <div class="na-input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="14" height="14"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <input type="date" class="form-control na-input-with-icon" id="na_data" value="${_naPreData}" onchange="naAtualizarResumo()" />
+              </div>
+            </div>
+            <div class="form-group" style="margin:0">
+              <label class="na-label">Horário</label>
+              <div class="na-input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <input type="time" class="form-control na-input-with-icon" id="na_hora" value="${_naPreHora}" onchange="naAtualizarResumo()" />
+              </div>
+            </div>
+            <div class="form-group" style="margin:0">
+              <label class="na-label">Tipo de atendimento</label>
+              <div class="ag-select-wrap">
+                <select class="ag-select" id="na_tipo" onchange="naAtualizarResumo()">
+                  <option value="presencial">Presencial</option>
+                  <option value="domiciliar">Domiciliar</option>
+                  <option value="outro">Outro</option>
+                </select>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+            </div>
+            <div class="form-group" style="margin:0">
+              <label class="na-label">Status</label>
+              <div class="ag-select-wrap">
+                <select class="ag-select" id="na_status" onchange="naAtualizarResumo()">
+                  ${statusOpts.map(s=>`<option value="${s.v}" ${s.v===statusDefault?'selected':''}>${s.l}</option>`).join('')}
+                </select>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+            </div>
+          </div>
+          <div class="form-group" style="margin-top:12px;margin-bottom:0">
+            <label class="na-label">Observações <span style="color:var(--gray-400);font-weight:400">(opcional)</span></label>
+            <textarea class="form-control" id="na_obs" rows="3" placeholder="Ex.: Cliente preferiu horário da tarde..." maxlength="200" oninput="document.getElementById('naObsCount').textContent=this.value.length"></textarea>
+            <div style="text-align:right;font-size:.72rem;color:var(--gray-400);margin-top:2px"><span id="naObsCount">0</span>/200</div>
+          </div>
+        </div>
+
+        <!-- Card Serviços selecionados -->
+        <div class="na-card">
+          <div class="na-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            Serviços selecionados
+          </div>
+          <div id="naServSel">
+            ${naHtmlServSel(pros)}
+          </div>
+          <button class="na-add-serv-btn" onclick="document.getElementById('naServBusca')?.focus()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Adicionar outro serviço
+          </button>
+        </div>
+
+        <!-- Card Produtos utilizados -->
+        <div class="na-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <div class="na-card-title" style="margin:0">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
+              Produtos utilizados <span style="font-size:.75rem;font-weight:400;color:var(--gray-400)">(opcional)</span>
+            </div>
+          </div>
+          <div id="naProdutosArea">
+            ${naHtmlProdutos(produtosAuto)}
+          </div>
+          <p style="font-size:.75rem;color:var(--gray-400);margin-top:10px;margin-bottom:0">Os produtos serão baixados do estoque automaticamente ao finalizar o atendimento.</p>
+        </div>
+      </div>
+
+      <!-- COLUNA DIREITA: Resumo -->
+      <div class="na-col-right">
+        <div class="na-card na-resumo-card" id="naResumoCard">
+          ${naHtmlResumo(cli, pros, subtotal, desconto, total)}
+        </div>
+      </div>
+    </div>
+
+    <!-- Rodapé -->
+    <div class="na-footer">
+      <button class="btn btn-outline" onclick="naVoltar()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="15 18 9 12 15 6"/></svg>
+        Voltar
+      </button>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-outline" onclick="naSalvar('salvar')" id="naBtnSalvar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+          Salvar e continuar
+        </button>
+        <button class="btn btn-primary" onclick="naSalvar('finalizar')" id="naBtnFinalizar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
+          Finalizar atendimento
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ── Helpers de render ── */
+function naRenderCliSelecionado(cli) {
+  if (!cli) return '<div id="naCliLista" class="na-cli-lista"></div>';
+  const ults = DB.agendamentos.filter(a => a.clienteId === cli.id && a.status === 'finalizado');
+  const ultData = ults.length ? ults.sort((a,b)=>b.data.localeCompare(a.data))[0].data : null;
+  return `
+    <div class="na-cli-card">
+      ${avatarHtml(cli.nome,'avatar-md',cli.id)}
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-weight:700;font-size:.95rem;color:var(--gray-800)">${cli.nome}</span>
+          <span class="badge badge-purple" style="font-size:.68rem">Cliente</span>
+        </div>
+        <div style="font-size:.8rem;color:var(--gray-500);margin-top:2px">${cli.telefone||''}</div>
+        ${ultData ? `<div style="font-size:.75rem;color:var(--gray-400);margin-top:2px">Último atendimento: ${formatDate(ultData)}</div>` : ''}
+        ${cli.total_gasto ? `<div style="font-size:.75rem;color:var(--gray-400)">Total gasto: ${formatCurrency(cli.total_gasto)}</div>` : ''}
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button class="btn-icon-sm btn-icon-edit" onclick="openClientEdit(${cli.id})" title="Editar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="btn-icon-sm" onclick="_naCliSelecionado=null;naReRender()" title="Trocar cliente" style="color:var(--gray-400)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>`;
+}
+
+function naHtmlServLista(servs) {
+  if (!servs.length) return '<div style="text-align:center;color:var(--gray-400);padding:20px;font-size:.82rem">Nenhum serviço encontrado</div>';
+  return servs.map(s => {
+    const bg = s.foto ? `url(${s.foto}) center/cover` : '#fce7f3';
+    const jaAdicionado = _naServicos.some(x => x.id === s.id);
+    return `<div class="na-serv-item ${jaAdicionado?'na-serv-adicionado':''}">
+      <div class="na-serv-foto" style="background:${bg}">${s.foto?'':'<span style="font-size:1.2rem">${s.emoji||'💅'}</span>'}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:.875rem;color:var(--gray-800)">${s.nome}</div>
+        <div style="font-size:.75rem;color:var(--gray-400)">${s.categoria||''} ${s.duracao?'• '+s.duracao+' min':''}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-weight:700;color:var(--gray-800);font-size:.875rem">${formatCurrency(s.preco)}</div>
+        <button class="na-serv-add-btn ${jaAdicionado?'adicionado':''}" onclick="naAddServico(${s.id})" ${jaAdicionado?'disabled':''}>
+          ${jaAdicionado
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>'
+            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'
+          }
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function naHtmlServSel(pros) {
+  if (!_naServicos.length) return `
+    <div style="text-align:center;color:var(--gray-400);padding:20px;font-size:.82rem">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="32" height="32" style="opacity:.3;display:block;margin:0 auto 8px"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      Clique no + para adicionar serviços
+    </div>`;
+
+  const proOptions = pros.map(p=>`<option value="${p.id}">${p.nome}</option>`).join('');
+  const thead = `<div class="na-sel-header">
+    <span>Serviço</span><span>Profissional</span><span>Duração</span><span>Valor</span><span></span>
+  </div>`;
+
+  const rows = _naServicos.map(ns => {
+    const servDB = DB.servicos.find(s => s.id === ns.id);
+    const bg = servDB?.foto ? `url(${servDB.foto}) center/cover` : '#fce7f3';
+    return `<div class="na-sel-row">
+      <div class="na-sel-serv">
+        <div class="na-serv-foto-sm" style="background:${bg}"></div>
+        <div>
+          <div style="font-weight:600;font-size:.82rem">${ns.nome}</div>
+          <div style="font-size:.72rem;color:var(--gray-400)">${servDB?.categoria||''}</div>
+        </div>
+      </div>
+      <div class="ag-select-wrap na-sel-pro-wrap">
+        <select class="ag-select" onchange="naSetPro(${ns.id},this.value)">
+          <option value="">Selecionar...</option>
+          ${proOptions.replace(`value="${_naPreProId||ns.proId||''}"`,`value="${_naPreProId||ns.proId||''}" selected`)}
+        </select>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <span style="font-size:.82rem;color:var(--gray-600);white-space:nowrap">${ns.duracao} min</span>
+      <span style="font-weight:700;font-size:.875rem;color:var(--gray-800);white-space:nowrap">${formatCurrency(ns.preco)}</span>
+      <button onclick="naRemoverServico(${ns.id})" style="background:none;border:none;cursor:pointer;color:var(--danger);padding:4px" title="Remover">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+      </button>
+    </div>`;
+  }).join('');
+
+  return thead + rows;
+}
+
+function naHtmlProdutos(prods) {
+  if (!prods.length) return `<div style="color:var(--gray-400);font-size:.82rem;padding:8px 0">Nenhum produto vinculado aos serviços selecionados.</div>`;
+  return `<table class="na-prod-table">
+    <thead><tr><th>Produto</th><th>Quantidade</th><th>Observação</th></tr></thead>
+    <tbody>
+      ${prods.map(p=>`<tr>
+        <td style="font-size:.82rem">${p.nome||p}</td>
+        <td style="font-size:.82rem;color:var(--gray-500)">${p.quantidade||'—'}</td>
+        <td style="font-size:.82rem;color:var(--gray-500)">${p.obs||'-'}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>`;
+}
+
+function naHtmlResumo(cli, pros, subtotal, desconto, total) {
+  const statusSel = document.getElementById('na_status')?.value || '';
+  const statusLabels = { confirmado:'Agendado', confirmado2:'Confirmado', emandamento:'Em andamento', finalizado:'Concluído', cancelado:'Cancelado' };
+  const statusColors = { confirmado:'#16a34a', confirmado2:'#16a34a', emandamento:'#2563eb', finalizado:'#7c3aed', cancelado:'#dc2626' };
+  const tipoSel  = document.getElementById('na_tipo')?.value || 'presencial';
+  const tipoLabel = { presencial:'Presencial', domiciliar:'Domiciliar', outro:'Outro' };
+  const data = document.getElementById('na_data')?.value || _naPreData;
+  const hora = document.getElementById('na_hora')?.value || _naPreHora;
+
+  return `
+    <div class="na-card-title" style="margin-bottom:14px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Resumo do Atendimento
+    </div>
+
+    <!-- Cliente no resumo -->
+    ${cli ? `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--gray-100)">
+      ${avatarHtml(cli.nome,'avatar-sm',cli.id)}
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:.875rem;color:var(--gray-800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cli.nome}</div>
+        <div style="font-size:.75rem;color:var(--gray-400)">${cli.telefone||''}</div>
+      </div>
+      <span class="badge badge-purple" style="font-size:.68rem;flex-shrink:0">Cliente</span>
+    </div>` : `
+    <div style="color:var(--gray-400);font-size:.82rem;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--gray-100)">
+      Nenhum cliente selecionado
+    </div>`}
+
+    <!-- Infos rápidas -->
+    <div class="na-resumo-infos">
+      <div class="na-resumo-info"><span>Data</span><span>${data ? formatDate(data) : '—'}</span></div>
+      <div class="na-resumo-info"><span>Horário</span><span>${hora||'—'}</span></div>
+      <div class="na-resumo-info"><span>Tipo</span><span>${tipoLabel[tipoSel]||tipoSel}</span></div>
+      <div class="na-resumo-info"><span>Status</span>
+        <span style="display:flex;align-items:center;gap:4px">
+          <span style="width:7px;height:7px;border-radius:50%;background:${statusColors[statusSel]||'#6b7280'};flex-shrink:0"></span>
+          ${statusLabels[statusSel]||statusSel}
+        </span>
+      </div>
+    </div>
+
+    <!-- Serviços no resumo -->
+    ${_naServicos.length ? `
+    <div style="margin:14px 0;padding-top:14px;border-top:1px solid var(--gray-100)">
+      <div style="font-size:.78rem;font-weight:700;color:var(--gray-600);margin-bottom:10px;text-transform:uppercase;letter-spacing:.03em">Serviço(s)</div>
+      ${_naServicos.map(ns => {
+        const proNome = pros.find(p=>p.id===(ns.proId||_naPreProId))?.nome||'—';
+        return `<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="14" height="14" style="flex-shrink:0;margin-top:2px"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:.82rem;font-weight:600;color:var(--gray-800)">${ns.nome}</div>
+            <div style="font-size:.75rem;color:var(--gray-400)">${proNome} · ${ns.duracao} min · ${formatCurrency(ns.preco)}</div>
+          </div>
+          <button onclick="naRemoverServico(${ns.id})" style="background:none;border:none;cursor:pointer;color:var(--danger);padding:2px;flex-shrink:0" title="Remover">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+          </button>
+        </div>`;
+      }).join('')}
+    </div>` : ''}
+
+    <!-- Valores -->
+    <div class="na-resumo-valores">
+      <div class="na-resumo-val-row">
+        <span>Subtotal</span>
+        <span>${formatCurrency(subtotal)}</span>
+      </div>
+      <div class="na-resumo-val-row">
+        <span>Desconto</span>
+        <div style="display:flex;align-items:center;gap:4px">
+          <input type="number" id="na_desconto" class="na-desconto-input" value="${desconto||0}" min="0" placeholder="0,00" onchange="naAtualizarResumo()" />
+          <div class="ag-select-wrap" style="width:56px">
+            <select class="ag-select" id="na_desconto_tipo" style="font-size:.72rem;padding:4px 20px 4px 6px;height:28px" onchange="naAtualizarResumo()">
+              <option value="R$">R$</option>
+              <option value="%">%</option>
+            </select>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="na-resumo-val-total">
+        <span>Total</span>
+        <span>${formatCurrency(total)}</span>
+      </div>
+    </div>`;
+}
+
+/* ── Ações ── */
+function naAddServico(id) {
+  if (_naServicos.find(s => s.id === id)) return;
+  const s = DB.servicos.find(x => x.id === id);
+  if (!s) return;
+  _naServicos.push({ id: s.id, nome: s.nome, preco: s.preco||0, duracao: s.duracao||60, proId: _naPreProId });
+  naRenderServLista();
+  naRenderServSel();
+  naAtualizarResumo();
+}
+
+function naRemoverServico(id) {
+  _naServicos = _naServicos.filter(s => s.id !== id);
+  naRenderServLista();
+  naRenderServSel();
+  naAtualizarResumo();
+}
+
+function naSetPro(servId, proId) {
+  const ns = _naServicos.find(s => s.id === servId);
+  if (ns) ns.proId = parseInt(proId) || null;
+  naAtualizarResumo();
+}
+
+function naFiltrarCli(q) {
+  const lista = document.getElementById('naCliLista');
+  if (!lista) return;
+  if (!q || q.length < 2) { lista.innerHTML = ''; return; }
+  const res = DB.clientes.filter(c =>
+    c.nome.toLowerCase().includes(q.toLowerCase()) ||
+    (c.telefone||'').includes(q) ||
+    (c.cpf||'').includes(q)
+  ).slice(0, 8);
+  if (!res.length) { lista.innerHTML = '<div style="padding:10px;color:var(--gray-400);font-size:.82rem">Nenhum cliente encontrado</div>'; return; }
+  lista.innerHTML = res.map(c => `
+    <div class="na-cli-resultado" onclick="naSelectCli(${c.id})">
+      ${avatarHtml(c.nome,'avatar-sm',c.id)}
+      <div>
+        <div style="font-weight:600;font-size:.875rem">${c.nome}</div>
+        <div style="font-size:.75rem;color:var(--gray-400)">${c.telefone||''}</div>
+      </div>
+    </div>`).join('');
+}
+
+function naSelectCli(id) {
+  _naCliSelecionado = DB.clientes.find(c => c.id === id);
+  const area = document.getElementById('naCliArea');
+  if (area) area.innerHTML = naRenderCliSelecionado(_naCliSelecionado);
+  naAtualizarResumo();
+}
+
+function naRenderServLista() {
+  const servs = DB.servicos.filter(s => s.ativo).filter(s => {
+    const matchCat  = !_naServCat || _naServCat === 'Todas as categorias' || s.categoria === _naServCat;
+    const matchBusca = !_naServBusca || s.nome.toLowerCase().includes(_naServBusca.toLowerCase());
+    return matchCat && matchBusca;
+  });
+  const el = document.getElementById('naServLista');
+  if (el) el.innerHTML = naHtmlServLista(servs);
+}
+
+function naRenderServSel() {
+  const pros = DB.profissionais.filter(p => p.ativo !== false);
+  const el   = document.getElementById('naServSel');
+  if (el) el.innerHTML = naHtmlServSel(pros);
+}
+
+function naAtualizarResumo() {
+  const subtotal = _naServicos.reduce((t, x) => t + x.preco, 0);
+  const descontoInput = parseFloat(document.getElementById('na_desconto')?.value || 0) || 0;
+  const descontoTipo  = document.getElementById('na_desconto_tipo')?.value || 'R$';
+  const desconto = descontoTipo === '%' ? subtotal * (descontoInput / 100) : descontoInput;
+  const total = Math.max(subtotal - desconto, 0);
+
+  const pros = DB.profissionais.filter(p => p.ativo !== false);
+  const el   = document.getElementById('naResumoCard');
+  if (el) el.innerHTML = naHtmlResumo(_naCliSelecionado, pros, subtotal, desconto, total);
+
+  // Atualizar produtos também
+  const produtosAuto = [];
+  for (const ns of _naServicos) {
+    const servDB = DB.servicos.find(s => s.id === ns.id);
+    try {
+      const prods = JSON.parse(servDB?.produtos_json || '[]');
+      prods.forEach(p => { if (!produtosAuto.find(x => x.nome === p.nome)) produtosAuto.push(p); });
+    } catch(e) {}
+  }
+  const pelArea = document.getElementById('naProdutosArea');
+  if (pelArea) pelArea.innerHTML = naHtmlProdutos(produtosAuto);
+}
+
+function naReRender() {
+  navigate('novoAtendimento');
+}
+
+function naVoltar() {
+  navigate(_naModo === 'atendimento' ? 'atendimento' : 'agenda');
+}
+
+function _naIniciarEventos() {
+  // Mostrar lista de clientes ao focar na busca
+  const inp = document.getElementById('naCliBusca');
+  if (inp) {
+    inp.addEventListener('focus', () => { if (inp.value.length >= 2) naFiltrarCli(inp.value); });
+  }
+}
+
+async function naSalvar(acao = 'salvar') {
+  const cli  = _naCliSelecionado;
+  const data = document.getElementById('na_data')?.value;
+  const hora = document.getElementById('na_hora')?.value;
+  const obs  = document.getElementById('na_obs')?.value || '';
+  const tipo = document.getElementById('na_tipo')?.value || 'presencial';
+  const statusRaw = document.getElementById('na_status')?.value || 'confirmado';
+  const status = statusRaw === 'confirmado2' ? 'confirmado' : statusRaw;
+
+  const descontoInput = parseFloat(document.getElementById('na_desconto')?.value || 0) || 0;
+  const descontoTipo  = document.getElementById('na_desconto_tipo')?.value || 'R$';
+  const subtotal = _naServicos.reduce((t, x) => t + x.preco, 0);
+  const desconto = descontoTipo === '%' ? subtotal * (descontoInput / 100) : descontoInput;
+
+  if (!cli)               { showToast('Selecione o cliente', 'error'); return; }
+  if (!data)              { showToast('Informe a data', 'error'); return; }
+  if (!hora)              { showToast('Informe o horário', 'error'); return; }
+  if (_naServicos.length === 0) { showToast('Adicione pelo menos um serviço', 'error'); return; }
+
+  // Verificar profissional em cada serviço
+  for (const ns of _naServicos) {
+    const proId = ns.proId || _naPreProId;
+    if (!proId) { showToast(`Selecione o profissional para "${ns.nome}"`, 'error'); return; }
+  }
+
+  const statusFinal = acao === 'finalizar' ? 'finalizado' : status;
+
+  const btn = document.getElementById(acao === 'finalizar' ? 'naBtnFinalizar' : 'naBtnSalvar');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner-sm"></div> Salvando...'; }
+
+  const [h, m] = hora.split(':').map(Number);
+  let curMin = h * 60 + m;
+
+  try {
+    for (const ns of _naServicos) {
+      const proId    = ns.proId || _naPreProId;
+      const horaInicio = `${String(Math.floor(curMin/60)%24).padStart(2,'0')}:${String(curMin%60).padStart(2,'0')}`;
+      const fimMin     = curMin + ns.duracao;
+      const horaFim    = `${String(Math.floor(fimMin/60)%24).padStart(2,'0')}:${String(fimMin%60).padStart(2,'0')}`;
+
+      const body = {
+        clienteId: cli.id, proId: parseInt(proId), servicoId: ns.id,
+        data, hora: horaInicio, hora_fim: horaFim,
+        duracao: ns.duracao, valor: ns.preco,
+        status: statusFinal, obs,
+        tipoAtendimento: tipo,
+        desconto: desconto / _naServicos.length,
+      };
+
+      if (typeof apiFetch === 'function') {
+        await apiFetch('/api/agendamentos', { method: 'POST', body: JSON.stringify(body) });
+      } else {
+        DB.agendamentos.push({ id: generateId(DB.agendamentos), ...body });
+      }
+      curMin = fimMin;
+    }
+
+    const qtd = _naServicos.length;
+    const msg = acao === 'finalizar'
+      ? `Atendimento finalizado! (${qtd} serviço${qtd>1?'s':''})`
+      : `Atendimento salvo! (${qtd} serviço${qtd>1?'s':''})`;
+    showToast(msg, 'success');
+    if (typeof atualizarSidebarHoje === 'function') atualizarSidebarHoje();
+    const destino = _naModo === 'atendimento' ? 'atendimento' : 'agenda';
+    if (typeof reloadAndNavigate === 'function') await reloadAndNavigate(destino);
+    else navigate(destino);
+  } catch(e) {
+    showToast(e.message || 'Erro ao salvar', 'error');
+    if (btn) { btn.disabled = false; btn.textContent = acao === 'finalizar' ? 'Finalizar atendimento' : 'Salvar e continuar'; }
+  }
 }
 
 function naAdicionarServico() {

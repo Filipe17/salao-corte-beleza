@@ -2609,3 +2609,344 @@ select {
 .ns-resumo-linha:last-child { border-bottom:none; }
 .ns-resumo-linha span:first-child { color:var(--gray-500); }
 .ns-resumo-linha span:last-child  { font-weight:600;color:var(--gray-800); }
+
+/* ══════════════════════════════════════
+   NOVO ATENDIMENTO — Tela cheia
+══════════════════════════════════════ */
+.na-page {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: calc(100vh - 60px);
+}
+.na-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.na-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr 280px;
+  gap: 16px;
+  align-items: start;
+  flex: 1;
+}
+@media (max-width: 1200px) {
+  .na-grid { grid-template-columns: 280px 1fr 260px; }
+}
+@media (max-width: 960px) {
+  .na-grid { grid-template-columns: 1fr 1fr; }
+  .na-col-right { grid-column: 1 / -1; }
+}
+@media (max-width: 640px) {
+  .na-grid { grid-template-columns: 1fr; }
+}
+
+.na-col-left, .na-col-center, .na-col-right {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.na-col-right {
+  position: sticky;
+  top: 16px;
+}
+
+.na-card {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
+}
+.na-resumo-card {
+  padding: 18px;
+}
+.na-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .875rem;
+  font-weight: 700;
+  color: var(--gray-800);
+  margin-bottom: 14px;
+}
+.na-label {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--gray-600);
+  display: block;
+  margin-bottom: 6px;
+}
+
+/* Busca */
+.na-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  padding: 6px 12px;
+  background: white;
+  transition: border-color var(--t-fast);
+}
+.na-search-box:focus-within { border-color: var(--primary); }
+.na-search-box input {
+  border: none;
+  outline: none;
+  font-size: .875rem;
+  width: 100%;
+  font-family: var(--font-body);
+  color: var(--gray-700);
+  background: transparent;
+}
+
+/* Input com ícone */
+.na-input-icon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  padding: 6px 12px;
+  background: white;
+  transition: border-color var(--t-fast);
+}
+.na-input-icon:focus-within { border-color: var(--primary); }
+.na-input-with-icon {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  height: auto !important;
+  font-size: .875rem;
+  flex: 1;
+  background: transparent;
+}
+
+/* Lista de clientes (busca) */
+.na-cli-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.na-cli-resultado {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--t-fast);
+}
+.na-cli-resultado:hover { background: var(--gray-50); }
+
+/* Cliente selecionado */
+.na-cli-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1.5px solid var(--primary-light);
+  border-radius: var(--radius-md);
+  background: #fdf2f8;
+}
+
+/* Lista de serviços */
+.na-serv-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+.na-serv-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px;
+  border-radius: var(--radius-md);
+  transition: background var(--t-fast);
+  border-bottom: 1px solid var(--gray-100);
+}
+.na-serv-item:last-child { border-bottom: none; }
+.na-serv-item:hover { background: var(--gray-50); }
+.na-serv-item.na-serv-adicionado { opacity: .6; }
+.na-serv-foto {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.na-serv-foto-sm {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  background: #fce7f3;
+}
+.na-serv-add-btn {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid var(--primary);
+  background: white;
+  color: var(--primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--t-fast);
+  flex-shrink: 0;
+}
+.na-serv-add-btn:hover { background: var(--primary); color: white; }
+.na-serv-add-btn.adicionado {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  cursor: default;
+}
+
+/* Serviços selecionados */
+.na-sel-header {
+  display: grid;
+  grid-template-columns: 1fr 140px 70px 80px 36px;
+  gap: 8px;
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--gray-400);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  padding: 0 0 8px;
+  border-bottom: 1px solid var(--gray-100);
+  margin-bottom: 8px;
+}
+.na-sel-row {
+  display: grid;
+  grid-template-columns: 1fr 140px 70px 80px 36px;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--gray-50);
+}
+.na-sel-row:last-child { border-bottom: none; }
+.na-sel-serv {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.na-sel-pro-wrap { width: 100%; }
+
+/* Botão adicionar outro serviço */
+.na-add-serv-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 9px;
+  border: 1.5px dashed var(--primary-light);
+  border-radius: var(--radius-md);
+  background: white;
+  color: var(--primary);
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: all var(--t-fast);
+}
+.na-add-serv-btn:hover { background: #fce7f3; border-style: solid; }
+
+/* Tabela de produtos */
+.na-prod-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .82rem;
+}
+.na-prod-table th {
+  text-align: left;
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--gray-400);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  padding: 0 0 8px;
+  border-bottom: 1px solid var(--gray-100);
+}
+.na-prod-table td {
+  padding: 7px 0;
+  border-bottom: 1px solid var(--gray-50);
+  color: var(--gray-600);
+}
+.na-prod-table tr:last-child td { border-bottom: none; }
+
+/* Resumo */
+.na-resumo-infos {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: .82rem;
+}
+.na-resumo-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--gray-600);
+}
+.na-resumo-info span:first-child { color: var(--gray-400); }
+.na-resumo-info span:last-child  { font-weight: 600; color: var(--gray-800); }
+
+.na-resumo-valores {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--gray-100);
+}
+.na-resumo-val-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: .82rem;
+  color: var(--gray-600);
+}
+.na-resumo-val-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--gray-800);
+  padding-top: 10px;
+  border-top: 1px solid var(--gray-200);
+}
+.na-desconto-input {
+  width: 70px;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  padding: 3px 6px;
+  font-size: .78rem;
+  font-family: var(--font-body);
+  text-align: right;
+  outline: none;
+}
+.na-desconto-input:focus { border-color: var(--primary); }
+
+/* Rodapé */
+.na-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--gray-200);
+}
