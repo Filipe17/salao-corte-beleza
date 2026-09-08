@@ -1142,6 +1142,102 @@
   flex-wrap: wrap;
 }
 
+/* ── Barra de filtros horizontal da agenda ── */
+.ag-filtros-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding: 10px 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ag-data-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.ag-nav-btn {
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  background: white;
+  cursor: pointer;
+  color: var(--gray-500);
+  transition: all var(--t-fast);
+}
+.ag-nav-btn:hover { border-color: var(--primary); color: var(--primary); }
+.ag-data-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  padding: 5px 12px;
+  background: white;
+  cursor: pointer;
+  min-width: 140px;
+}
+.ag-data-texto {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--gray-700);
+  flex: 1;
+}
+.ag-filtros-sep {
+  width: 1px;
+  height: 32px;
+  background: var(--gray-200);
+  margin: 0 12px;
+  flex-shrink: 0;
+}
+.ag-filtro-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 140px;
+}
+.ag-filtro-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 2px;
+}
+.ag-select-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.ag-select {
+  width: 100%;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  padding: 6px 32px 6px 12px;
+  font-size: 0.875rem;
+  color: var(--gray-700);
+  background: white;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: border-color var(--t-fast);
+  height: 36px;
+}
+.ag-select:focus { outline: none; border-color: var(--primary); }
+.ag-select-arrow {
+  position: absolute;
+  right: 10px;
+  pointer-events: none;
+  color: var(--gray-400);
+}
+
 /* ── Painel Atendimentos de hoje ── */
 .agenda-painel-hoje {
   background: white;

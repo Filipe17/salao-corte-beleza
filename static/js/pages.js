@@ -540,30 +540,60 @@ function renderAgenda() {
     <!-- Área principal -->
     <div class="agenda-nova-main">
       <!-- Toolbar -->
-      <div class="agenda-nova-toolbar">
-        <div style="display:flex;align-items:center;gap:8px">
-          <button class="agenda-nav-btn" onclick="agendaBack()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6"/></svg>
+      <!-- Barra de filtros horizontal -->
+      <div class="ag-filtros-bar">
+        <!-- Navegação de data -->
+        <div class="ag-data-nav">
+          <button class="ag-nav-btn" onclick="agendaBack()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <button class="btn btn-sm btn-outline" onclick="agendaToday()" style="padding:6px 14px">Hoje</button>
-          <button class="agenda-nav-btn" onclick="agendaNext()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6"/></svg>
+          <div class="ag-data-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" style="color:var(--primary);flex-shrink:0"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span class="ag-data-texto">${agendaDate.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'})}</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" style="color:var(--gray-400)"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <button class="ag-nav-btn" onclick="agendaNext()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
-          <div style="margin-left:8px">
-            <div style="font-weight:700;font-size:1rem;color:var(--gray-800)">${dateLabel}</div>
-            <div style="font-size:0.78rem;color:var(--gray-400);text-transform:capitalize">${weekLabel}</div>
+        </div>
+
+        <!-- Separador -->
+        <div class="ag-filtros-sep"></div>
+
+        <!-- Select Profissional -->
+        <div class="ag-filtro-item">
+          <label class="ag-filtro-label">Profissional</label>
+          <div class="ag-select-wrap">
+            <select class="ag-select" onchange="agFiltrarPro(this.value)">
+              <option value="">Todos</option>
+              ${pros.map(p=>`<option value="${p.id}" ${window._agFiltroPro===p.id?'selected':''}>${p.nome}</option>`).join('')}
+            </select>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <div class="view-toggle">
-            <button class="view-toggle-btn ${agendaView==='day'?'active':''}" onclick="setAgendaView('day')">Dia</button>
-            <button class="view-toggle-btn ${agendaView==='week'?'active':''}" onclick="setAgendaView('week')">Semana</button>
-            <button class="view-toggle-btn ${agendaView==='month'?'active':''}" onclick="setAgendaView('month')">Mês</button>
+
+        <!-- Select Serviço -->
+        <div class="ag-filtro-item">
+          <label class="ag-filtro-label">Serviço</label>
+          <div class="ag-select-wrap">
+            <select class="ag-select" onchange="window._agFiltroServ=this.value||'';navigate('agenda')">
+              <option value="">Todos</option>
+              ${DB.servicos.filter(s=>s.ativo).map(s=>`<option ${window._agFiltroServ===s.nome?'selected':''} value="${s.nome}">${s.nome}</option>`).join('')}
+            </select>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
-          <select class="form-control" style="width:auto;font-size:0.82rem;padding:7px 12px" onchange="agFiltrarPro(this.value)">
-            <option value="">Todos os profissionais</option>
-            ${pros.map(p=>`<option value="${p.id}" ${window._agFiltroPro===p.id?'selected':''}>${p.nome}</option>`).join('')}
-          </select>
+        </div>
+
+        <!-- Select Status -->
+        <div class="ag-filtro-item">
+          <label class="ag-filtro-label">Status</label>
+          <div class="ag-select-wrap">
+            <select class="ag-select" onchange="window._agFiltroStatus=this.value||'';navigate('agenda')">
+              <option value="">Todos</option>
+              ${['Agendado','Confirmado','Em andamento','Concluído','Cancelado'].map(s=>`<option ${window._agFiltroStatus===s?'selected':''} value="${s}">${s}</option>`).join('')}
+            </select>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
         </div>
       </div>
 
@@ -652,44 +682,6 @@ function renderAgenda() {
     <div class="agenda-nova-sidebar">
       <!-- Mini calendário -->
       ${miniCal()}
-
-      <!-- Filtros -->
-      <div class="card" style="margin-top:16px">
-        <div class="card-header" style="padding:14px 16px 10px">
-          <div class="card-title" style="font-size:0.9rem">Filtros</div>
-          <button style="font-size:0.78rem;color:var(--primary);background:none;border:none;cursor:pointer" onclick="agLimparFiltros()">Limpar filtros</button>
-        </div>
-        <div class="card-body" style="padding:0 16px 16px">
-          <div class="form-group">
-            <label class="form-label" style="font-size:0.78rem">Profissional</label>
-            <select class="form-control" style="font-size:0.82rem" onchange="agFiltrarPro(this.value)">
-              <option value="">Todos os profissionais</option>
-              ${pros.map(p=>`<option ${window._agFiltroPro===p.id?'selected':''} value="${p.id}">${p.nome}</option>`).join('')}
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label" style="font-size:0.78rem">Serviço</label>
-            <select class="form-control" style="font-size:0.82rem" onchange="window._agFiltroServ=this.value||'';navigate('agenda')">
-              <option value="">Todos os serviços</option>
-              ${DB.servicos.filter(s=>s.ativo).map(s=>`<option ${window._agFiltroServ===s.nome?'selected':''} value="${s.nome}">${s.nome}</option>`).join('')}
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label" style="font-size:0.78rem">Situação</label>
-            <select class="form-control" style="font-size:0.82rem" onchange="window._agFiltroStatus=this.value||'';navigate('agenda')">
-              <option value="">Todas</option>
-              ${['Agendado','Confirmado','Em andamento','Concluído','Cancelado'].map(s=>`<option ${window._agFiltroStatus===s?'selected':''} value="${s}">${s}</option>`).join('')}
-            </select>
-          </div>
-          <div class="form-group" style="margin-bottom:0">
-            <label class="form-label" style="font-size:0.78rem">Período</label>
-            <select class="form-control" style="font-size:0.82rem" onchange="window._agFiltroPeriodo=this.value||'';navigate('agenda')">
-              <option value="">Dia inteiro</option>
-              ${['Manhã','Tarde','Noite'].map(p=>`<option ${window._agFiltroPeriodo===p?'selected':''} value="${p}">${p}</option>`).join('')}
-            </select>
-          </div>
-        </div>
-      </div>
 
       <!-- Legenda -->
       <div class="card" style="margin-top:16px">
