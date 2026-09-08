@@ -2700,17 +2700,18 @@ function nsRenderEtapa() {
     </div>
     <div style="display:grid;grid-template-columns:180px 1fr;gap:20px;align-items:start;margin-bottom:20px">
       <!-- Foto -->
-      <div>
-        <div class="ns-foto-box" id="nsFotoBox" onclick="document.getElementById('ns_fotoInput2').click()" style="cursor:pointer">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+        <div class="ns-foto-box" id="nsFotoBox">
           ${(s.fotoPreview||s.foto)
-            ? `<img src="${s.fotoPreview||s.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`
-            : `<div style="display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--gray-400)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="32" height="32"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                <span style="font-size:.82rem;font-weight:500">Adicionar foto</span>
-                <span style="font-size:.72rem">JPG, PNG até 2MB</span>
-              </div>`
+            ? `<img src="${s.fotoPreview||s.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
+            : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" width="52" height="52" style="color:var(--gray-300)"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
           }
         </div>
+        <button type="button" onclick="document.getElementById('ns_fotoInput2').click()" style="display:flex;align-items:center;gap:6px;padding:8px 18px;border:1.5px solid var(--primary);border-radius:20px;background:white;color:var(--primary);font-size:.82rem;font-weight:600;cursor:pointer;font-family:var(--font-body)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          ${(s.fotoPreview||s.foto) ? 'Alterar Foto' : 'Adicionar Foto'}
+        </button>
+        <span style="font-size:.72rem;color:var(--gray-400)">JPG, PNG ou GIF · Máx. 2MB</span>
         <input type="file" id="ns_fotoInput2" accept="image/*" style="display:none" onchange="nsSelFoto(this)" />
       </div>
       <!-- Campos principais -->
@@ -2917,7 +2918,7 @@ function nsSelFoto(input) {
     nsDados.fotoPreview = e.target.result;
     ['nsFotoBox','nsFotoPreview'].forEach(id => {
       const el = document.getElementById(id);
-      if (el) el.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:${id==='nsFotoBox'?'10':'8'}px">`;
+      if (el) el.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:${id==='nsFotoBox'?'50%':'8px'}">`;
     });
   };
   reader.readAsDataURL(file);

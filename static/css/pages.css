@@ -2399,14 +2399,15 @@ select {
 .ns-toggle input:checked ~ .ns-toggle-slider { background:var(--primary); }
 .ns-toggle input:checked ~ .ns-toggle-slider::before { transform:translateX(20px); }
 
-/* Foto do serviço — caixa retangular */
+/* Foto do serviço — círculo igual ao de profissional */
 .ns-foto-box {
-  width:180px;height:180px;border-radius:10px;
+  width:120px;height:120px;border-radius:50%;
   border:2px dashed var(--gray-200);background:var(--gray-50);
   display:flex;align-items:center;justify-content:center;
   transition:border-color var(--t-fast);overflow:hidden;
+  flex-shrink:0;
 }
-.ns-foto-box:hover { border-color:var(--primary-light); }
+.ns-foto-box:hover { border-color:var(--primary); }
 
 /* Preview no resumo lateral */
 .ns-foto-preview {
