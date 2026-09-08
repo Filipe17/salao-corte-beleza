@@ -1053,11 +1053,14 @@ function renderAgenda() {
 
   return `
   <div class="page-header">
-    <div class="page-header-left"><h1>Agenda</h1></div>
+    <div class="page-header-left">
+      <h1>Agenda</h1>
+      <p style="font-size:.82rem;color:var(--gray-400);margin-top:2px">Visualize e gerencie os atendimentos do seu salão</p>
+    </div>
     <div class="page-header-right">
       <button class="btn btn-primary" onclick="openNewAppointment()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Novo Agendamento
+        Novo Atendimento
       </button>
       <button class="btn btn-outline btn-icon-only" onclick="navigate('configAgenda')" title="Configurar horários e bloqueios">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
@@ -1065,43 +1068,70 @@ function renderAgenda() {
     </div>
   </div>
 
-  <!-- Breadcrumb -->
-  <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:var(--gray-400);margin-bottom:16px">
-    <span>Home</span>
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="9 18 15 12 9 6"/></svg>
-    <span style="color:var(--primary);font-weight:500">Agenda</span>
+  <!-- Barra de filtros horizontal -->
+  <div class="ag-filtros-bar">
+    <!-- Navegação de data com popup do calendário -->
+    <div class="ag-data-nav">
+      <button class="ag-nav-btn" onclick="agendaBack()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="ag-data-box" onclick="agToggleCal(event)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" style="color:var(--primary);flex-shrink:0"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span class="ag-data-texto">${agendaDate.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'})}</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" style="color:var(--gray-400)"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <button class="ag-nav-btn" onclick="agendaNext()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+
+    <div class="ag-filtros-sep"></div>
+
+    <!-- Select Profissional -->
+    <div class="ag-filtro-item">
+      <label class="ag-filtro-label">Profissional</label>
+      <div class="ag-select-wrap">
+        <select class="ag-select" onchange="agFiltrarPro(this.value)">
+          <option value="">Todos</option>
+          ${pros.map(p=>`<option value="${p.id}" ${window._agFiltroPro===p.id?'selected':''}>${p.nome}</option>`).join('')}
+        </select>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+
+    <!-- Select Serviço -->
+    <div class="ag-filtro-item">
+      <label class="ag-filtro-label">Serviço</label>
+      <div class="ag-select-wrap">
+        <select class="ag-select" onchange="window._agFiltroServ=this.value||'';navigate('agenda')">
+          <option value="">Todos</option>
+          ${DB.servicos.filter(s=>s.ativo).map(s=>`<option ${window._agFiltroServ===s.nome?'selected':''} value="${s.nome}">${s.nome}</option>`).join('')}
+        </select>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+
+    <!-- Select Status -->
+    <div class="ag-filtro-item">
+      <label class="ag-filtro-label">Status</label>
+      <div class="ag-select-wrap">
+        <select class="ag-select" onchange="window._agFiltroStatus=this.value||'';navigate('agenda')">
+          <option value="">Todos</option>
+          ${['Agendado','Confirmado','Em andamento','Concluído','Cancelado'].map(s=>`<option ${window._agFiltroStatus===s?'selected':''} value="${s}">${s}</option>`).join('')}
+        </select>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Popup calendário (oculto por padrão) -->
+  <div id="agCalPopup" class="ag-cal-popup" style="display:none">
+    ${miniCal()}
   </div>
 
   <div class="agenda-nova-layout">
     <!-- Área principal -->
     <div class="agenda-nova-main">
-      <!-- Toolbar -->
-      <div class="agenda-nova-toolbar">
-        <div style="display:flex;align-items:center;gap:8px">
-          <button class="agenda-nav-btn" onclick="agendaBack()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6"/></svg>
-          </button>
-          <button class="btn btn-sm btn-outline" onclick="agendaToday()" style="padding:6px 14px">Hoje</button>
-          <button class="agenda-nav-btn" onclick="agendaNext()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>
-          <div style="margin-left:8px">
-            <div style="font-weight:700;font-size:1rem;color:var(--gray-800)">${dateLabel}</div>
-            <div style="font-size:0.78rem;color:var(--gray-400);text-transform:capitalize">${weekLabel}</div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <div class="view-toggle">
-            <button class="view-toggle-btn ${agendaView==='day'?'active':''}" onclick="setAgendaView('day')">Dia</button>
-            <button class="view-toggle-btn ${agendaView==='week'?'active':''}" onclick="setAgendaView('week')">Semana</button>
-            <button class="view-toggle-btn ${agendaView==='month'?'active':''}" onclick="setAgendaView('month')">Mês</button>
-          </div>
-          <select class="form-control" style="width:auto;font-size:0.82rem;padding:7px 12px" onchange="agFiltrarPro(this.value)">
-            <option value="">Todos os profissionais</option>
-            ${pros.map(p=>`<option value="${p.id}" ${window._agFiltroPro===p.id?'selected':''}>${p.nome}</option>`).join('')}
-          </select>
-        </div>
-      </div>
 
       <!-- Grade de horários com colunas por profissional -->
       <div class="agenda-pro-grid-wrap">
@@ -1130,47 +1160,40 @@ function renderAgenda() {
             const proApts   = dayApts.filter(a => a.proId === pro.id);
             const bloqueada = !isAdmin() && !podeEditarAgenda(pro.id);
             const cfg       = getBloqueiosPro(pro.id);
-            const diaSemana = agendaDate.getDay(); // 0=Dom ... 6=Sab
+            const diaSemana = agendaDate.getDay();
             const diaBlq    = (cfg.diasBloqueados||[]).includes(diaSemana);
             const dataStr   = agendaDate.toISOString().slice(0,10);
-
-            // Bloqueios válidos para este dia
-            const bloqueiosDia = (cfg.bloqueios||[]).filter(b =>
-              b.tipo === 'recorrente' || b.data === dataStr
-            );
-
-            // Faixas de bloqueio na grade
+            const bloqueiosDia = (cfg.bloqueios||[]).filter(b => b.tipo === 'recorrente' || b.data === dataStr);
             const blqFaixas = diaBlq
               ? `<div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,#f3f4f6,#f3f4f6 6px,#e5e7eb 6px,#e5e7eb 12px);opacity:.7;z-index:1;border-radius:4px;display:flex;align-items:center;justify-content:center">
                   <span style="font-size:.72rem;color:var(--gray-400);font-weight:600;background:white;padding:2px 8px;border-radius:10px">Dia bloqueado</span>
                 </div>`
               : bloqueiosDia.map(b => {
-                  const [bh, bm] = b.inicio.split(':').map(Number);
-                  const [fh, fm] = b.fim.split(':').map(Number);
+                  const [bh,bm]  = b.inicio.split(':').map(Number);
+                  const [fh,fm]  = b.fim.split(':').map(Number);
                   const horaBase = parseInt(hours[0]);
-                  const topPx    = ((bh - horaBase) * 60 + bm) * (64/60);
-                  const durMin   = (fh*60+fm) - (bh*60+bm);
-                  const heightPx = durMin * (64/60);
+                  const topPx    = ((bh-horaBase)*60+bm)*(64/60);
+                  const durMin   = (fh*60+fm)-(bh*60+bm);
+                  const heightPx = durMin*(64/60);
                   return `<div style="position:absolute;left:0;right:0;top:${topPx}px;height:${heightPx}px;background:repeating-linear-gradient(45deg,#f3f4f6,#f3f4f6 4px,#e5e7eb 4px,#e5e7eb 8px);z-index:1;border-radius:4px;display:flex;align-items:center;justify-content:center;border:1px solid #d1d5db">
                     <span style="font-size:.68rem;color:var(--gray-500);font-weight:600;background:white;padding:1px 6px;border-radius:8px">${b.motivo||'Bloqueado'} · ${b.inicio}–${b.fim}</span>
                   </div>`;
                 }).join('');
-
-            return `<div class="agenda-pro-body-col ${bloqueada ? 'col-bloqueada' : ''}" style="position:relative">
+            return `<div class="agenda-pro-body-col ${bloqueada?'col-bloqueada':''}" style="position:relative">
               ${blqFaixas}
               ${hours.map(h => {
                 const slotApts = proApts.filter(a => a.hora && a.hora.startsWith(h+':'));
                 const blocks = slotApts.map(a => {
                   const cli  = getCliente(a.clienteId);
                   const serv = getServico(a.servicoId);
-                  const topPx    = (parseInt((a.hora.split(':')[1]||'0')) / 60) * 64;
-                  const durMin   = a.duracao || 60;
-                  const heightPx = Math.max((durMin / 60) * 64 - 2, 30);
+                  const topPx    = (parseInt((a.hora.split(':')[1]||'0'))/60)*64;
+                  const durMin   = a.duracao||60;
+                  const heightPx = Math.max((durMin/60)*64-2,30);
                   const statusColors = {confirmado:'#c084fc',pendente:'#fbbf24',finalizado:'#34d399',cancelado:'#f87171',emandamento:'#60a5fa'};
-                  const cor = statusColors[a.status] || '#a78bfa';
+                  const cor = statusColors[a.status]||'#a78bfa';
                   return `<div class="apt-block ${_agSelecionadoId===a.id?'apt-selected':''}" data-apt-id="${a.id}" style="top:${topPx}px;height:${heightPx}px;border-left:3px solid ${cor};background:${cor}20;z-index:2"
-                    onclick="${bloqueada ? '' : 'openAppointmentDetail('+a.id+')'}"
-                    title="${bloqueada ? 'Sem permissão para editar' : ''}">
+                    onclick="${bloqueada?'':'openAppointmentDetail('+a.id+')'}"
+                    title="${bloqueada?'Sem permissão para editar':''}">
                     <div style="font-weight:600;font-size:0.74rem;color:var(--gray-800);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${cli?.nome?.split(' ').slice(0,2).join(' ')||'—'}</div>
                     <div style="font-size:0.7rem;color:var(--gray-500);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${serv?.nome||''}</div>
                     <div style="font-size:0.68rem;color:${cor};font-weight:500">${a.hora}${a.hora_fim?' - '+a.hora_fim:''}</div>
@@ -1182,15 +1205,34 @@ function renderAgenda() {
           }).join('')}
         </div>
       </div>
+
+      <!-- Rodapé: legenda + navegação -->
+      <div class="ag-rodape">
+        <div class="ag-legenda">
+          ${[
+            {cor:'#34d399',label:'Confirmado'},
+            {cor:'#60a5fa',label:'Em andamento'},
+            {cor:'#f87171',label:'Atrasado'},
+            {cor:'#9ca3af',label:'Cancelado'},
+          ].map(l=>`<div class="ag-legenda-item">
+            <span class="ag-legenda-dot" style="background:${l.cor}"></span>
+            ${l.label}
+          </div>`).join('')}
+        </div>
+        <div class="ag-rodape-nav">
+          <button class="ag-nav-btn" onclick="agendaBack()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <button class="ag-hoje-btn" onclick="agendaToday()">Hoje</button>
+          <button class="ag-nav-btn" onclick="agendaNext()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+      </div>
     </div>
 
-    <!-- Painel lateral direito -->
     <!-- Painel lateral direito: detalhes do atendimento -->
     <div class="agenda-nova-sidebar">
-      <!-- Mini calendário -->
-      ${miniCal()}
-
-      <!-- Painel de detalhes -->
       <div class="ag-det-panel" id="agDetPanel">
         ${agRenderDetalhe(_agSelecionadoId)}
       </div>
@@ -1212,6 +1254,20 @@ function agendaNext() {
 function agendaToday() {
   agendaDate = new Date();
   navigate('agenda');
+}
+function agToggleCal(e) {
+  e.stopPropagation();
+  const popup = document.getElementById('agCalPopup');
+  if (!popup) return;
+  const aberto = popup.style.display !== 'none';
+  popup.style.display = aberto ? 'none' : 'block';
+  if (!aberto) {
+    setTimeout(() => {
+      document.addEventListener('click', function fechar(ev) {
+        if (!popup.contains(ev.target)) { popup.style.display = 'none'; document.removeEventListener('click', fechar); }
+      });
+    }, 10);
+  }
 }
 function setAgendaView(v) {
   agendaView = v;

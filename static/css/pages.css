@@ -1123,16 +1123,16 @@
    AGENDA NOVA — Layout completo
 ══════════════════════════════════════ */
 
-/* Layout 3 colunas: painel-hoje | grade | sidebar */
+/* Layout 2 colunas: grade | sidebar detalhes */
 .agenda-nova-layout {
   display: grid;
-  grid-template-columns: 1fr 260px;
+  grid-template-columns: 1fr 290px;
   gap: 16px;
   align-items: start;
 }
 .agenda-nova-main { min-width: 0; overflow: hidden; }
 
-/* Toolbar */
+/* Toolbar (mantida para compatibilidade) */
 .agenda-nova-toolbar {
   display: flex;
   align-items: center;
@@ -1141,6 +1141,167 @@
   gap: 10px;
   flex-wrap: wrap;
 }
+
+/* ── Barra de filtros horizontal da agenda ── */
+.ag-filtros-bar {
+  display: flex;
+  align-items: center;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding: 10px 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+  flex-wrap: wrap;
+  gap: 8px;
+  position: relative;
+}
+.ag-data-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.ag-nav-btn {
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  background: white;
+  cursor: pointer;
+  color: var(--gray-500);
+  transition: all var(--t-fast);
+}
+.ag-nav-btn:hover { border-color: var(--primary); color: var(--primary); }
+.ag-data-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  padding: 5px 12px;
+  background: white;
+  cursor: pointer;
+  min-width: 140px;
+  user-select: none;
+  transition: border-color var(--t-fast);
+}
+.ag-data-box:hover { border-color: var(--primary); }
+.ag-data-texto {
+  font-size: .875rem;
+  font-weight: 600;
+  color: var(--gray-700);
+  flex: 1;
+}
+.ag-filtros-sep {
+  width: 1px;
+  height: 32px;
+  background: var(--gray-200);
+  margin: 0 8px;
+  flex-shrink: 0;
+}
+.ag-filtro-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 140px;
+}
+.ag-filtro-label {
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--primary);
+  text-transform: none;
+}
+.ag-select-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.ag-select {
+  width: 100%;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  padding: 6px 32px 6px 12px;
+  font-size: .875rem;
+  color: var(--gray-700);
+  background: white;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: border-color var(--t-fast);
+  height: 36px;
+}
+.ag-select:focus { outline: none; border-color: var(--primary); }
+.ag-select-arrow {
+  position: absolute;
+  right: 10px;
+  pointer-events: none;
+  color: var(--gray-400);
+}
+
+/* Popup do calendário */
+.ag-cal-popup {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 16px;
+  z-index: 200;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  padding: 4px;
+  min-width: 280px;
+}
+
+/* Rodapé da agenda: legenda + botões */
+.ag-rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--gray-100);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.ag-legenda {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.ag-legenda-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .78rem;
+  color: var(--gray-600);
+}
+.ag-legenda-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.ag-rodape-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ag-hoje-btn {
+  padding: 5px 16px;
+  border: 1.5px solid var(--primary);
+  border-radius: var(--radius-md);
+  background: white;
+  color: var(--primary);
+  font-size: .82rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: all var(--t-fast);
+}
+.ag-hoje-btn:hover { background: var(--primary); color: white; }
 
 /* ── Painel Atendimentos de hoje ── */
 .agenda-painel-hoje {
