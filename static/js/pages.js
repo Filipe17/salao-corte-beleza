@@ -2898,23 +2898,67 @@ function npVoltarEtapa() {
   navigate('novoProfissional');
 }
 async function npSalvar() {
+  // Salvar campos da etapa atual antes de enviar
+  npSalvarEtapa1();
+  npSalvarEtapa2();
   npSalvarEtapa3();
-  if(!npDados.nome){showToast('Nome obrigatório','error');return;}
+
+  if (!npDados.nome) { showToast('Nome obrigatório', 'error'); return; }
+
+  const isEdit = !!npDados.editId;
+  console.log('npSalvar — editId:', npDados.editId, 'isEdit:', isEdit, 'nome:', npDados.nome);
+
   try {
-    const base=(typeof API_BASE!=='undefined')?API_BASE:'';
-    const funcao=(npDados.especialidades||[]).map(id=>(DB.servicos||[]).find(s=>s.id===id)?.nome).filter(Boolean).join(', ')||npDados.funcao||'Profissional';
-    const body={nome:npDados.nome,funcao,telefone:npDados.tel,email:npDados.email,comissao:parseFloat(npDados.comissao)||0,ativo:npDados.ativo!==false,obs:npDados.obs,cpf:npDados.cpf,rg:npDados.rg};
-    const isEdit = !!npDados.editId;
-    const url  = isEdit ? `${base}/api/profissionais/${npDados.editId}` : `${base}/api/profissionais`;
+    const base = (typeof API_BASE !== 'undefined') ? API_BASE : '';
+    const funcao = (npDados.especialidades||[]).map(id => (DB.servicos||[]).find(s => s.id===id)?.nome).filter(Boolean).join(', ') || npDados.funcao || 'Profissional';
+    const body = {
+      nome:            npDados.nome            || '',
+      nome_social:     npDados.nomeSocial      || '',
+      funcao:          funcao,
+      telefone:        npDados.tel             || '',
+      telefone_fixo:   npDados.telFixo         || '',
+      email:           npDados.email           || '',
+      sexo:            npDados.sexo            || '',
+      data_nascimento: npDados.nascimento      || '',
+      cpf:             npDados.cpf             || '',
+      rg:              npDados.rg              || '',
+      orgao_emissor:   npDados.orgao           || '',
+      data_emissao:    npDados.emissao         || '',
+      cep:             npDados.cep             || '',
+      rua:             npDados.rua             || '',
+      numero:          npDados.num             || '',
+      complemento:     npDados.comp            || '',
+      bairro:          npDados.bairro          || '',
+      cidade:          npDados.cidade          || '',
+      estado:          npDados.estado          || '',
+      origem:          npDados.origem          || '',
+      obs:             npDados.obs             || '',
+      comissao:        parseFloat(npDados.comissao) || 0,
+      tipo_comissao:   npDados.tipoComissao    || 'percentual',
+      ativo:           npDados.ativo !== false,
+    };
+
+    const url    = isEdit ? `${base}/api/profissionais/${npDados.editId}` : `${base}/api/profissionais`;
     const method = isEdit ? 'PUT' : 'POST';
-    const resp=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(resp.ok){
-      showToast(isEdit?'Profissional atualizado!':'Profissional cadastrado com sucesso!','success');
-      if(typeof loadAllFromAPI==='function') await loadAllFromAPI();
-      npEtapa=1;npDados={};
+
+    console.log('Enviando:', method, url, body);
+
+    const resp = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const data = await resp.json();
+
+    if (resp.ok) {
+      showToast(isEdit ? 'Profissional atualizado!' : 'Profissional cadastrado com sucesso!', 'success');
+      if (typeof loadAllFromAPI === 'function') await loadAllFromAPI();
+      npEtapa = 1; npDados = {};
       navigate('profissionais');
-    } else {const d=await resp.json();showToast(d.error||'Erro ao salvar','error');}
-  } catch(e){showToast('Erro de conexão','error');}
+    } else {
+      console.error('Erro da API:', data);
+      showToast(data.erro || data.error || 'Erro ao salvar', 'error');
+    }
+  } catch(e) {
+    console.error('Erro de conexão:', e);
+    showToast('Erro de conexão', 'error');
+  }
 }
 
 
@@ -2938,23 +2982,35 @@ async function profSalvarNovo() {
 function profAbrirEdicao(id) {
   const p = (DB.profissionais||[]).find(x => x.id===id);
   if (!p) return;
-  // Carregar dados do profissional no wizard
   npEtapa = 1;
   npDados = {
-    editId:     p.id,
-    nome:       p.nome       || '',
-    nomeSocial: p.nome_social|| '',
-    nascimento: p.data_nascimento || '',
-    sexo:       p.sexo       || '',
-    cpf:        p.cpf        || '',
-    rg:         p.rg         || '',
-    tel:        p.telefone   || '',
-    email:      p.email      || '',
-    obs:        p.obs        || '',
-    comissao:   p.comissao   || '',
-    tipoComissao: 'percentual',
-    ativo:      p.ativo !== false,
+    editId:       p.id,
+    nome:         p.nome             || '',
+    nomeSocial:   p.nome_social      || '',
+    nascimento:   p.data_nascimento  || '',
+    sexo:         p.sexo             || '',
+    cpf:          p.cpf              || '',
+    rg:           p.rg               || '',
+    orgao:        p.orgao_emissor    || '',
+    emissao:      p.data_emissao     || '',
+    tel:          p.telefone         || '',
+    telFixo:      p.telefone_fixo    || '',
+    email:        p.email            || '',
+    cep:          p.cep              || '',
+    rua:          p.rua              || '',
+    num:          p.numero           || '',
+    comp:         p.complemento      || '',
+    bairro:       p.bairro           || '',
+    cidade:       p.cidade           || '',
+    estado:       p.estado           || '',
+    origem:       p.origem           || '',
+    obs:          p.obs              || '',
+    comissao:     p.comissao         || '',
+    tipoComissao: p.tipo_comissao    || 'percentual',
+    funcao:       p.funcao           || '',
+    ativo:        p.ativo !== false && p.status !== 'inativo',
   };
+  console.log('profAbrirEdicao — npDados:', npDados);
   navigate('novoProfissional');
 }
 
