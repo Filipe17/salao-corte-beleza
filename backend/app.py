@@ -769,6 +769,28 @@ def update_usuario(id):
     return jsonify(u.to_dict())
 
 
+@app.route('/api/profissionais/<int:id>/foto', methods=['POST'])
+def upload_foto_profissional(id):
+    p = Profissional.query.get_or_404(id)
+    if 'foto' not in request.files:
+        return jsonify({'erro': 'Nenhum arquivo enviado'}), 400
+    file = request.files['foto']
+    if file.filename == '':
+        return jsonify({'erro': 'Arquivo inválido'}), 400
+    allowed = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
+    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+    if ext not in allowed:
+        return jsonify({'erro': 'Formato não suportado. Use JPG, PNG, GIF ou WEBP'}), 400
+    upload_dir = os.path.join(UPLOAD_DIR, 'profissionais')
+    os.makedirs(upload_dir, exist_ok=True)
+    filename = f"profissional_{id}.{ext}"
+    filepath = os.path.join(upload_dir, filename)
+    file.save(filepath)
+    p.foto = f"/uploads/profissionais/{filename}"
+    db.session.commit()
+    return jsonify({'ok': True, 'foto': p.foto})
+
+
 @app.route('/api/usuarios/<int:id>/foto', methods=['POST'])
 def upload_foto_usuario(id):
     u = Usuario.query.get_or_404(id)
