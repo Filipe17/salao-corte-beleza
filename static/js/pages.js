@@ -2835,45 +2835,53 @@ async function npBuscarCEP(cep) {
   } catch(e){showToast('Erro ao buscar CEP','error');}
 }
 function npSalvarEtapa1() {
-  npDados.nome=document.getElementById('np_nome')?.value.trim()||'';
-  npDados.nomeSocial=document.getElementById('np_nomeSocial')?.value||'';
-  npDados.nascimento=document.getElementById('np_nascimento')?.value||'';
-  npDados.sexo=document.getElementById('np_sexo')?.value||'';
-  npDados.ativo=document.getElementById('np_ativoStatus')?.value!=='false';
-  npDados.cpf=document.getElementById('np_cpf')?.value||'';
-  npDados.rg=document.getElementById('np_rg')?.value||'';
-  npDados.orgao=document.getElementById('np_orgao')?.value||'';
-  npDados.emissao=document.getElementById('np_emissao')?.value||'';
-  npDados.tel=document.getElementById('np_tel')?.value||'';
-  npDados.telFixo=document.getElementById('np_telFixo')?.value||'';
-  npDados.email=document.getElementById('np_email')?.value||'';
-  npDados.cep=document.getElementById('np_cep')?.value||'';
-  npDados.rua=document.getElementById('np_rua')?.value||'';
-  npDados.num=document.getElementById('np_num')?.value||'';
-  npDados.comp=document.getElementById('np_comp')?.value||'';
-  npDados.bairro=document.getElementById('np_bairro')?.value||'';
-  npDados.cidade=document.getElementById('np_cidade')?.value||'';
-  npDados.estado=document.getElementById('np_estado')?.value||'';
-  npDados.obs=document.getElementById('np_obs')?.value||'';
+  const get = (id) => document.getElementById(id);
+  if (get('np_nome'))        npDados.nome       = get('np_nome').value.trim();
+  if (get('np_nomeSocial'))  npDados.nomeSocial = get('np_nomeSocial').value;
+  if (get('np_nascimento'))  npDados.nascimento = get('np_nascimento').value;
+  if (get('np_sexo'))        npDados.sexo       = get('np_sexo').value;
+  if (get('np_ativoStatus')) npDados.ativo      = get('np_ativoStatus').value !== 'false';
+  if (get('np_cpf'))         npDados.cpf        = get('np_cpf').value;
+  if (get('np_rg'))          npDados.rg         = get('np_rg').value;
+  if (get('np_orgao'))       npDados.orgao      = get('np_orgao').value;
+  if (get('np_emissao'))     npDados.emissao    = get('np_emissao').value;
+  if (get('np_tel'))         npDados.tel        = get('np_tel').value;
+  if (get('np_telFixo'))     npDados.telFixo    = get('np_telFixo').value;
+  if (get('np_email'))       npDados.email      = get('np_email').value;
+  if (get('np_cep'))         npDados.cep        = get('np_cep').value;
+  if (get('np_rua'))         npDados.rua        = get('np_rua').value;
+  if (get('np_num'))         npDados.num        = get('np_num').value;
+  if (get('np_comp'))        npDados.comp       = get('np_comp').value;
+  if (get('np_bairro'))      npDados.bairro     = get('np_bairro').value;
+  if (get('np_cidade'))      npDados.cidade     = get('np_cidade').value;
+  if (get('np_estado'))      npDados.estado     = get('np_estado').value;
+  if (get('np_obs'))         npDados.obs        = get('np_obs').value;
 }
 function npSalvarEtapa2() {
-  if(!npDados.servValores) npDados.servValores={};
-  (npDados.especialidades||[]).forEach(sid=>{
-    npDados.servValores[sid]={
-      duracao:document.getElementById('np_dur_'+sid)?.value||'',
-      valor:document.getElementById('np_val_'+sid)?.value||'',
-    };
+  if (!npDados.servValores) npDados.servValores = {};
+  (npDados.especialidades||[]).forEach(sid => {
+    const dur = document.getElementById('np_dur_'+sid);
+    const val = document.getElementById('np_val_'+sid);
+    if (dur || val) {
+      npDados.servValores[sid] = {
+        duracao: dur?.value || '',
+        valor:   val?.value || '',
+      };
+    }
   });
 }
 function npSalvarEtapa3() {
   const dias=['segunda','terca','quarta','quinta','sexta','sabado','domingo'];
-  if(!npDados.horarios) npDados.horarios={};
-  dias.forEach(k=>{
-    const ativo=document.getElementById('np_ativo_'+k)?.checked??(k!=='domingo');
-    npDados.horarios[k]={ativo,ini:document.getElementById('np_ini_'+k)?.value||'08:00',fim:document.getElementById('np_fim_'+k)?.value||'18:00'};
-  });
-  npDados.tipoComissao=document.getElementById('np_tipoComissao')?.value||'percentual';
-  npDados.comissao=document.getElementById('np_comissao')?.value||'';
+  if (!npDados.horarios) npDados.horarios = {};
+  // Só atualiza horários se os campos estiverem na tela (etapa 3)
+  if (document.getElementById('np_ativo_segunda')) {
+    dias.forEach(k => {
+      const ativo = document.getElementById('np_ativo_'+k)?.checked ?? (k !== 'domingo');
+      npDados.horarios[k] = { ativo, ini: document.getElementById('np_ini_'+k)?.value||'08:00', fim: document.getElementById('np_fim_'+k)?.value||'18:00' };
+    });
+  }
+  if (document.getElementById('np_tipoComissao')) npDados.tipoComissao = document.getElementById('np_tipoComissao').value || 'percentual';
+  if (document.getElementById('np_comissao'))     npDados.comissao     = document.getElementById('np_comissao').value || '';
 }
 function npProximaEtapa() {
   if(npEtapa===1){npSalvarEtapa1();if(!npDados.nome){showToast('Informe o nome do profissional','error');return;}if(!npDados.tel){showToast('Informe o telefone celular','error');return;}}
@@ -2890,54 +2898,23 @@ function npVoltarEtapa() {
   navigate('novoProfissional');
 }
 async function npSalvar() {
-  // Salvar campos de todas as etapas antes de enviar
-  npSalvarEtapa1();
-  npSalvarEtapa2();
   npSalvarEtapa3();
-  if (!npDados.nome) { showToast('Nome obrigatório', 'error'); return; }
+  if(!npDados.nome){showToast('Nome obrigatório','error');return;}
   try {
-    const base = (typeof API_BASE !== 'undefined') ? API_BASE : '';
-    const funcao = (npDados.especialidades||[]).map(id => (DB.servicos||[]).find(s => s.id===id)?.nome).filter(Boolean).join(', ') || npDados.funcao || 'Profissional';
-    const body = {
-      nome:            npDados.nome            || '',
-      nome_social:     npDados.nomeSocial      || '',
-      funcao:          funcao,
-      telefone:        npDados.tel             || '',
-      telefone_fixo:   npDados.telFixo         || '',
-      email:           npDados.email           || '',
-      sexo:            npDados.sexo            || '',
-      data_nascimento: npDados.nascimento      || '',
-      cpf:             npDados.cpf             || '',
-      rg:              npDados.rg              || '',
-      orgao_emissor:   npDados.orgao           || '',
-      data_emissao:    npDados.emissao         || '',
-      cep:             npDados.cep             || '',
-      rua:             npDados.rua             || '',
-      numero:          npDados.num             || '',
-      complemento:     npDados.comp            || '',
-      bairro:          npDados.bairro          || '',
-      cidade:          npDados.cidade          || '',
-      estado:          npDados.estado          || '',
-      origem:          npDados.origem          || '',
-      obs:             npDados.obs             || '',
-      comissao:        parseFloat(npDados.comissao) || 0,
-      tipo_comissao:   npDados.tipoComissao    || 'percentual',
-      ativo:           npDados.ativo !== false,
-    };
-    const isEdit  = !!npDados.editId;
-    const url     = isEdit ? `${base}/api/profissionais/${npDados.editId}` : `${base}/api/profissionais`;
-    const method  = isEdit ? 'PUT' : 'POST';
-    const resp = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
-    if (resp.ok) {
-      showToast(isEdit ? 'Profissional atualizado!' : 'Profissional cadastrado com sucesso!', 'success');
-      if (typeof loadAllFromAPI === 'function') await loadAllFromAPI();
-      npEtapa = 1; npDados = {};
+    const base=(typeof API_BASE!=='undefined')?API_BASE:'';
+    const funcao=(npDados.especialidades||[]).map(id=>(DB.servicos||[]).find(s=>s.id===id)?.nome).filter(Boolean).join(', ')||npDados.funcao||'Profissional';
+    const body={nome:npDados.nome,funcao,telefone:npDados.tel,email:npDados.email,comissao:parseFloat(npDados.comissao)||0,ativo:npDados.ativo!==false,obs:npDados.obs,cpf:npDados.cpf,rg:npDados.rg};
+    const isEdit = !!npDados.editId;
+    const url  = isEdit ? `${base}/api/profissionais/${npDados.editId}` : `${base}/api/profissionais`;
+    const method = isEdit ? 'PUT' : 'POST';
+    const resp=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(resp.ok){
+      showToast(isEdit?'Profissional atualizado!':'Profissional cadastrado com sucesso!','success');
+      if(typeof loadAllFromAPI==='function') await loadAllFromAPI();
+      npEtapa=1;npDados={};
       navigate('profissionais');
-    } else {
-      const d = await resp.json();
-      showToast(d.error || 'Erro ao salvar', 'error');
-    }
-  } catch(e) { showToast('Erro de conexão', 'error'); }
+    } else {const d=await resp.json();showToast(d.error||'Erro ao salvar','error');}
+  } catch(e){showToast('Erro de conexão','error');}
 }
 
 
@@ -2961,33 +2938,22 @@ async function profSalvarNovo() {
 function profAbrirEdicao(id) {
   const p = (DB.profissionais||[]).find(x => x.id===id);
   if (!p) return;
+  // Carregar dados do profissional no wizard
   npEtapa = 1;
   npDados = {
-    editId:       p.id,
-    nome:         p.nome             || '',
-    nomeSocial:   p.nome_social      || '',
-    nascimento:   p.data_nascimento  || '',
-    sexo:         p.sexo             || '',
-    cpf:          p.cpf              || '',
-    rg:           p.rg               || '',
-    orgao:        p.orgao_emissor    || '',
-    emissao:      p.data_emissao     || '',
-    tel:          p.telefone         || '',
-    telFixo:      p.telefone_fixo    || '',
-    email:        p.email            || '',
-    cep:          p.cep              || '',
-    rua:          p.rua              || '',
-    num:          p.numero           || '',
-    comp:         p.complemento      || '',
-    bairro:       p.bairro           || '',
-    cidade:       p.cidade           || '',
-    estado:       p.estado           || '',
-    origem:       p.origem           || '',
-    obs:          p.obs              || '',
-    comissao:     p.comissao         || '',
-    tipoComissao: p.tipo_comissao    || 'percentual',
-    funcao:       p.funcao           || '',
-    ativo:        p.ativo !== false && p.status !== 'inativo',
+    editId:     p.id,
+    nome:       p.nome       || '',
+    nomeSocial: p.nome_social|| '',
+    nascimento: p.data_nascimento || '',
+    sexo:       p.sexo       || '',
+    cpf:        p.cpf        || '',
+    rg:         p.rg         || '',
+    tel:        p.telefone   || '',
+    email:      p.email      || '',
+    obs:        p.obs        || '',
+    comissao:   p.comissao   || '',
+    tipoComissao: 'percentual',
+    ativo:      p.ativo !== false,
   };
   navigate('novoProfissional');
 }
