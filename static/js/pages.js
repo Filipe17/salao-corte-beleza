@@ -2053,9 +2053,10 @@ function renderProfissionais() {
           <option value="inativo">Inativo</option>
         </select>
       </div>
-      <button class="btn-filtro">
+      <button class="btn-filtro" id="profBtnFiltros" onclick="profAbrirFiltros()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
         Filtros
+        <span class="prof-filtros-badge" id="profFiltrosBadge" style="display:none">0</span>
       </button>
     </div>
   </div>
@@ -2133,6 +2134,160 @@ function initProfissionais() {
 }
 
 /* ── Filtrar ── */
+let _profFiltroServico  = '';
+let _profFiltroHorario  = '';
+let _profFiltroComissao = '';
+
+function profAbrirFiltros() {
+  const funcoes  = [...new Set((DB.profissionais||[]).map(p => p.funcao).filter(Boolean))];
+  const servicos = (DB.servicos||[]).filter(s => s.ativo);
+
+  openModal({
+    title: '🔎 Filtros de profissionais',
+    size:  'lg',
+    body: `
+      <div style="display:flex;flex-direction:column;gap:20px">
+
+        <div class="grid grid-2" style="gap:16px">
+          <div class="form-group">
+            <label class="form-label">Especialidade</label>
+            <select class="form-control" id="pf_esp">
+              <option value="">Todas</option>
+              ${funcoes.map(f => `<option value="${f}" ${_profFiltroEsp===f?'selected':''}>${f}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select class="form-control" id="pf_status">
+              <option value="">Todos</option>
+              <option value="ativo"   ${_profFiltroStatus==='ativo'?'selected':''}>Ativo</option>
+              <option value="inativo" ${_profFiltroStatus==='inativo'?'selected':''}>Inativo</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Serviços</label>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">
+            ${servicos.map(s => `
+              <button type="button"
+                class="prof-filtro-chip ${_profFiltroServico===String(s.id)?'active':''}"
+                onclick="profToggleChip(this,'${s.id}')"
+                data-val="${s.id}">
+                ${s.emoji||'💅'} ${s.nome}
+              </button>`).join('')}
+          </div>
+        </div>
+
+        <div class="grid grid-2" style="gap:16px">
+          <div class="form-group">
+            <label class="form-label">Horário de atendimento</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+              ${[{v:'manha',l:'☀️ Manhã'},{v:'tarde',l:'🌤️ Tarde'},{v:'noite',l:'🌙 Noite'}].map(h => `
+                <button type="button"
+                  class="prof-filtro-chip ${_profFiltroHorario===h.v?'active':''}"
+                  onclick="profToggleChip(this,'${h.v}','horario')"
+                  data-val="${h.v}">
+                  ${h.l}
+                </button>`).join('')}
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Comissão</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+              ${[{v:'ate10',l:'Até 10%'},{v:'10a20',l:'10% a 20%'},{v:'acima20',l:'Acima de 20%'}].map(c => `
+                <button type="button"
+                  class="prof-filtro-chip ${_profFiltroComissao===c.v?'active':''}"
+                  onclick="profToggleChip(this,'${c.v}','comissao')"
+                  data-val="${c.v}">
+                  ${c.l}
+                </button>`).join('')}
+            </div>
+          </div>
+        </div>
+
+      </div>`,
+    footer: `
+      <button class="btn btn-outline" onclick="profLimparFiltros()">Limpar filtros</button>
+      <button class="btn btn-primary" onclick="profAplicarFiltros()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        Aplicar filtros
+      </button>`
+  });
+}
+
+// Chip toggle — grupo único por tipo
+function profToggleChip(btn, val, grupo) {
+  const container = btn.closest('[style*="flex-wrap"]') || btn.parentElement;
+  container.querySelectorAll('.prof-filtro-chip').forEach(b => b.classList.remove('active'));
+  if (btn.classList.contains('active')) {
+    btn.classList.remove('active');
+  } else {
+    btn.classList.add('active');
+  }
+}
+
+function profAplicarFiltros() {
+  // Especialidade e status dos selects
+  _profFiltroEsp    = document.getElementById('pf_esp')?.value    || '';
+  _profFiltroStatus = document.getElementById('pf_status')?.value || '';
+
+  // Serviço selecionado (chip ativo no grupo de serviços)
+  const servicoAtivo = document.querySelector('.form-group .prof-filtro-chip.active[data-val]');
+  _profFiltroServico = servicoAtivo ? servicoAtivo.dataset.val : '';
+
+  // Horário
+  const horarioAtivo = [...document.querySelectorAll('.prof-filtro-chip.active')].find(b =>
+    ['manha','tarde','noite'].includes(b.dataset.val));
+  _profFiltroHorario = horarioAtivo ? horarioAtivo.dataset.val : '';
+
+  // Comissão
+  const comissaoAtivo = [...document.querySelectorAll('.prof-filtro-chip.active')].find(b =>
+    ['ate10','10a20','acima20'].includes(b.dataset.val));
+  _profFiltroComissao = comissaoAtivo ? comissaoAtivo.dataset.val : '';
+
+  closeModal();
+  _profPagAtual = 1;
+  profRenderLista();
+  profAtualizarBadge();
+
+  // Sincronizar selects visíveis
+  const selEsp    = document.getElementById('profFiltroEsp');
+  const selStatus = document.getElementById('profFiltroStatus');
+  if (selEsp)    selEsp.value    = _profFiltroEsp;
+  if (selStatus) selStatus.value = _profFiltroStatus;
+}
+
+function profLimparFiltros() {
+  _profFiltroEsp      = '';
+  _profFiltroStatus   = '';
+  _profFiltroServico  = '';
+  _profFiltroHorario  = '';
+  _profFiltroComissao = '';
+  document.querySelectorAll('.prof-filtro-chip.active').forEach(b => b.classList.remove('active'));
+  const selEsp    = document.getElementById('pf_esp');
+  const selStatus = document.getElementById('pf_status');
+  if (selEsp)    selEsp.value    = '';
+  if (selStatus) selStatus.value = '';
+  closeModal();
+  _profPagAtual = 1;
+  profRenderLista();
+  profAtualizarBadge();
+}
+
+function profAtualizarBadge() {
+  const count = [_profFiltroEsp, _profFiltroStatus, _profFiltroServico, _profFiltroHorario, _profFiltroComissao]
+    .filter(Boolean).length;
+  const badge = document.getElementById('profFiltrosBadge');
+  if (!badge) return;
+  if (count > 0) {
+    badge.textContent = count;
+    badge.style.display = 'inline-flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
 function profFiltrar() {
   _profBusca        = (document.getElementById('profBuscaInput')?.value || '').toLowerCase();
   _profFiltroEsp    = document.getElementById('profFiltroEsp')?.value    || '';
@@ -2151,14 +2306,52 @@ function profMudarAba(aba) {
 
 function profGetFiltrados() {
   return (DB.profissionais || []).filter(p => {
+    // Abas
     if (_profFiltroAba === 'ativos'   && p.ativo === false) return false;
     if (_profFiltroAba === 'inativos' && p.ativo !== false) return false;
+    // Status
     if (_profFiltroStatus === 'ativo'   && p.ativo === false) return false;
     if (_profFiltroStatus === 'inativo' && p.ativo !== false) return false;
+    // Especialidade
     if (_profFiltroEsp && p.funcao !== _profFiltroEsp) return false;
+    // Busca
     if (_profBusca) {
       const hay = [p.nome, p.funcao, p.telefone, p.email].join(' ').toLowerCase();
       if (!hay.includes(_profBusca)) return false;
+    }
+    // Serviço — verifica se o profissional tem o serviço nos agendamentos
+    if (_profFiltroServico) {
+      const servId = parseInt(_profFiltroServico);
+      const temServico = (DB.agendamentos||[]).some(a => a.pro_id === p.id && a.servico_id === servId);
+      if (!temServico) return false;
+    }
+    // Comissão
+    if (_profFiltroComissao) {
+      const c = parseFloat(p.comissao) || 0;
+      if (_profFiltroComissao === 'ate10'   && c > 10)          return false;
+      if (_profFiltroComissao === '10a20'   && (c < 10 || c > 20)) return false;
+      if (_profFiltroComissao === 'acima20' && c <= 20)          return false;
+    }
+    // Horário — verifica configuração de agenda no localStorage
+    if (_profFiltroHorario) {
+      const cfg = profGetHorarios(p.id);
+      const diasConfig = cfg?.dias || {};
+      const manha = ['segunda','terca','quarta','quinta','sexta','sabado'].some(d => {
+        const h = diasConfig[d]; if (!h || h.ativo === false) return false;
+        return parseInt((h.ini||'08:00').split(':')[0]) < 12;
+      });
+      const tarde = ['segunda','terca','quarta','quinta','sexta','sabado'].some(d => {
+        const h = diasConfig[d]; if (!h || h.ativo === false) return false;
+        const fim = parseInt((h.fim||'18:00').split(':')[0]);
+        return fim >= 12 && fim <= 18;
+      });
+      const noite = ['segunda','terca','quarta','quinta','sexta'].some(d => {
+        const h = diasConfig[d]; if (!h || h.ativo === false) return false;
+        return parseInt((h.fim||'18:00').split(':')[0]) > 18;
+      });
+      if (_profFiltroHorario === 'manha' && !manha) return false;
+      if (_profFiltroHorario === 'tarde'  && !tarde)  return false;
+      if (_profFiltroHorario === 'noite'  && !noite)  return false;
     }
     return true;
   });

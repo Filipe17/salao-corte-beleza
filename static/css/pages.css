@@ -2171,3 +2171,21 @@ select {
   -moz-appearance: none;
   appearance: none;
 }
+
+/* ── Filtros avançados de profissionais ── */
+.prof-filtro-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 12px; border: 1.5px solid var(--gray-200);
+  border-radius: 20px; background: white; font-size: .82rem;
+  font-weight: 500; color: var(--gray-600); cursor: pointer;
+  font-family: var(--font-body); transition: all var(--t-fast);
+}
+.prof-filtro-chip:hover  { border-color: var(--primary-light); color: var(--primary); }
+.prof-filtro-chip.active { border-color: var(--primary); background: var(--primary-bg); color: var(--primary); font-weight: 600; }
+
+.prof-filtros-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--primary); color: white;
+  font-size: .68rem; font-weight: 700; margin-left: 2px;
+}
