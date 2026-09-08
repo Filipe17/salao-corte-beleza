@@ -2524,122 +2524,533 @@ function servSalvarObs(id) {
 }
 
 function servAbrirNovo() {
-  openModal({
-    title:'Novo Serviço', size:'lg',
-    body:`
-    <div class="grid grid-2" style="gap:12px">
-      <div class="form-group"><label class="form-label">Nome do serviço <span style="color:var(--danger)">*</span></label>
-        <input type="text" class="form-control" id="ns_nome" placeholder="Ex: Manicure Completa" /></div>
-      <div class="form-group"><label class="form-label">Categoria</label>
-        <select class="form-control" id="ns_cat">
-          ${CATS_SERVICO.map(c=>`<option>${c}</option>`).join('')}
-        </select></div>
-      <div class="form-group"><label class="form-label">Preço (R$)</label>
-        <input type="number" class="form-control" id="ns_preco" placeholder="0,00" min="0" step="0.01" /></div>
-      <div class="form-group"><label class="form-label">Duração (min)</label>
-        <input type="number" class="form-control" id="ns_dur" placeholder="60" min="1" /></div>
-      <div class="form-group"><label class="form-label">Comissão (%)</label>
-        <input type="number" class="form-control" id="ns_com" placeholder="20" min="0" max="100" /></div>
-      <div class="form-group"><label class="form-label">Emoji</label>
-        <input type="text" class="form-control" id="ns_emoji" placeholder="💅" /></div>
-    </div>
-    <div class="form-group" style="margin-top:8px">
-      <label class="form-label">Descrição</label>
-      <textarea class="form-control" id="ns_desc" rows="2" placeholder="Descreva o serviço..."></textarea>
-    </div>`,
-    footer:`<button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
-            <button class="btn btn-primary" onclick="servSalvarNovo()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
-              Salvar Serviço</button>`
-  });
-}
-
-async function servSalvarNovo() {
-  const nome = document.getElementById('ns_nome')?.value.trim();
-  if(!nome){showToast('Informe o nome','error');return;}
-  try {
-    const base=(typeof API_BASE!=='undefined')?API_BASE:'';
-    const body={
-      nome, categoria:document.getElementById('ns_cat')?.value,
-      preco:parseFloat(document.getElementById('ns_preco')?.value)||0,
-      duracao:parseInt(document.getElementById('ns_dur')?.value)||60,
-      comissao:parseInt(document.getElementById('ns_com')?.value)||20,
-      emoji:document.getElementById('ns_emoji')?.value||'💅',
-      descricao:document.getElementById('ns_desc')?.value||'',
-      ativo:true
-    };
-    const resp=await fetch(base+'/api/servicos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(resp.ok){
-      showToast('Serviço cadastrado!','success'); closeModal();
-      if(typeof loadAllFromAPI==='function') await loadAllFromAPI();
-      servRenderLista();
-    } else showToast('Erro ao salvar','error');
-  } catch(e){showToast('Erro de conexão','error');}
+  nsEtapa = 1;
+  nsDados = {};
+  navigate('novoServico');
 }
 
 function servAbrirEdicao(id) {
-  const s=(DB.servicos||[]).find(x=>x.id===id);
-  if(!s) return;
-  openModal({
-    title:'Editar Serviço', size:'lg',
-    body:`
-    <div class="grid grid-2" style="gap:12px">
-      <div class="form-group"><label class="form-label">Nome do serviço <span style="color:var(--danger)">*</span></label>
-        <input type="text" class="form-control" id="es_nome" value="${s.nome||''}" /></div>
-      <div class="form-group"><label class="form-label">Categoria</label>
-        <select class="form-control" id="es_cat">
-          ${CATS_SERVICO.map(c=>`<option ${s.categoria===c?'selected':''}>${c}</option>`).join('')}
-        </select></div>
-      <div class="form-group"><label class="form-label">Preço (R$)</label>
-        <input type="number" class="form-control" id="es_preco" value="${s.preco||0}" min="0" step="0.01" /></div>
-      <div class="form-group"><label class="form-label">Duração (min)</label>
-        <input type="number" class="form-control" id="es_dur" value="${s.duracao||60}" min="1" /></div>
-      <div class="form-group"><label class="form-label">Comissão (%)</label>
-        <input type="number" class="form-control" id="es_com" value="${s.comissao||20}" min="0" max="100" /></div>
-      <div class="form-group"><label class="form-label">Emoji</label>
-        <input type="text" class="form-control" id="es_emoji" value="${s.emoji||'💅'}" /></div>
+  const s = (DB.servicos||[]).find(x=>x.id===id);
+  if (!s) return;
+  nsEtapa = 1;
+  nsDados = {
+    editId:       s.id,
+    nome:         s.nome         || '',
+    categoria:    s.categoria    || 'Unhas',
+    descricao:    s.descricao    || '',
+    preco:        s.preco        || '',
+    duracao:      s.duracao      || 60,
+    comissao:     s.comissao     || 20,
+    tipoComissao: s.tipo_comissao|| 'percentual',
+    emoji:        s.emoji        || '✨',
+    foto:         s.foto         || '',
+    obs:          s.obs          || '',
+    ativo:        s.ativo !== false,
+    profissionaisIds:    s.profissionais_ids    || [],
+    produtosUtilizados:  s.produtos_utilizados  || [],
+  };
+  navigate('novoServico');
+}
+
+// Aliases
+function openNewServico() { servAbrirNovo(); }
+function saveServico()    { nsSalvar(); }
+function editServico(id)  { servAbrirEdicao(id); }
+function toggleServico(id){ servToggleStatus(id); }
+
+
+/* ══════════════════════════════════════
+   NOVO SERVIÇO — WIZARD 4 ETAPAS
+══════════════════════════════════════ */
+let nsEtapa = 1;
+let nsDados = {};
+
+function renderNovoServico() {
+  const etapas = ['Informações do serviço','Profissionais','Comissão','Produtos utilizados'];
+  const steps  = etapas.map((e,i) => `
+    <div class="nc-step ${i+1===nsEtapa?'active':i+1<nsEtapa?'done':''}">
+      <div class="nc-step-num">${i+1<nsEtapa?'✓':i+1}</div>
+      <span>${e}</span>
     </div>
-    <div class="form-group" style="margin-top:8px">
-      <label class="form-label">Descrição</label>
-      <textarea class="form-control" id="es_desc" rows="2">${s.descricao||''}</textarea>
-    </div>`,
-    footer:`<button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
-            <button class="btn btn-primary" onclick="servSalvarEdicao(${id})">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
-              Salvar Alterações</button>`
+    ${i<etapas.length-1?'<div class="nc-step-line"></div>':''}
+  `).join('');
+
+  const isEdit = !!nsDados.editId;
+
+  // Resumo lateral
+  const comissaoVal = nsDados.tipoComissao==='fixo'
+    ? parseFloat(nsDados.comissao)||0
+    : (parseFloat(nsDados.preco)||0) * ((parseFloat(nsDados.comissao)||0)/100);
+  const valorSalao = (parseFloat(nsDados.preco)||0) - comissaoVal;
+
+  const resumo = `
+    <div class="ns-resumo">
+      <!-- Imagem -->
+      <div style="margin-bottom:16px">
+        <div style="font-size:.82rem;font-weight:700;color:var(--gray-700);margin-bottom:8px;display:flex;align-items:center;gap:6px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          Imagem do serviço (pré-visualização)
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="ns-foto-preview" id="nsFotoPreview" onclick="document.getElementById('ns_fotoInput').click()" style="cursor:pointer">
+            ${(nsDados.fotoPreview||nsDados.foto)
+              ? `<img src="${nsDados.fotoPreview||nsDados.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:8px">`
+              : `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:4px;color:var(--gray-400)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`
+            }
+          </div>
+          <button type="button" onclick="document.getElementById('ns_fotoInput').click()" style="display:flex;align-items:center;gap:6px;padding:7px 14px;border:1.5px solid var(--primary);border-radius:20px;background:white;color:var(--primary);font-size:.82rem;font-weight:600;cursor:pointer;font-family:var(--font-body)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            Alterar imagem
+          </button>
+          <input type="file" id="ns_fotoInput" accept="image/*" style="display:none" onchange="nsSelFoto(this)" />
+        </div>
+      </div>
+
+      <!-- Resumo -->
+      <div style="margin-bottom:16px">
+        <div style="font-size:.82rem;font-weight:700;color:var(--gray-700);margin-bottom:10px;display:flex;align-items:center;gap:6px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="14" height="14"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Resumo do serviço
+        </div>
+        <div class="ns-resumo-linha"><span>Nome</span><span>${nsDados.nome||'—'}</span></div>
+        <div class="ns-resumo-linha"><span>Categoria</span>
+          ${nsDados.categoria?`<span style="padding:2px 8px;border-radius:20px;font-size:.75rem;font-weight:600;background:#fce7f3;color:#be185d">${nsDados.categoria}</span>`:'<span>—</span>'}
+        </div>
+        <div class="ns-resumo-linha"><span>Duração</span><span>${nsDados.duracao?nsDados.duracao+' minutos':'—'}</span></div>
+        <div class="ns-resumo-linha"><span>Valor</span><span>${nsDados.preco?formatCurrency(nsDados.preco):'—'}</span></div>
+        <div class="ns-resumo-linha"><span>Status</span>
+          ${nsDados.ativo!==false?'<span class="prof-badge-status ativo">Ativo</span>':'<span class="prof-badge-status inativo">Inativo</span>'}
+        </div>
+      </div>
+
+      <!-- Comissão resumo -->
+      ${nsDados.comissao?`
+      <div>
+        <div style="font-size:.82rem;font-weight:700;color:var(--gray-700);margin-bottom:10px;display:flex;align-items:center;gap:6px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="14" height="14"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+          Comissão
+        </div>
+        <div style="font-size:.75rem;color:var(--gray-400);margin-bottom:6px">Defina o tipo e o valor da comissão para este serviço.</div>
+        <div style="background:var(--gray-50);border-radius:var(--radius-md);padding:12px;display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;justify-content:space-between;font-size:.82rem">
+            <span style="color:var(--gray-500)">Valor do serviço</span>
+            <span style="font-weight:600">${formatCurrency(nsDados.preco||0)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:.82rem">
+            <span style="color:var(--gray-500)">Comissão profissional</span>
+            <span style="font-weight:600;color:var(--primary)">${formatCurrency(comissaoVal)}</span>
+          </div>
+          <div style="height:1px;background:var(--gray-200)"></div>
+          <div style="display:flex;justify-content:space-between;font-size:.82rem">
+            <span style="color:var(--gray-500)">Valor para o salão</span>
+            <span style="font-weight:700">${formatCurrency(valorSalao)}</span>
+          </div>
+        </div>
+      </div>`:``}
+    </div>`;
+
+  const html = `
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1 style="display:flex;align-items:center;gap:10px">
+        <button onclick="navigate('servicos')" style="background:none;border:none;cursor:pointer;color:var(--gray-400);display:flex;align-items:center">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        ${isEdit?'Editar Serviço':'Novo Serviço'}
+      </h1>
+      <p style="font-size:.82rem;color:var(--gray-400)">Cadastre um novo serviço oferecido pelo seu salão</p>
+    </div>
+  </div>
+
+  <div class="nc-steps">${steps}</div>
+
+  <div class="nc-layout">
+    <div class="nc-main">
+      <div class="card" style="padding:24px">
+        ${nsRenderEtapa()}
+      </div>
+    </div>
+    ${resumo}
+  </div>
+
+  <div class="nc-footer">
+    <span style="font-size:.8rem;color:var(--gray-400)">Campos obrigatórios <span style="color:var(--danger)">*</span></span>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-outline" onclick="${nsEtapa>1?'nsVoltar()':'navigate(\'servicos\')'}">
+        ${nsEtapa>1?'← Voltar':'← Cancelar'}
+      </button>
+      <button class="btn btn-primary" onclick="${nsEtapa<4?'nsProximo()':'nsSalvar()'}">
+        ${nsEtapa<4?'Próximo →':(isEdit?'✓ Salvar Alterações':'✓ Salvar Serviço')}
+      </button>
+    </div>
+  </div>`;
+
+  setTimeout(()=>{},0);
+  return html;
+}
+
+function nsRenderEtapa() {
+  const pros = DB.profissionais||[];
+  const s    = nsDados;
+
+  if (nsEtapa===1) return `
+    <div class="nc-section-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
+      Informações do serviço
+    </div>
+    <div style="display:grid;grid-template-columns:180px 1fr;gap:20px;align-items:start;margin-bottom:20px">
+      <!-- Foto -->
+      <div>
+        <div class="ns-foto-box" id="nsFotoBox" onclick="document.getElementById('ns_fotoInput2').click()" style="cursor:pointer">
+          ${(s.fotoPreview||s.foto)
+            ? `<img src="${s.fotoPreview||s.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`
+            : `<div style="display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--gray-400)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="32" height="32"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                <span style="font-size:.82rem;font-weight:500">Adicionar foto</span>
+                <span style="font-size:.72rem">JPG, PNG até 2MB</span>
+              </div>`
+          }
+        </div>
+        <input type="file" id="ns_fotoInput2" accept="image/*" style="display:none" onchange="nsSelFoto(this)" />
+      </div>
+      <!-- Campos principais -->
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="nc-row">
+          <div class="nc-field" style="flex:2">
+            <label class="nc-label">Nome do serviço <span class="nc-req">*</span></label>
+            <input class="form-control" id="ns_nome" placeholder="Ex.: Manicure Completa" value="${s.nome||''}" oninput="nsAtualizar()" />
+          </div>
+          <div class="nc-field">
+            <label class="nc-label">Categoria <span class="nc-req">*</span></label>
+            <select class="form-control" id="ns_cat" onchange="nsAtualizar()">
+              ${CATS_SERVICO.map(c=>`<option value="${c}" ${s.categoria===c?'selected':''}>${c}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="nc-field">
+          <label class="nc-label">Descrição</label>
+          <textarea class="form-control" id="ns_desc" rows="3" placeholder="Descreva o serviço, benefícios e informações importantes..." oninput="nsAtualizar()">${s.descricao||''}</textarea>
+          <div style="text-align:right;font-size:.7rem;color:var(--gray-400);margin-top:2px">${(s.descricao||'').length}/500</div>
+        </div>
+      </div>
+    </div>
+    <!-- Duração + Valor + Status -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:4px">
+      <div class="nc-field">
+        <label class="nc-label">Duração <span class="nc-req">*</span></label>
+        <div style="display:flex;align-items:center;gap:8px;border:1.5px solid var(--gray-200);border-radius:var(--radius-md);padding:8px 12px;background:white">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <input type="number" id="ns_dur" value="${s.duracao||60}" min="1" style="border:none;outline:none;font-size:.875rem;width:60px;font-family:var(--font-body)" oninput="nsAtualizar()" />
+          <span style="font-size:.82rem;color:var(--gray-500)">minutos</span>
+        </div>
+      </div>
+      <div class="nc-field">
+        <label class="nc-label">Valor <span class="nc-req">*</span></label>
+        <div style="display:flex;align-items:center;gap:8px;border:1.5px solid var(--gray-200);border-radius:var(--radius-md);padding:8px 12px;background:white">
+          <span style="font-size:.82rem;color:var(--gray-500);font-weight:600">R$</span>
+          <input type="number" id="ns_preco" value="${s.preco||''}" min="0" step="0.01" placeholder="0,00" style="border:none;outline:none;font-size:.875rem;flex:1;font-family:var(--font-body)" oninput="nsAtualizar()" />
+        </div>
+      </div>
+      <div class="nc-field">
+        <label class="nc-label">Status</label>
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0">
+          <label class="ns-toggle">
+            <input type="checkbox" id="ns_ativo" ${s.ativo!==false?'checked':''} onchange="nsAtualizar()" />
+            <span class="ns-toggle-slider"></span>
+          </label>
+          <span id="ns_ativoLabel" style="font-size:.875rem;font-weight:500;color:${s.ativo!==false?'var(--success)':'var(--gray-400)'}">${s.ativo!==false?'Ativo':'Inativo'}</span>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:20px;padding:14px 16px;background:var(--primary-bg);border-radius:var(--radius-md);display:flex;align-items:center;gap:10px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M12 2a10 10 0 000 20"/></svg>
+      <span style="font-size:.82rem;color:var(--primary)">Essas informações ajudam na agenda, no atendimento e no cálculo automático da comissão.</span>
+    </div>
+    <!-- Profissionais habilitados resumo -->
+    <div style="margin-top:24px">
+      <div class="nc-section-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="18" height="18"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        Profissionais habilitados
+      </div>
+      <p style="font-size:.78rem;color:var(--gray-400);margin-bottom:12px">Selecione quais profissionais podem realizar este serviço.</p>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="position:relative;flex:1;max-width:280px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--gray-400)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Buscar profissional..." oninput="nsFiltrarPros(this.value)" style="width:100%;padding:8px 12px 8px 32px;border:1.5px solid var(--gray-200);border-radius:var(--radius-md);font-size:.82rem;font-family:var(--font-body)"/>
+        </div>
+        <button onclick="nsSelecionarTodosPros()" style="font-size:.82rem;font-weight:600;color:var(--primary);background:none;border:none;cursor:pointer">Selecionar todos</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px" id="nsProsList">
+        ${pros.map((p,i) => {
+          const hab = (s.profissionaisIds||[]).includes(p.id);
+          const cor = ['#ec4899','#8b5cf6','#f59e0b','#10b981','#3b82f6','#ef4444'][i%6];
+          return `
+          <div class="ns-pro-card" id="nsProCard_${p.id}">
+            <div style="width:40px;height:40px;border-radius:50%;background:${cor};color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;flex-shrink:0">
+              ${p.foto?`<img src="${p.foto}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`:(p.nome||'?')[0].toUpperCase()}
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:.82rem;font-weight:600;color:var(--gray-800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.nome}</div>
+              <div style="font-size:.72rem;color:var(--gray-500)">${p.funcao||''}</div>
+            </div>
+            <input type="checkbox" ${hab?'checked':''} onchange="nsTogglePro(${p.id},this)" style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;flex-shrink:0" />
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+
+  if (nsEtapa===2) return `
+    <div class="nc-section-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="18" height="18"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      Comissão
+    </div>
+    <p style="font-size:.78rem;color:var(--gray-400);margin-bottom:20px">Defina o tipo e o valor da comissão para este serviço.</p>
+    <div class="nc-row" style="align-items:flex-end;gap:12px;margin-bottom:20px">
+      <div class="nc-field" style="max-width:200px">
+        <label class="nc-label">Tipo de comissão</label>
+        <select class="form-control" id="ns_tipoComissao" onchange="nsCalcComissao()">
+          <option value="percentual" ${(s.tipoComissao||'percentual')==='percentual'?'selected':''}>Percentual (%)</option>
+          <option value="fixo"       ${s.tipoComissao==='fixo'?'selected':''}>Valor fixo (R$)</option>
+        </select>
+      </div>
+      <div class="nc-field" style="max-width:140px">
+        <label class="nc-label" id="nsComLabel">${s.tipoComissao==='fixo'?'Percentual (%)':'Percentual (%)'}</label>
+        <input class="form-control" type="number" id="ns_comissao" value="${s.comissao||20}" min="0" step="0.01" oninput="nsCalcComissao()" />
+      </div>
+    </div>
+    <div style="background:var(--gray-50);border-radius:var(--radius-lg);padding:20px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:.875rem;color:var(--gray-500)">Valor do serviço</span>
+        <span style="font-size:.875rem;font-weight:600">${formatCurrency(s.preco||0)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:.875rem;color:var(--gray-500)">Comissão profissional</span>
+        <span style="font-size:.875rem;font-weight:600;color:var(--primary)" id="nsComResult">${formatCurrency(comissaoVal)}</span>
+      </div>
+      <div style="height:1px;background:var(--gray-200)"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:.875rem;color:var(--gray-500)">Valor para o salão</span>
+        <span style="font-size:.875rem;font-weight:700;color:var(--gray-800)" id="nsValSalao">${formatCurrency(valorSalao)}</span>
+      </div>
+    </div>`;
+
+  if (nsEtapa===3) {
+    const prods = s.produtosUtilizados||[];
+    return `
+    <div class="nc-section-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="18" height="18"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+      Produtos utilizados
+    </div>
+    <p style="font-size:.78rem;color:var(--gray-400);margin-bottom:16px">Os produtos serão baixados automaticamente do estoque ao finalizar o atendimento.</p>
+    ${prods.length?`
+    <div style="border:1px solid var(--gray-100);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:16px">
+      <div style="display:grid;grid-template-columns:1fr 120px 40px;padding:8px 16px;background:var(--gray-50);font-size:.75rem;font-weight:600;color:var(--gray-500)">
+        <span>Produto</span><span>Quantidade</span><span></span>
+      </div>
+      ${prods.map((p,i)=>`
+      <div style="display:grid;grid-template-columns:1fr 120px 40px;align-items:center;padding:10px 16px;border-top:1px solid var(--gray-50)">
+        <span style="font-size:.875rem">${p.nome}</span>
+        <span style="font-size:.875rem">${p.quantidade}</span>
+        <button onclick="nsRemoverProduto(${i})" style="width:28px;height:28px;border:none;background:none;cursor:pointer;color:var(--danger);font-size:1.2rem;line-height:1">×</button>
+      </div>`).join('')}
+    </div>`:'<p style="font-size:.82rem;color:var(--gray-400);margin-bottom:16px">Nenhum produto adicionado ainda.</p>'}
+    <div style="display:grid;grid-template-columns:1fr 120px auto;gap:10px;align-items:flex-end">
+      <div class="form-group" style="margin:0">
+        <label class="nc-label">Produto do estoque</label>
+        <select class="form-control" id="nsProdId" style="font-size:.82rem">
+          <option value="">Selecione...</option>
+          ${(DB.produtos||[]).map(p=>`<option value="${p.id}">${p.nome}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group" style="margin:0">
+        <label class="nc-label">Quantidade</label>
+        <input class="form-control" type="text" id="nsProdQtd" placeholder="Ex: 10ml" style="font-size:.82rem" />
+      </div>
+      <button class="btn btn-outline" onclick="nsAdicionarProduto()" style="white-space:nowrap">+ Adicionar</button>
+    </div>`;
+  }
+
+  if (nsEtapa===4) {
+    return `
+    <div class="nc-confirmacao">
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+        <div class="serv-detalhe-foto" style="background:#fce7f3;width:80px;height:80px">
+          ${(s.fotoPreview||s.foto)?`<img src="${s.fotoPreview||s.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:12px">`:`<span style="font-size:2.5rem">${s.emoji||'💅'}</span>`}
+        </div>
+        <div>
+          <div style="font-size:1.3rem;font-weight:700;color:var(--gray-900)">${s.nome||'—'}</div>
+          <div style="font-size:.875rem;color:var(--gray-500);margin-top:2px">${s.descricao||''}</div>
+        </div>
+      </div>
+      <div class="nc-confirm-grid">
+        <div class="nc-confirm-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>${s.duracao||0} minutos</span></div>
+        <div class="nc-confirm-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg><span>${formatCurrency(s.preco||0)}</span></div>
+        <div class="nc-confirm-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/></svg><span>${s.categoria||'—'}</span></div>
+      </div>
+      ${(s.profissionaisIds||[]).length?`<div class="nc-confirm-block"><strong>Profissionais:</strong> ${(s.profissionaisIds||[]).map(id=>(DB.profissionais||[]).find(p=>p.id===id)?.nome).filter(Boolean).join(', ')}</div>`:''}
+      ${s.comissao?`<div class="nc-confirm-block"><strong>Comissão:</strong> ${s.comissao}${s.tipoComissao==='fixo'?' (fixo)':'%'}</div>`:''}
+      ${(s.produtosUtilizados||[]).length?`<div class="nc-confirm-block"><strong>Produtos:</strong> ${(s.produtosUtilizados||[]).map(p=>p.nome).join(', ')}</div>`:''}
+    </div>`;
+  }
+  return '';
+}
+
+/* ── Helpers do wizard ── */
+function nsAtualizar() {
+  nsDados.nome      = document.getElementById('ns_nome')?.value   || nsDados.nome;
+  nsDados.categoria = document.getElementById('ns_cat')?.value    || nsDados.categoria;
+  nsDados.descricao = document.getElementById('ns_desc')?.value   || '';
+  nsDados.duracao   = parseInt(document.getElementById('ns_dur')?.value)  || nsDados.duracao;
+  nsDados.preco     = parseFloat(document.getElementById('ns_preco')?.value) || 0;
+  nsDados.ativo     = document.getElementById('ns_ativo')?.checked ?? true;
+  const lbl = document.getElementById('ns_ativoLabel');
+  if (lbl) { lbl.textContent=nsDados.ativo?'Ativo':'Inativo'; lbl.style.color=nsDados.ativo?'var(--success)':'var(--gray-400)'; }
+}
+
+function nsSelFoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 2*1024*1024) { showToast('Foto muito grande. Máximo 2MB.','error'); return; }
+  nsDados.fotoArquivo = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    nsDados.fotoPreview = e.target.result;
+    ['nsFotoBox','nsFotoPreview'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:${id==='nsFotoBox'?'10':'8'}px">`;
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+function nsTogglePro(id, cb) {
+  if (!nsDados.profissionaisIds) nsDados.profissionaisIds = [];
+  if (cb.checked) { if(!nsDados.profissionaisIds.includes(id)) nsDados.profissionaisIds.push(id); }
+  else            { nsDados.profissionaisIds = nsDados.profissionaisIds.filter(x=>x!==id); }
+}
+
+function nsSelecionarTodosPros() {
+  nsDados.profissionaisIds = (DB.profissionais||[]).map(p=>p.id);
+  document.querySelectorAll('#nsProsList input[type=checkbox]').forEach(cb=>cb.checked=true);
+}
+
+function nsFiltrarPros(q) {
+  document.querySelectorAll('#nsProsList .ns-pro-card').forEach(card => {
+    card.style.display = card.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
   });
 }
 
-async function servSalvarEdicao(id) {
-  const nome=document.getElementById('es_nome')?.value.trim();
-  if(!nome){showToast('Informe o nome','error');return;}
-  try {
-    const base=(typeof API_BASE!=='undefined')?API_BASE:'';
-    const body={
-      nome, categoria:document.getElementById('es_cat')?.value,
-      preco:parseFloat(document.getElementById('es_preco')?.value)||0,
-      duracao:parseInt(document.getElementById('es_dur')?.value)||60,
-      comissao:parseInt(document.getElementById('es_com')?.value)||20,
-      emoji:document.getElementById('es_emoji')?.value||'💅',
-      descricao:document.getElementById('es_desc')?.value||''
-    };
-    const resp=await fetch(`${base}/api/servicos/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(resp.ok){
-      showToast('Serviço atualizado!','success'); closeModal();
-      if(typeof loadAllFromAPI==='function') await loadAllFromAPI();
-      servRenderLista();
-      const updated=(DB.servicos||[]).find(x=>x.id===id);
-      if(_servSelecionado?.id===id&&updated) servRenderDetalhe(updated);
-    } else showToast('Erro ao salvar','error');
-  } catch(e){showToast('Erro de conexão','error');}
+function nsCalcComissao() {
+  const tipo = document.getElementById('ns_tipoComissao')?.value || 'percentual';
+  const val  = parseFloat(document.getElementById('ns_comissao')?.value)||0;
+  const lbl  = document.getElementById('nsComLabel');
+  if (lbl) lbl.textContent = tipo==='fixo'?'Valor fixo (R$)':'Percentual (%)';
+  const com = tipo==='percentual' ? (nsDados.preco||0)*(val/100) : val;
+  const sal = (nsDados.preco||0) - com;
+  const cr  = document.getElementById('nsComResult');
+  const cs  = document.getElementById('nsValSalao');
+  if (cr) cr.textContent = formatCurrency(com);
+  if (cs) cs.textContent = formatCurrency(sal);
 }
 
-// Alias para compatibilidade
-function openNewServico() { servAbrirNovo(); }
-function saveServico() { servSalvarNovo(); }
-function editServico(id) { servAbrirEdicao(id); }
-function toggleServico(id) { servToggleStatus(id); }
+function nsSalvarEtapa1() {
+  const get = id => document.getElementById(id);
+  if (get('ns_nome'))        nsDados.nome      = get('ns_nome').value.trim();
+  if (get('ns_cat'))         nsDados.categoria = get('ns_cat').value;
+  if (get('ns_desc'))        nsDados.descricao = get('ns_desc').value;
+  if (get('ns_dur'))         nsDados.duracao   = parseInt(get('ns_dur').value)||60;
+  if (get('ns_preco'))       nsDados.preco     = parseFloat(get('ns_preco').value)||0;
+  if (get('ns_ativo'))       nsDados.ativo     = get('ns_ativo').checked;
+  // profissionais
+  document.querySelectorAll('#nsProsList input[type=checkbox]').forEach(cb => {
+    const id = parseInt(cb.getAttribute('onchange').match(/\d+/)?.[0]);
+    if (!id) return;
+    if (!nsDados.profissionaisIds) nsDados.profissionaisIds = [];
+    if (cb.checked && !nsDados.profissionaisIds.includes(id)) nsDados.profissionaisIds.push(id);
+    if (!cb.checked) nsDados.profissionaisIds = nsDados.profissionaisIds.filter(x=>x!==id);
+  });
+}
 
+function nsSalvarEtapa2() {
+  const get = id => document.getElementById(id);
+  if (get('ns_tipoComissao')) nsDados.tipoComissao = get('ns_tipoComissao').value;
+  if (get('ns_comissao'))     nsDados.comissao     = parseFloat(get('ns_comissao').value)||0;
+}
+
+function nsAdicionarProduto() {
+  const pid  = parseInt(document.getElementById('nsProdId')?.value);
+  const qtd  = document.getElementById('nsProdQtd')?.value.trim();
+  if (!pid||!qtd) { showToast('Selecione o produto e informe a quantidade','error'); return; }
+  const prod = (DB.produtos||[]).find(x=>x.id===pid);
+  if (!prod) return;
+  if (!nsDados.produtosUtilizados) nsDados.produtosUtilizados=[];
+  nsDados.produtosUtilizados.push({id:pid,nome:prod.nome,quantidade:qtd});
+  navigate('novoServico');
+}
+
+function nsRemoverProduto(idx) {
+  if (nsDados.produtosUtilizados) nsDados.produtosUtilizados.splice(idx,1);
+  navigate('novoServico');
+}
+
+function nsProximo() {
+  if (nsEtapa===1) {
+    nsSalvarEtapa1();
+    if (!nsDados.nome) { showToast('Informe o nome do serviço','error'); return; }
+  }
+  if (nsEtapa===2) nsSalvarEtapa2();
+  nsEtapa++;
+  navigate('novoServico');
+}
+
+function nsVoltar() {
+  if (nsEtapa===1) { navigate('servicos'); return; }
+  if (nsEtapa===2) nsSalvarEtapa2();
+  nsEtapa--;
+  navigate('novoServico');
+}
+
+async function nsSalvar() {
+  nsSalvarEtapa1();
+  nsSalvarEtapa2();
+  if (!nsDados.nome) { showToast('Nome obrigatório','error'); return; }
+  const isEdit = !!nsDados.editId;
+  try {
+    const base = (typeof API_BASE!=='undefined')?API_BASE:'';
+    const body = {
+      nome:             nsDados.nome        || '',
+      categoria:        nsDados.categoria   || 'Outros',
+      descricao:        nsDados.descricao   || '',
+      preco:            parseFloat(nsDados.preco)||0,
+      duracao:          parseInt(nsDados.duracao)||60,
+      comissao:         parseFloat(nsDados.comissao)||0,
+      tipo_comissao:    nsDados.tipoComissao|| 'percentual',
+      emoji:            nsDados.emoji       || '💅',
+      ativo:            nsDados.ativo!==false,
+      profissionais_ids:   nsDados.profissionaisIds   || [],
+      produtos_utilizados: nsDados.produtosUtilizados || [],
+    };
+    const url    = isEdit ? `${base}/api/servicos/${nsDados.editId}` : `${base}/api/servicos`;
+    const method = isEdit ? 'PUT' : 'POST';
+    const resp   = await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if (resp.ok) {
+      const saved = await resp.json();
+      const profId = nsDados.editId || saved.id;
+      if (profId && nsDados.fotoArquivo) {
+        const fd = new FormData();
+        fd.append('foto', nsDados.fotoArquivo);
+        await fetch(`${base}/api/servicos/${profId}/foto`,{method:'POST',body:fd});
+      }
+      showToast(isEdit?'Serviço atualizado!':'Serviço cadastrado!','success');
+      if(typeof loadAllFromAPI==='function') await loadAllFromAPI();
+      nsEtapa=1; nsDados={};
+      navigate('servicos');
+    } else {
+      let d={}; try{d=await resp.json();}catch(e){}
+      showToast(d.erro||d.error||`Erro ${resp.status}`,'error');
+    }
+  } catch(e){showToast('Erro de conexão','error');}
+}
 
 /* ===================== PROFISSIONAIS ===================== */
 let _profSelecionado  = null;

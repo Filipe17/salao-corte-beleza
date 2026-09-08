@@ -2380,3 +2380,63 @@ select {
   .serv-layout { grid-template-columns: 1fr; }
   .serv-detalhe-panel { min-height: 400px; }
 }
+
+/* ═══════════════════════════
+   WIZARD NOVO SERVIÇO
+═══════════════════════════ */
+/* Toggle switch */
+.ns-toggle { position:relative;display:inline-block;width:44px;height:24px; }
+.ns-toggle input { opacity:0;width:0;height:0; }
+.ns-toggle-slider {
+  position:absolute;inset:0;background:var(--gray-300);border-radius:24px;
+  cursor:pointer;transition:background var(--t-fast);
+}
+.ns-toggle-slider::before {
+  content:'';position:absolute;width:18px;height:18px;border-radius:50%;
+  background:white;left:3px;bottom:3px;transition:transform var(--t-fast);
+  box-shadow:0 1px 3px rgba(0,0,0,.2);
+}
+.ns-toggle input:checked ~ .ns-toggle-slider { background:var(--primary); }
+.ns-toggle input:checked ~ .ns-toggle-slider::before { transform:translateX(20px); }
+
+/* Foto do serviço — caixa retangular */
+.ns-foto-box {
+  width:180px;height:180px;border-radius:10px;
+  border:2px dashed var(--gray-200);background:var(--gray-50);
+  display:flex;align-items:center;justify-content:center;
+  transition:border-color var(--t-fast);overflow:hidden;
+}
+.ns-foto-box:hover { border-color:var(--primary-light); }
+
+/* Preview no resumo lateral */
+.ns-foto-preview {
+  width:80px;height:80px;border-radius:8px;
+  border:1.5px solid var(--gray-200);background:var(--gray-50);
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;cursor:pointer;flex-shrink:0;
+}
+
+/* Card de profissional no wizard */
+.ns-pro-card {
+  display:flex;align-items:center;gap:10px;padding:10px 12px;
+  border:1.5px solid var(--gray-100);border-radius:var(--radius-md);
+  background:white;transition:border-color var(--t-fast);cursor:pointer;
+}
+.ns-pro-card:hover { border-color:var(--primary-light); }
+
+/* Resumo lateral */
+.ns-resumo {
+  width:300px;flex-shrink:0;
+  background:white;border-radius:var(--radius-lg);
+  border:1px solid var(--gray-100);padding:20px;
+  height:fit-content;position:sticky;top:24px;
+  display:flex;flex-direction:column;gap:0;
+}
+.ns-resumo-linha {
+  display:flex;justify-content:space-between;align-items:center;
+  padding:7px 0;border-bottom:1px solid var(--gray-50);
+  font-size:.82rem;
+}
+.ns-resumo-linha:last-child { border-bottom:none; }
+.ns-resumo-linha span:first-child { color:var(--gray-500); }
+.ns-resumo-linha span:last-child  { font-weight:600;color:var(--gray-800); }

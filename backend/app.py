@@ -196,20 +196,42 @@ class Profissional(db.Model):
 
 class Servico(db.Model):
     __tablename__ = 'servicos'
-    id        = db.Column(db.Integer, primary_key=True)
-    nome      = db.Column(db.String(120), nullable=False)
-    categoria = db.Column(db.String(60), default='Outros')
-    preco     = db.Column(db.Float, default=0)
-    duracao   = db.Column(db.Integer, default=60)
-    comissao  = db.Column(db.Integer, default=40)
-    emoji     = db.Column(db.String(10), default='✨')
-    ativo     = db.Column(db.Boolean, default=True)
+    id                 = db.Column(db.Integer, primary_key=True)
+    nome               = db.Column(db.String(120), nullable=False)
+    categoria          = db.Column(db.String(60),  default='Outros')
+    descricao          = db.Column(db.Text,         default='')
+    preco              = db.Column(db.Float,        default=0)
+    duracao            = db.Column(db.Integer,      default=60)
+    comissao           = db.Column(db.Float,        default=20)
+    tipo_comissao      = db.Column(db.String(20),   default='percentual')
+    emoji              = db.Column(db.String(10),   default='✨')
+    foto               = db.Column(db.String(300),  default='')
+    ativo              = db.Column(db.Boolean,      default=True)
+    obs                = db.Column(db.Text,         default='')
+    # JSON serializado — profissionais habilitados e produtos utilizados
+    profissionais_ids  = db.Column(db.Text,         default='[]')
+    produtos_json      = db.Column(db.Text,         default='[]')
 
     def to_dict(self):
+        import json
+        def parse(v):
+            try: return json.loads(v or '[]')
+            except: return []
         return {
-            'id': self.id, 'nome': self.nome, 'categoria': self.categoria,
-            'preco': self.preco, 'duracao': self.duracao,
-            'comissao': self.comissao, 'emoji': self.emoji, 'ativo': self.ativo,
+            'id':               self.id,
+            'nome':             self.nome               or '',
+            'categoria':        self.categoria          or '',
+            'descricao':        self.descricao          or '',
+            'preco':            self.preco              or 0,
+            'duracao':          self.duracao            or 60,
+            'comissao':         self.comissao           or 0,
+            'tipo_comissao':    self.tipo_comissao      or 'percentual',
+            'emoji':            self.emoji              or '✨',
+            'foto':             self.foto               or '',
+            'ativo':            self.ativo if self.ativo is not None else True,
+            'obs':              self.obs                or '',
+            'profissionais_ids': parse(self.profissionais_ids),
+            'produtos_utilizados': parse(self.produtos_json),
         }
 
 
@@ -442,6 +464,14 @@ def migrate():
         ("hora_fim",    "VARCHAR(5) DEFAULT ''"),
         ("forma_pgto",  "VARCHAR(30) DEFAULT ''"),
     ]
+    cols_servicos = [
+        ("descricao",       "TEXT        DEFAULT ''"),
+        ("tipo_comissao",   "VARCHAR(20) DEFAULT 'percentual'"),
+        ("foto",            "VARCHAR(300) DEFAULT ''"),
+        ("obs",             "TEXT        DEFAULT ''"),
+        ("profissionais_ids","TEXT       DEFAULT '[]'"),
+        ("produtos_json",   "TEXT        DEFAULT '[]'"),
+    ]
     cols_profissionais = [
         ("nome_social",     "VARCHAR(120) DEFAULT ''"),
         ("telefone_fixo",   "VARCHAR(30)  DEFAULT ''"),
@@ -503,6 +533,14 @@ def migrate():
                 conn.execute(db.text(f"ALTER TABLE agendamentos ADD COLUMN {col} {definition}"))
                 conn.commit()
                 print(f"✅ Migration agendamentos: {col}")
+            except Exception:
+                conn.rollback()
+
+        for col, definition in cols_servicos:
+            try:
+                conn.execute(db.text(f"ALTER TABLE servicos ADD COLUMN {col} {definition}"))
+                conn.commit()
+                print(f"✅ Migration servicos: {col}")
             except Exception:
                 conn.rollback()
 
@@ -1065,14 +1103,21 @@ def get_servicos():
 
 @app.route('/api/servicos', methods=['POST'])
 def create_servico():
+    import json
     body = request.get_json()
     s = Servico(
-        nome=body.get('nome', ''),
-        categoria=body.get('categoria', 'Outros'),
-        preco=float(body.get('preco', 0)),
-        duracao=int(body.get('duracao', 60)),
-        comissao=int(body.get('comissao', 40)),
-        emoji=body.get('emoji', '✨'),
+        nome          = body.get('nome', ''),
+        categoria     = body.get('categoria', 'Outros'),
+        descricao     = body.get('descricao', ''),
+        preco         = float(body.get('preco', 0)),
+        duracao       = int(body.get('duracao', 60)),
+        comissao      = float(body.get('comissao', 20)),
+        tipo_comissao = body.get('tipo_comissao', 'percentual'),
+        emoji         = body.get('emoji', '✨'),
+        obs           = body.get('obs', ''),
+        ativo         = body.get('ativo', True),
+        profissionais_ids = json.dumps(body.get('profissionais_ids', [])),
+        produtos_json     = json.dumps(body.get('produtos_utilizados', [])),
     )
     db.session.add(s)
     db.session.commit()
@@ -1081,13 +1126,46 @@ def create_servico():
 
 @app.route('/api/servicos/<int:id>', methods=['PUT'])
 def update_servico(id):
+    import json
     s = Servico.query.get_or_404(id)
     body = request.get_json()
-    for k, v in body.items():
-        if hasattr(s, k) and k != 'id':
-            setattr(s, k, v)
-    db.session.commit()
+    str_fields = ['nome','categoria','descricao','emoji','obs','tipo_comissao']
+    for f in str_fields:
+        if f in body:
+            setattr(s, f, str(body[f]) if body[f] is not None else '')
+    if 'preco'    in body: s.preco    = float(body['preco'] or 0)
+    if 'duracao'  in body: s.duracao  = int(body['duracao'] or 60)
+    if 'comissao' in body: s.comissao = float(body['comissao'] or 0)
+    if 'ativo'    in body: s.ativo    = bool(body['ativo'])
+    if 'profissionais_ids'   in body: s.profissionais_ids = json.dumps(body['profissionais_ids'])
+    if 'produtos_utilizados' in body: s.produtos_json     = json.dumps(body['produtos_utilizados'])
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'erro': str(e)}), 500
     return jsonify(s.to_dict())
+
+
+@app.route('/api/servicos/<int:id>/foto', methods=['POST'])
+def upload_foto_servico(id):
+    s = Servico.query.get_or_404(id)
+    if 'foto' not in request.files:
+        return jsonify({'erro': 'Nenhum arquivo enviado'}), 400
+    file = request.files['foto']
+    if file.filename == '':
+        return jsonify({'erro': 'Arquivo inválido'}), 400
+    allowed = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
+    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+    if ext not in allowed:
+        return jsonify({'erro': 'Formato não suportado'}), 400
+    upload_dir = os.path.join(UPLOAD_DIR, 'servicos')
+    os.makedirs(upload_dir, exist_ok=True)
+    filename = f"servico_{id}.{ext}"
+    file.save(os.path.join(upload_dir, filename))
+    s.foto = f"/uploads/servicos/{filename}"
+    db.session.commit()
+    return jsonify({'ok': True, 'foto': s.foto})
 
 
 # ═══════════════════════════════════════════════════════
