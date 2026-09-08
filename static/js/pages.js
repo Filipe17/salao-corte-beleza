@@ -1953,88 +1953,693 @@ function cfgRemoverBloqueio(proId, idx) {
 
 
 
-function renderServicos() {
-  const cats = [...new Set(DB.servicos.map(s=>s.categoria))];
-  const catBtns = cats.map(c => `<button class="btn btn-sm btn-outline">${c}</button>`).join('');
-  const cards = DB.servicos.map(s => `
-    <div class="service-card">
-      <div class="service-emoji">${s.emoji}</div>
-      <div class="service-info">
-        <div class="service-name">${s.nome}</div>
-        <div class="service-meta">${s.categoria} · ${s.duracao} min · Comissão: ${s.comissao}%</div>
-      </div>
-      <div class="service-price">
-        <div class="service-price-value">${formatCurrency(s.preco)}</div>
-        <div class="service-duration">${statusBadge(s.ativo?'ativo':'inativo')}</div>
-      </div>
-      <div style="display:flex;gap:6px">
-        <button class="btn btn-sm btn-ghost" onclick="editServico(${s.id})">✏️</button>
-        <button class="btn btn-sm btn-ghost" onclick="toggleServico(${s.id})">${s.ativo?'🔴':'🟢'}</button>
-      </div>
-    </div>`).join('');
+/* ===================== SERVIÇOS ===================== */
+let _servSelecionado = null;
+let _servAbaAtiva    = 'profissionais';
+let _servBusca       = '';
+let _servFiltrosCat  = '';
+let _servFiltroStat  = '';
+const CATS_SERVICO   = ['Unhas','Cabelo','Estética','Maquiagem','Sobrancelha','Depilação','Outros'];
 
+function renderServicos() {
+  setTimeout(() => { _servIniciar(); }, 0);
   return `
-  <div class="page-header">
-    <div class="page-header-left"><h1>Serviços</h1></div>
-    <div class="page-header-right">
-      <button class="btn btn-primary" onclick="openNewServico()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Novo serviço
+  <!-- Barra busca/filtros -->
+  <div class="serv-filtros-card">
+    <div class="serv-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="servBuscaInput" placeholder="Buscar serviço..." oninput="servFiltrar()" />
+    </div>
+    <div class="serv-filtros-bar">
+      <div class="prof-filtro-grupo">
+        <span class="prof-filtro-label">Categoria</span>
+        <select class="prof-filtro-select" id="servFiltrosCat" onchange="servFiltrar()">
+          <option value="">Todos</option>
+          ${CATS_SERVICO.map(c=>`<option value="${c}">${c}</option>`).join('')}
+        </select>
+      </div>
+      <div class="prof-filtro-grupo">
+        <span class="prof-filtro-label">Status</span>
+        <select class="prof-filtro-select" id="servFiltrosStat" onchange="servFiltrar()">
+          <option value="">Todos</option>
+          <option value="ativo">Ativo</option>
+          <option value="inativo">Inativo</option>
+        </select>
+      </div>
+      <button class="btn-filtro">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        Filtros
       </button>
     </div>
   </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
-    <button class="btn btn-sm btn-primary">Todos</button>${catBtns}
+
+  <div class="page-header" style="margin-bottom:16px">
+    <div class="page-header-left"><h1>Serviços</h1><p style="font-size:.82rem;color:var(--gray-400)">Gerencie os serviços oferecidos pelo seu salão</p></div>
+    <div class="page-header-right">
+      <button class="btn btn-primary" onclick="servAbrirNovo()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Novo Serviço
+      </button>
+    </div>
   </div>
-  <div style="display:flex;flex-direction:column;gap:10px">${cards}</div>`;
+
+  <div class="serv-layout">
+    <!-- Lista -->
+    <div class="serv-lista-panel">
+      <div class="serv-tabela-wrap">
+        <table class="serv-tabela">
+          <thead>
+            <tr>
+              <th style="width:56px">Foto</th>
+              <th>Serviço</th>
+              <th>Categoria</th>
+              <th>Duração</th>
+              <th>Valor</th>
+              <th>Status</th>
+              <th style="width:48px">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="servTbody">
+            <tr><td colspan="7" style="text-align:center;padding:32px;color:var(--gray-400)">Carregando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="serv-paginacao" id="servPaginacao">
+        <span id="servPagInfo">—</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:.82rem;color:var(--gray-500)">Itens por página</span>
+          <select class="prof-filtro-select" id="servPorPag" style="min-width:60px" onchange="servFiltrar()">
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+          <div class="prof-pag-btns">
+            <button class="prof-pag-btn" onclick="servPagAnterior()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <button class="prof-pag-btn active" id="servPagNum">1</button>
+            <button class="prof-pag-btn" onclick="servPagProxima()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Painel direito -->
+    <div class="serv-detalhe-panel" id="servDetalhePanel">
+      <div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--gray-400);text-align:center;padding:40px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:52px;height:52px;opacity:0.2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        <p style="font-size:.875rem">Selecione um serviço para ver detalhes</p>
+      </div>
+    </div>
+  </div>`;
 }
 
-function openNewServico() {
+let _servPagAtual = 1;
+
+function _servIniciar() {
+  _servBusca = ''; _servFiltrosCat = ''; _servFiltroStat = '';
+  _servSelecionado = null; _servPagAtual = 1;
+  servRenderLista();
+}
+
+function servFiltrar() {
+  _servBusca      = (document.getElementById('servBuscaInput')?.value || '').toLowerCase();
+  _servFiltrosCat = document.getElementById('servFiltrosCat')?.value || '';
+  _servFiltroStat = document.getElementById('servFiltrosStat')?.value || '';
+  _servPagAtual   = 1;
+  servRenderLista();
+}
+
+function servGetFiltrados() {
+  return (DB.servicos || []).filter(s => {
+    if (_servFiltrosCat && s.categoria !== _servFiltrosCat) return false;
+    if (_servFiltroStat === 'ativo'   && !s.ativo) return false;
+    if (_servFiltroStat === 'inativo' && s.ativo)  return false;
+    if (_servBusca) {
+      const hay = [s.nome, s.categoria, s.descricao].join(' ').toLowerCase();
+      if (!hay.includes(_servBusca)) return false;
+    }
+    return true;
+  });
+}
+
+function servRenderLista() {
+  const porPag  = parseInt(document.getElementById('servPorPag')?.value || 10);
+  const todos   = servGetFiltrados();
+  const inicio  = (_servPagAtual - 1) * porPag;
+  const pagina  = todos.slice(inicio, inicio + porPag);
+
+  const infoEl = document.getElementById('servPagInfo');
+  if (infoEl) infoEl.textContent = `Mostrando ${todos.length ? inicio+1 : 0} a ${Math.min(inicio+porPag, todos.length)} de ${todos.length} serviços`;
+  const numEl = document.getElementById('servPagNum');
+  if (numEl) numEl.textContent = _servPagAtual;
+
+  const tbody = document.getElementById('servTbody');
+  if (!tbody) return;
+
+  if (!pagina.length) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--gray-400);font-size:.875rem">Nenhum serviço encontrado</td></tr>`;
+    return;
+  }
+
+  const CAT_CORES = {
+    'Unhas':'#fce7f3','Cabelo':'#ede9fe','Estética':'#d1fae5',
+    'Maquiagem':'#fef3c7','Sobrancelha':'#dbeafe','Depilação':'#fee2e2','Outros':'var(--gray-100)'
+  };
+  const CAT_TEXT = {
+    'Unhas':'#be185d','Cabelo':'#7c3aed','Estética':'#065f46',
+    'Maquiagem':'#92400e','Sobrancelha':'#1e40af','Depilação':'#991b1b','Outros':'var(--gray-600)'
+  };
+
+  tbody.innerHTML = pagina.map(s => {
+    const ativo = s.ativo !== false;
+    const sel   = _servSelecionado?.id === s.id;
+    const bg    = CAT_CORES[s.categoria] || 'var(--gray-100)';
+    const tc    = CAT_TEXT[s.categoria]  || 'var(--gray-600)';
+    return `
+    <tr class="${sel?'selected':''}" onclick="servSelecionar(${s.id})">
+      <td>
+        <div class="serv-foto" style="background:${bg}">
+          ${s.foto ? `<img src="${s.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:8px">` : `<span style="font-size:1.3rem">${s.emoji||'💅'}</span>`}
+        </div>
+      </td>
+      <td>
+        <div style="font-weight:600;color:var(--gray-800)">${s.nome}</div>
+        <div style="font-size:.75rem;color:var(--gray-400)">${s.descricao||''}</div>
+      </td>
+      <td><span style="padding:2px 10px;border-radius:20px;font-size:.75rem;font-weight:600;background:${bg};color:${tc}">${s.categoria||'—'}</span></td>
+      <td style="font-size:.875rem">${s.duracao||0} min</td>
+      <td style="font-weight:600;font-size:.875rem">${formatCurrency(s.preco)}</td>
+      <td><span class="prof-badge-status ${ativo?'ativo':'inativo'}">${ativo?'Ativo':'Inativo'}</span></td>
+      <td style="position:relative">
+        <button class="prof-row-menu-btn" onclick="servMenuLinha(event,${s.id})">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+        </button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function servPagAnterior() { if (_servPagAtual>1){_servPagAtual--;servRenderLista();} }
+function servPagProxima() {
+  const pp = parseInt(document.getElementById('servPorPag')?.value||10);
+  const tot = Math.ceil(servGetFiltrados().length/pp);
+  if (_servPagAtual<tot){_servPagAtual++;servRenderLista();}
+}
+
+function servSelecionar(id) {
+  const s = (DB.servicos||[]).find(x=>x.id===id);
+  if (!s) return;
+  _servSelecionado = s; _servAbaAtiva = 'profissionais';
+  servRenderLista();
+  servRenderDetalhe(s);
+}
+
+function servRenderDetalhe(s) {
+  const panel = document.getElementById('servDetalhePanel');
+  if (!panel) return;
+  const ativo = s.ativo !== false;
+  const CAT_CORES = {'Unhas':'#fce7f3','Cabelo':'#ede9fe','Estética':'#d1fae5','Maquiagem':'#fef3c7','Sobrancelha':'#dbeafe','Outros':'var(--gray-100)'};
+  const CAT_TEXT  = {'Unhas':'#be185d','Cabelo':'#7c3aed','Estética':'#065f46','Maquiagem':'#92400e','Sobrancelha':'#1e40af','Outros':'var(--gray-600)'};
+  const bg = CAT_CORES[s.categoria]||'var(--gray-100)';
+  const tc = CAT_TEXT[s.categoria]||'var(--gray-600)';
+  const pros = DB.profissionais||[];
+
+  panel.innerHTML = `
+  <!-- Header do serviço -->
+  <div class="serv-detalhe-header">
+    <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px">
+      <div class="serv-detalhe-foto" style="background:${bg}">
+        ${s.foto?`<img src="${s.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`:`<span style="font-size:2rem">${s.emoji||'💅'}</span>`}
+      </div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="font-size:1.15rem;font-weight:700;color:var(--gray-900)">${s.nome}</span>
+          <span class="prof-badge-status ${ativo?'ativo':'inativo'}">${ativo?'Ativo':'Inativo'}</span>
+        </div>
+        <span style="padding:2px 10px;border-radius:20px;font-size:.75rem;font-weight:600;background:${bg};color:${tc}">${s.categoria||'—'}</span>
+        <div style="font-size:.82rem;color:var(--gray-500);margin-top:6px">${s.descricao||'Sem descrição'}</div>
+      </div>
+      <button class="btn btn-outline" style="font-size:.82rem;padding:7px 12px;white-space:nowrap" onclick="servAbrirEdicao(${s.id})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Editar
+      </button>
+    </div>
+    <!-- KPIs -->
+    <div class="serv-kpis">
+      <div class="serv-kpi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <div><div style="font-size:.7rem;color:var(--gray-500)">Duração</div><div style="font-weight:700">${s.duracao||0} min</div></div>
+      </div>
+      <div class="serv-kpi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        <div><div style="font-size:.7rem;color:var(--gray-500)">Valor</div><div style="font-weight:700">${formatCurrency(s.preco)}</div></div>
+      </div>
+      <div class="serv-kpi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        <div><div style="font-size:.7rem;color:var(--gray-500)">Categoria</div><div style="font-weight:700">${s.categoria||'—'}</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Abas -->
+  <div class="prof-perfil-abas">
+    <button class="prof-perfil-aba ${_servAbaAtiva==='profissionais'?'active':''}" onclick="servMudarAba('profissionais',this)">Profissionais</button>
+    <button class="prof-perfil-aba ${_servAbaAtiva==='comissao'?'active':''}"      onclick="servMudarAba('comissao',this)">Comissão</button>
+    <button class="prof-perfil-aba ${_servAbaAtiva==='produtos'?'active':''}"      onclick="servMudarAba('produtos',this)">Produtos utilizados</button>
+    <button class="prof-perfil-aba ${_servAbaAtiva==='observacoes'?'active':''}"   onclick="servMudarAba('observacoes',this)">Observações</button>
+  </div>
+  <div class="prof-aba-conteudo" id="servAbaConteudo">
+    ${servRenderAba(_servAbaAtiva, s)}
+  </div>
+
+  <!-- Rodapé edição rápida -->
+  <div class="serv-edit-footer">
+    <div class="grid grid-2" style="gap:10px;margin-bottom:12px">
+      <div class="form-group">
+        <label class="form-label" style="font-size:.75rem">Categoria</label>
+        <select class="form-control" id="seditCat" style="font-size:.82rem;padding:6px 10px">
+          ${CATS_SERVICO.map(c=>`<option value="${c}" ${s.categoria===c?'selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="font-size:.75rem">Status</label>
+        <select class="form-control" id="seditStatus" style="font-size:.82rem;padding:6px 10px">
+          <option value="true"  ${s.ativo!==false?'selected':''}>Ativo</option>
+          <option value="false" ${s.ativo===false?'selected':''}>Inativo</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:12px">
+      <label class="form-label" style="font-size:.75rem">Descrição completa</label>
+      <textarea class="form-control" id="seditDesc" rows="3" style="font-size:.82rem">${s.descricao||''}</textarea>
+      <div style="text-align:right;font-size:.7rem;color:var(--gray-400);margin-top:2px" id="seditDescCount">${(s.descricao||'').length}/500</div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-outline" style="flex:1" onclick="servSelecionar(${s.id})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Cancelar
+      </button>
+      <button class="btn btn-primary" style="flex:1" onclick="servSalvarRapido(${s.id})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+        Salvar alterações
+      </button>
+    </div>
+  </div>`;
+
+  // Contador descrição
+  setTimeout(() => {
+    document.getElementById('seditDesc')?.addEventListener('input', function() {
+      document.getElementById('seditDescCount').textContent = this.value.length + '/500';
+    });
+  }, 0);
+}
+
+function servMudarAba(aba, btn) {
+  _servAbaAtiva = aba;
+  document.querySelectorAll('.prof-perfil-aba').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const cont = document.getElementById('servAbaConteudo');
+  if (cont && _servSelecionado) cont.innerHTML = servRenderAba(aba, _servSelecionado);
+}
+
+function servRenderAba(aba, s) {
+  if (aba==='profissionais') return servAbaProfissionais(s);
+  if (aba==='comissao')      return servAbaComissao(s);
+  if (aba==='produtos')      return servAbaProdutos(s);
+  if (aba==='observacoes')   return servAbaObservacoes(s);
+  return '';
+}
+
+function servAbaProfissionais(s) {
+  const pros = DB.profissionais||[];
+  if (!pros.length) return '<p style="font-size:.82rem;color:var(--gray-400)">Nenhum profissional cadastrado.</p>';
+  // profissionais habilitados — usa campo serv_ids ou todos por padrão
+  const habilitados = s.profissionais_ids || pros.map(p=>p.id);
+  return `
+  <div class="prof-secao-titulo">Profissionais habilitados</div>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    ${pros.map(p => {
+      const hab = habilitados.includes(p.id);
+      const idx = pros.indexOf(p);
+      const cor = ['#ec4899','#8b5cf6','#f59e0b','#10b981','#3b82f6','#ef4444'][idx%6];
+      return `
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--gray-50)">
+        <div style="width:40px;height:40px;border-radius:50%;background:${cor};color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;flex-shrink:0">
+          ${p.foto?`<img src="${p.foto}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`:(p.nome||'?')[0].toUpperCase()}
+        </div>
+        <div style="flex:1">
+          <div style="font-size:.875rem;font-weight:600;color:var(--gray-800)">${p.nome}</div>
+          <div style="font-size:.75rem;color:var(--gray-500)">${p.funcao||''}</div>
+        </div>
+        <input type="checkbox" ${hab?'checked':''} onchange="servTogglePro(${s.id},${p.id},this)"
+          style="width:18px;height:18px;accent-color:var(--primary);cursor:pointer" />
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function servAbaComissao(s) {
+  const com    = s.comissao || 0;
+  const tipo   = s.tipo_comissao || 'percentual';
+  const valCom = tipo==='percentual' ? (s.preco||0)*(com/100) : com;
+  const valSal = (s.preco||0) - valCom;
+  return `
+  <div class="prof-secao-titulo">Comissão</div>
+  <div class="nc-row" style="gap:12px;margin-bottom:16px;align-items:flex-end">
+    <div class="nc-field" style="max-width:180px">
+      <label class="nc-label">Tipo</label>
+      <select class="form-control" id="scomTipo" onchange="servAtualizarComissao(${s.id})" style="font-size:.82rem">
+        <option value="percentual" ${tipo==='percentual'?'selected':''}>Percentual (%)</option>
+        <option value="fixo"       ${tipo==='fixo'?'selected':''}>Valor fixo (R$)</option>
+      </select>
+    </div>
+    <div class="nc-field" style="max-width:120px">
+      <label class="nc-label" id="scomLabel">${tipo==='fixo'?'Valor (R$)':'Percentual (%)'}</label>
+      <input class="form-control" type="number" id="scomVal" value="${com}" min="0" oninput="servAtualizarComissao(${s.id})" style="font-size:.82rem" />
+    </div>
+  </div>
+  <div style="background:var(--gray-50);border-radius:var(--radius-md);padding:14px 16px;display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;justify-content:space-between;font-size:.875rem">
+      <span style="color:var(--gray-500)">Valor do serviço</span>
+      <span style="font-weight:600">${formatCurrency(s.preco)}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:.875rem">
+      <span style="color:var(--gray-500)">Comissão profissional</span>
+      <span style="font-weight:600;color:var(--primary)" id="scomCalcCom">${formatCurrency(valCom)}</span>
+    </div>
+    <div style="height:1px;background:var(--gray-200)"></div>
+    <div style="display:flex;justify-content:space-between;font-size:.875rem">
+      <span style="color:var(--gray-500)">Valor salão</span>
+      <span style="font-weight:700;color:var(--gray-800)" id="scomCalcSal">${formatCurrency(valSal)}</span>
+    </div>
+  </div>`;
+}
+
+function servAtualizarComissao(id) {
+  const s    = (DB.servicos||[]).find(x=>x.id===id);
+  if (!s) return;
+  const tipo = document.getElementById('scomTipo')?.value || 'percentual';
+  const val  = parseFloat(document.getElementById('scomVal')?.value) || 0;
+  const lbl  = document.getElementById('scomLabel');
+  if (lbl) lbl.textContent = tipo==='fixo'?'Valor (R$)':'Percentual (%)';
+  const valCom = tipo==='percentual' ? (s.preco||0)*(val/100) : val;
+  const valSal = (s.preco||0) - valCom;
+  const cc = document.getElementById('scomCalcCom');
+  const cs = document.getElementById('scomCalcSal');
+  if (cc) cc.textContent = formatCurrency(valCom);
+  if (cs) cs.textContent = formatCurrency(valSal);
+}
+
+function servAbaProdutos(s) {
+  const prods = s.produtos_utilizados || [];
+  return `
+  <div class="prof-secao-titulo">Produtos utilizados neste serviço</div>
+  <p style="font-size:.78rem;color:var(--gray-400);margin-bottom:12px">Os produtos serão baixados automaticamente do estoque ao finalizar o atendimento.</p>
+  ${prods.length ? `
+  <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
+    <div style="display:grid;grid-template-columns:1fr 100px 40px;gap:8px;padding:6px 10px;font-size:.75rem;font-weight:600;color:var(--gray-500);background:var(--gray-50);border-radius:6px">
+      <span>Produto</span><span>Quantidade</span><span></span>
+    </div>
+    ${prods.map((p,i)=>`
+    <div style="display:grid;grid-template-columns:1fr 100px 40px;gap:8px;align-items:center;padding:8px 10px;background:var(--gray-50);border-radius:6px">
+      <span style="font-size:.875rem">${p.nome}</span>
+      <span style="font-size:.875rem">${p.quantidade}</span>
+      <button onclick="servRemoverProduto(${s.id},${i})" style="width:28px;height:28px;border:none;background:none;cursor:pointer;color:var(--danger);font-size:1rem">×</button>
+    </div>`).join('')}
+  </div>` : '<p style="font-size:.82rem;color:var(--gray-400);margin-bottom:14px">Nenhum produto cadastrado ainda.</p>'}
+  <div style="display:grid;grid-template-columns:1fr 100px auto;gap:8px;align-items:flex-end">
+    <div class="form-group" style="margin:0">
+      <label class="nc-label">Produto</label>
+      <select class="form-control" id="sprodId" style="font-size:.82rem">
+        <option value="">Selecione...</option>
+        ${(DB.produtos||[]).map(p=>`<option value="${p.id}">${p.nome}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group" style="margin:0">
+      <label class="nc-label">Qtd</label>
+      <input class="form-control" type="text" id="sprodQtd" placeholder="Ex: 10ml" style="font-size:.82rem" />
+    </div>
+    <button class="btn btn-outline" onclick="servAdicionarProduto(${s.id})" style="white-space:nowrap">+ Adicionar</button>
+  </div>`;
+}
+
+function servAbaObservacoes(s) {
+  return `
+  <div class="prof-secao-titulo">Observações</div>
+  <textarea class="form-control" id="sobsText" rows="5" placeholder="Observações sobre o serviço...">${s.obs||''}</textarea>
+  <div style="margin-top:10px">
+    <button class="btn btn-outline" onclick="servSalvarObs(${s.id})">Salvar observações</button>
+  </div>`;
+}
+
+/* ── Ações ── */
+function servMenuLinha(e, id) {
+  e.stopPropagation();
+  document.querySelectorAll('.prof-row-dropdown').forEach(d=>d.remove());
+  const btn  = e.currentTarget;
+  const rect = btn.getBoundingClientRect();
+  const drop = document.createElement('div');
+  drop.className = 'prof-row-dropdown';
+  drop.style.cssText = `position:fixed;top:${rect.bottom+4}px;right:${window.innerWidth-rect.right}px;`;
+  const s = (DB.servicos||[]).find(x=>x.id===id);
+  drop.innerHTML = `
+    <button onclick="servSelecionar(${id});document.querySelectorAll('.prof-row-dropdown').forEach(d=>d.remove())">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Visualizar
+    </button>
+    <button onclick="servAbrirEdicao(${id})">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Editar
+    </button>
+    <button onclick="servDuplicar(${id})">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Duplicar
+    </button>
+    <button onclick="servToggleStatus(${id})">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/></svg> ${s?.ativo!==false?'Desativar':'Ativar'}
+    </button>
+    <button style="color:var(--danger)" onclick="servExcluir(${id})">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg> Excluir
+    </button>`;
+  document.body.appendChild(drop);
+  setTimeout(()=>document.addEventListener('click',()=>drop.remove(),{once:true}),0);
+}
+
+async function servToggleStatus(id) {
+  const s = (DB.servicos||[]).find(x=>x.id===id);
+  if (!s) return;
+  try {
+    const base = (typeof API_BASE!=='undefined')?API_BASE:'';
+    await fetch(`${base}/api/servicos/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ativo:!s.ativo})});
+    if(typeof loadAllFromAPI==='function') await loadAllFromAPI();
+    servRenderLista();
+    if(_servSelecionado?.id===id) servRenderDetalhe((DB.servicos||[]).find(x=>x.id===id)||s);
+    showToast(s.ativo?'Serviço desativado':'Serviço ativado','success');
+  } catch(e){showToast('Erro de conexão','error');}
+}
+
+function servDuplicar(id) {
+  const s = (DB.servicos||[]).find(x=>x.id===id);
+  if (!s) return;
+  const novo = {...s, id:Date.now(), nome: s.nome+' (cópia)'};
+  DB.servicos.push(novo);
+  servRenderLista();
+  showToast('Serviço duplicado!','success');
+}
+
+async function servExcluir(id) {
+  confirmDialog('Deseja excluir este serviço? Esta ação não pode ser desfeita.', async()=>{
+    try {
+      const base=(typeof API_BASE!=='undefined')?API_BASE:'';
+      await fetch(`${base}/api/servicos/${id}`,{method:'DELETE'});
+      if(typeof loadAllFromAPI==='function') await loadAllFromAPI();
+      if(_servSelecionado?.id===id){
+        _servSelecionado=null;
+        const p=document.getElementById('servDetalhePanel');
+        if(p) p.innerHTML=`<div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--gray-400);text-align:center;padding:40px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:52px;height:52px;opacity:0.2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg><p style="font-size:.875rem">Selecione um serviço para ver detalhes</p></div>`;
+      }
+      servRenderLista();
+      showToast('Serviço excluído!','success');
+    } catch(e){showToast('Erro ao excluir','error');}
+  });
+}
+
+async function servSalvarRapido(id) {
+  const s = (DB.servicos||[]).find(x=>x.id===id);
+  if (!s) return;
+  const cat    = document.getElementById('seditCat')?.value    || s.categoria;
+  const status = document.getElementById('seditStatus')?.value !== 'false';
+  const desc   = document.getElementById('seditDesc')?.value   || '';
+  try {
+    const base=(typeof API_BASE!=='undefined')?API_BASE:'';
+    await fetch(`${base}/api/servicos/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({categoria:cat,ativo:status,descricao:desc})});
+    showToast('Serviço atualizado!','success');
+    if(typeof loadAllFromAPI==='function') await loadAllFromAPI();
+    servRenderLista();
+    const updated=(DB.servicos||[]).find(x=>x.id===id);
+    if(updated) servRenderDetalhe(updated);
+  } catch(e){showToast('Erro ao salvar','error');}
+}
+
+function servTogglePro(servId, proId, cb) {
+  const s=(DB.servicos||[]).find(x=>x.id===servId);
+  if(!s) return;
+  if(!s.profissionais_ids) s.profissionais_ids=(DB.profissionais||[]).map(p=>p.id);
+  if(cb.checked) { if(!s.profissionais_ids.includes(proId)) s.profissionais_ids.push(proId); }
+  else           { s.profissionais_ids=s.profissionais_ids.filter(x=>x!==proId); }
+  showToast('Salvo!','success');
+}
+
+function servAdicionarProduto(servId) {
+  const s    =(DB.servicos||[]).find(x=>x.id===servId);
+  if(!s) return;
+  const pid  = parseInt(document.getElementById('sprodId')?.value);
+  const qtd  = document.getElementById('sprodQtd')?.value.trim();
+  if(!pid||!qtd){showToast('Selecione o produto e informe a quantidade','error');return;}
+  const prod =(DB.produtos||[]).find(x=>x.id===pid);
+  if(!prod) return;
+  if(!s.produtos_utilizados) s.produtos_utilizados=[];
+  s.produtos_utilizados.push({id:pid,nome:prod.nome,quantidade:qtd});
+  servMudarAbaContent('produtos',s);
+  showToast('Produto adicionado!','success');
+}
+
+function servRemoverProduto(servId,idx) {
+  const s=(DB.servicos||[]).find(x=>x.id===servId);
+  if(!s||!s.produtos_utilizados) return;
+  s.produtos_utilizados.splice(idx,1);
+  servMudarAbaContent('produtos',s);
+}
+
+function servMudarAbaContent(aba,s) {
+  const cont=document.getElementById('servAbaConteudo');
+  if(cont) cont.innerHTML=servRenderAba(aba,s);
+}
+
+function servSalvarObs(id) {
+  const s=(DB.servicos||[]).find(x=>x.id===id);
+  if(!s) return;
+  s.obs=document.getElementById('sobsText')?.value||'';
+  showToast('Observações salvas!','success');
+}
+
+function servAbrirNovo() {
   openModal({
-    title: 'Novo Serviço',
-    body: `
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Nome</label>
-          <input type="text" class="form-control" id="ns_nome" placeholder="Ex: Manicure"></div>
-        <div class="form-group"><label class="form-label">Categoria</label>
-          <select class="form-control" id="ns_cat">
-            <option>Unhas</option><option>Cabelo</option><option>Estética</option><option>Maquiagem</option></select></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Preço (R$)</label>
-          <input type="number" class="form-control" id="ns_preco" placeholder="0,00"></div>
-        <div class="form-group"><label class="form-label">Duração (min)</label>
-          <input type="number" class="form-control" id="ns_dur" placeholder="60"></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Comissão (%)</label>
-          <input type="number" class="form-control" id="ns_com" placeholder="40"></div>
-        <div class="form-group"><label class="form-label">Emoji</label>
-          <input type="text" class="form-control" id="ns_emoji" placeholder="💅"></div>
-      </div>`,
-    footer: `
-      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveServico()">Salvar</button>`
+    title:'Novo Serviço', size:'lg',
+    body:`
+    <div class="grid grid-2" style="gap:12px">
+      <div class="form-group"><label class="form-label">Nome do serviço <span style="color:var(--danger)">*</span></label>
+        <input type="text" class="form-control" id="ns_nome" placeholder="Ex: Manicure Completa" /></div>
+      <div class="form-group"><label class="form-label">Categoria</label>
+        <select class="form-control" id="ns_cat">
+          ${CATS_SERVICO.map(c=>`<option>${c}</option>`).join('')}
+        </select></div>
+      <div class="form-group"><label class="form-label">Preço (R$)</label>
+        <input type="number" class="form-control" id="ns_preco" placeholder="0,00" min="0" step="0.01" /></div>
+      <div class="form-group"><label class="form-label">Duração (min)</label>
+        <input type="number" class="form-control" id="ns_dur" placeholder="60" min="1" /></div>
+      <div class="form-group"><label class="form-label">Comissão (%)</label>
+        <input type="number" class="form-control" id="ns_com" placeholder="20" min="0" max="100" /></div>
+      <div class="form-group"><label class="form-label">Emoji</label>
+        <input type="text" class="form-control" id="ns_emoji" placeholder="💅" /></div>
+    </div>
+    <div class="form-group" style="margin-top:8px">
+      <label class="form-label">Descrição</label>
+      <textarea class="form-control" id="ns_desc" rows="2" placeholder="Descreva o serviço..."></textarea>
+    </div>`,
+    footer:`<button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+            <button class="btn btn-primary" onclick="servSalvarNovo()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+              Salvar Serviço</button>`
   });
 }
-function saveServico() {
-  const nome = document.getElementById('ns_nome').value;
-  if (!nome) { showToast('Informe o nome','error'); return; }
-  DB.servicos.push({
-    id:generateId(DB.servicos), nome,
-    categoria:document.getElementById('ns_cat').value,
-    preco:parseFloat(document.getElementById('ns_preco').value)||0,
-    duracao:parseInt(document.getElementById('ns_dur').value)||60,
-    comissao:parseInt(document.getElementById('ns_com').value)||40,
-    emoji:document.getElementById('ns_emoji').value||'💅', ativo:true
+
+async function servSalvarNovo() {
+  const nome = document.getElementById('ns_nome')?.value.trim();
+  if(!nome){showToast('Informe o nome','error');return;}
+  try {
+    const base=(typeof API_BASE!=='undefined')?API_BASE:'';
+    const body={
+      nome, categoria:document.getElementById('ns_cat')?.value,
+      preco:parseFloat(document.getElementById('ns_preco')?.value)||0,
+      duracao:parseInt(document.getElementById('ns_dur')?.value)||60,
+      comissao:parseInt(document.getElementById('ns_com')?.value)||20,
+      emoji:document.getElementById('ns_emoji')?.value||'💅',
+      descricao:document.getElementById('ns_desc')?.value||'',
+      ativo:true
+    };
+    const resp=await fetch(base+'/api/servicos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(resp.ok){
+      showToast('Serviço cadastrado!','success'); closeModal();
+      if(typeof loadAllFromAPI==='function') await loadAllFromAPI();
+      servRenderLista();
+    } else showToast('Erro ao salvar','error');
+  } catch(e){showToast('Erro de conexão','error');}
+}
+
+function servAbrirEdicao(id) {
+  const s=(DB.servicos||[]).find(x=>x.id===id);
+  if(!s) return;
+  openModal({
+    title:'Editar Serviço', size:'lg',
+    body:`
+    <div class="grid grid-2" style="gap:12px">
+      <div class="form-group"><label class="form-label">Nome do serviço <span style="color:var(--danger)">*</span></label>
+        <input type="text" class="form-control" id="es_nome" value="${s.nome||''}" /></div>
+      <div class="form-group"><label class="form-label">Categoria</label>
+        <select class="form-control" id="es_cat">
+          ${CATS_SERVICO.map(c=>`<option ${s.categoria===c?'selected':''}>${c}</option>`).join('')}
+        </select></div>
+      <div class="form-group"><label class="form-label">Preço (R$)</label>
+        <input type="number" class="form-control" id="es_preco" value="${s.preco||0}" min="0" step="0.01" /></div>
+      <div class="form-group"><label class="form-label">Duração (min)</label>
+        <input type="number" class="form-control" id="es_dur" value="${s.duracao||60}" min="1" /></div>
+      <div class="form-group"><label class="form-label">Comissão (%)</label>
+        <input type="number" class="form-control" id="es_com" value="${s.comissao||20}" min="0" max="100" /></div>
+      <div class="form-group"><label class="form-label">Emoji</label>
+        <input type="text" class="form-control" id="es_emoji" value="${s.emoji||'💅'}" /></div>
+    </div>
+    <div class="form-group" style="margin-top:8px">
+      <label class="form-label">Descrição</label>
+      <textarea class="form-control" id="es_desc" rows="2">${s.descricao||''}</textarea>
+    </div>`,
+    footer:`<button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+            <button class="btn btn-primary" onclick="servSalvarEdicao(${id})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+              Salvar Alterações</button>`
   });
-  closeModal(); showToast('Serviço cadastrado!','success'); navigate('servicos');
 }
-function toggleServico(id) {
-  const s = DB.servicos.find(x=>x.id===id);
-  if (s) { s.ativo = !s.ativo; navigate('servicos'); }
+
+async function servSalvarEdicao(id) {
+  const nome=document.getElementById('es_nome')?.value.trim();
+  if(!nome){showToast('Informe o nome','error');return;}
+  try {
+    const base=(typeof API_BASE!=='undefined')?API_BASE:'';
+    const body={
+      nome, categoria:document.getElementById('es_cat')?.value,
+      preco:parseFloat(document.getElementById('es_preco')?.value)||0,
+      duracao:parseInt(document.getElementById('es_dur')?.value)||60,
+      comissao:parseInt(document.getElementById('es_com')?.value)||20,
+      emoji:document.getElementById('es_emoji')?.value||'💅',
+      descricao:document.getElementById('es_desc')?.value||''
+    };
+    const resp=await fetch(`${base}/api/servicos/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(resp.ok){
+      showToast('Serviço atualizado!','success'); closeModal();
+      if(typeof loadAllFromAPI==='function') await loadAllFromAPI();
+      servRenderLista();
+      const updated=(DB.servicos||[]).find(x=>x.id===id);
+      if(_servSelecionado?.id===id&&updated) servRenderDetalhe(updated);
+    } else showToast('Erro ao salvar','error');
+  } catch(e){showToast('Erro de conexão','error');}
 }
-function editServico(id) { showToast('Edição em desenvolvimento','warning'); }
+
+// Alias para compatibilidade
+function openNewServico() { servAbrirNovo(); }
+function saveServico() { servSalvarNovo(); }
+function editServico(id) { servAbrirEdicao(id); }
+function toggleServico(id) { servToggleStatus(id); }
+
 
 /* ===================== PROFISSIONAIS ===================== */
 let _profSelecionado  = null;
