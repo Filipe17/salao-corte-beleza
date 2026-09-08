@@ -5,6 +5,7 @@
 /* ===================== DASHBOARD ===================== */
 let agendaView = 'day';
 let agendaDate = new Date();
+let _agSelecionadoId = null;
 
 // ── Usuário logado e permissões da agenda ────────────────
 function getUsuarioLogado() {
@@ -540,60 +541,30 @@ function renderAgenda() {
     <!-- Área principal -->
     <div class="agenda-nova-main">
       <!-- Toolbar -->
-      <!-- Barra de filtros horizontal -->
-      <div class="ag-filtros-bar">
-        <!-- Navegação de data -->
-        <div class="ag-data-nav">
-          <button class="ag-nav-btn" onclick="agendaBack()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="15 18 9 12 15 6"/></svg>
+      <div class="agenda-nova-toolbar">
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="agenda-nav-btn" onclick="agendaBack()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <div class="ag-data-box">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" style="color:var(--primary);flex-shrink:0"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            <span class="ag-data-texto">${agendaDate.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'})}</span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" style="color:var(--gray-400)"><polyline points="6 9 12 15 18 9"/></svg>
-          </div>
-          <button class="ag-nav-btn" onclick="agendaNext()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="9 18 15 12 9 6"/></svg>
+          <button class="btn btn-sm btn-outline" onclick="agendaToday()" style="padding:6px 14px">Hoje</button>
+          <button class="agenda-nav-btn" onclick="agendaNext()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
-        </div>
-
-        <!-- Separador -->
-        <div class="ag-filtros-sep"></div>
-
-        <!-- Select Profissional -->
-        <div class="ag-filtro-item">
-          <label class="ag-filtro-label">Profissional</label>
-          <div class="ag-select-wrap">
-            <select class="ag-select" onchange="agFiltrarPro(this.value)">
-              <option value="">Todos</option>
-              ${pros.map(p=>`<option value="${p.id}" ${window._agFiltroPro===p.id?'selected':''}>${p.nome}</option>`).join('')}
-            </select>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+          <div style="margin-left:8px">
+            <div style="font-weight:700;font-size:1rem;color:var(--gray-800)">${dateLabel}</div>
+            <div style="font-size:0.78rem;color:var(--gray-400);text-transform:capitalize">${weekLabel}</div>
           </div>
         </div>
-
-        <!-- Select Serviço -->
-        <div class="ag-filtro-item">
-          <label class="ag-filtro-label">Serviço</label>
-          <div class="ag-select-wrap">
-            <select class="ag-select" onchange="window._agFiltroServ=this.value||'';navigate('agenda')">
-              <option value="">Todos</option>
-              ${DB.servicos.filter(s=>s.ativo).map(s=>`<option ${window._agFiltroServ===s.nome?'selected':''} value="${s.nome}">${s.nome}</option>`).join('')}
-            </select>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="view-toggle">
+            <button class="view-toggle-btn ${agendaView==='day'?'active':''}" onclick="setAgendaView('day')">Dia</button>
+            <button class="view-toggle-btn ${agendaView==='week'?'active':''}" onclick="setAgendaView('week')">Semana</button>
+            <button class="view-toggle-btn ${agendaView==='month'?'active':''}" onclick="setAgendaView('month')">Mês</button>
           </div>
-        </div>
-
-        <!-- Select Status -->
-        <div class="ag-filtro-item">
-          <label class="ag-filtro-label">Status</label>
-          <div class="ag-select-wrap">
-            <select class="ag-select" onchange="window._agFiltroStatus=this.value||'';navigate('agenda')">
-              <option value="">Todos</option>
-              ${['Agendado','Confirmado','Em andamento','Concluído','Cancelado'].map(s=>`<option ${window._agFiltroStatus===s?'selected':''} value="${s}">${s}</option>`).join('')}
-            </select>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
-          </div>
+          <select class="form-control" style="width:auto;font-size:0.82rem;padding:7px 12px" onchange="agFiltrarPro(this.value)">
+            <option value="">Todos os profissionais</option>
+            ${pros.map(p=>`<option value="${p.id}" ${window._agFiltroPro===p.id?'selected':''}>${p.nome}</option>`).join('')}
+          </select>
         </div>
       </div>
 
@@ -662,7 +633,7 @@ function renderAgenda() {
                   const heightPx = Math.max((durMin / 60) * 64 - 2, 30);
                   const statusColors = {confirmado:'#c084fc',pendente:'#fbbf24',finalizado:'#34d399',cancelado:'#f87171',emandamento:'#60a5fa'};
                   const cor = statusColors[a.status] || '#a78bfa';
-                  return `<div class="apt-block" style="top:${topPx}px;height:${heightPx}px;border-left:3px solid ${cor};background:${cor}20;z-index:2"
+                  return `<div class="apt-block ${_agSelecionadoId===a.id?'apt-selected':''}" data-apt-id="${a.id}" style="top:${topPx}px;height:${heightPx}px;border-left:3px solid ${cor};background:${cor}20;z-index:2"
                     onclick="${bloqueada ? '' : 'openAppointmentDetail('+a.id+')'}"
                     title="${bloqueada ? 'Sem permissão para editar' : ''}">
                     <div style="font-weight:600;font-size:0.74rem;color:var(--gray-800);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${cli?.nome?.split(' ').slice(0,2).join(' ')||'—'}</div>
@@ -679,32 +650,15 @@ function renderAgenda() {
     </div>
 
     <!-- Painel lateral direito -->
+    <!-- Painel lateral direito: detalhes do atendimento -->
     <div class="agenda-nova-sidebar">
       <!-- Mini calendário -->
       ${miniCal()}
 
-      <!-- Legenda -->
-      <div class="card" style="margin-top:16px">
-        <div class="card-header" style="padding:14px 16px 10px"><div class="card-title" style="font-size:0.9rem">Legenda</div></div>
-        <div class="card-body" style="padding:0 16px 14px;display:flex;flex-direction:column;gap:8px">
-          ${[
-            {cor:'#a78bfa',label:'Agendado'},
-            {cor:'#34d399',label:'Confirmado'},
-            {cor:'#60a5fa',label:'Em andamento'},
-            {cor:'#6ee7b7',label:'Concluído'},
-            {cor:'#f87171',label:'Cancelado'},
-          ].map(l=>`<div style="display:flex;align-items:center;gap:8px;font-size:0.8rem;color:var(--gray-600)">
-            <div style="width:12px;height:12px;border-radius:50%;background:${l.cor};flex-shrink:0"></div>
-            ${l.label}
-          </div>`).join('')}
-        </div>
+      <!-- Painel de detalhes -->
+      <div class="ag-det-panel" id="agDetPanel">
+        ${agRenderDetalhe(_agSelecionadoId)}
       </div>
-
-      <!-- Imprimir -->
-      <button class="btn btn-outline" style="width:100%;margin-top:16px;font-size:0.82rem" onclick="window.print()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-        Imprimir Agenda
-      </button>
     </div>
   </div>`;
 }
@@ -729,58 +683,185 @@ function setAgendaView(v) {
   navigate('agenda');
 }
 function openAppointmentDetail(id) {
-  const a = DB.agendamentos.find(x => x.id === id);
-  if (!a) return;
+  _agSelecionadoId = id;
+  // Atualiza painel lateral se existir, senão re-renderiza
+  const panel = document.getElementById('agDetPanel');
+  if (panel) {
+    panel.innerHTML = agRenderDetalhe(id);
+  } else {
+    navigate('agenda');
+  }
+  // Destacar bloco selecionado
+  document.querySelectorAll('.apt-block').forEach(el => el.classList.remove('apt-selected'));
+  document.querySelectorAll(`.apt-block[data-apt-id="${id}"]`).forEach(el => el.classList.add('apt-selected'));
+}
+
+function agRenderDetalhe(id) {
+  if (!id) return `
+    <div class="ag-det-vazio">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" width="40" height="40" style="opacity:.2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <p>Selecione um atendimento para ver os detalhes</p>
+    </div>`;
+
+  const a    = DB.agendamentos.find(x => x.id === id);
+  if (!a) return '';
   const cli  = getCliente(a.clienteId);
   const pro  = getProfissional(a.proId);
   const serv = getServico(a.servicoId);
-  openModal({
-    title: 'Detalhe do Agendamento',
-    body: `
-      <div style="display:flex;gap:16px;margin-bottom:16px">
-        ${avatarHtml(cli?.nome,'avatar-lg',a.clienteId)}
+
+  const statusMap = {
+    confirmado:  { label: 'Confirmado',   bg: '#dcfce7', color: '#16a34a' },
+    pendente:    { label: 'Agendado',     bg: '#fef9c3', color: '#ca8a04' },
+    emandamento: { label: 'Em andamento', bg: '#dbeafe', color: '#1d4ed8' },
+    finalizado:  { label: 'Concluído',    bg: '#f3e8ff', color: '#7c3aed' },
+    cancelado:   { label: 'Cancelado',    bg: '#fee2e2', color: '#dc2626' },
+  };
+  const st = statusMap[a.status] || { label: a.status, bg: '#f3f4f6', color: '#6b7280' };
+
+  const comissaoVal  = serv ? ((parseFloat(serv.comissao)||0)/100) * (parseFloat(a.valor)||0) : 0;
+  const valorSalao   = (parseFloat(a.valor)||0) - comissaoVal;
+  const podeFinalizar = !['finalizado','cancelado'].includes(a.status);
+
+  return `
+    <!-- Header -->
+    <div class="ag-det-header">
+      <span class="ag-det-titulo">Detalhes do atendimento</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="ag-det-badge" style="background:${st.bg};color:${st.color}">${st.label}</span>
+        <button style="background:none;border:none;cursor:pointer;color:var(--gray-400);padding:2px" onclick="_agSelecionadoId=null;document.getElementById('agDetPanel').innerHTML=agRenderDetalhe(null)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Cliente -->
+    <div class="ag-det-cliente">
+      ${avatarHtml(cli?.nome||'?','avatar-lg',a.clienteId||0)}
+      <div>
+        <div class="ag-det-cli-nome">${cli?.nome||'—'}</div>
+        <div class="ag-det-cli-tel">${cli?.telefone||''}</div>
+      </div>
+    </div>
+
+    <!-- Infos -->
+    <div class="ag-det-infos">
+      <div class="ag-det-info-row">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="15" height="15"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span>${formatDate(a.data)} · ${a.hora}${a.hora_fim?' às '+a.hora_fim:''}</span>
+      </div>
+      <div class="ag-det-info-row">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="15" height="15"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>${pro?.nome||'—'}</span>
+      </div>
+      <div class="ag-det-info-row">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="15" height="15"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
+        <span>${serv?.nome||'—'} · ${a.duracao||serv?.duracao||'—'} min · ${formatCurrency(a.valor)}</span>
+      </div>
+    </div>
+
+    <!-- Botão ver ficha -->
+    <button class="ag-det-ficha-btn" onclick="clienteSelId=${a.clienteId};navigate('clientes')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>
+      Ver ficha do cliente
+    </button>
+
+    <div class="ag-det-divider"></div>
+
+    <!-- Resumo financeiro -->
+    <div class="ag-det-secao-titulo">Resumo</div>
+    <div class="ag-det-resumo">
+      <div class="ag-det-resumo-row">
         <div>
-          <div style="font-weight:600;font-size:1rem">${cli?.nome||'—'}</div>
-          <div style="color:var(--gray-500);font-size:.85rem">${cli?.telefone||''}</div>
+          <div style="font-size:.75rem;color:var(--gray-500)">Serviço</div>
+          <div style="font-size:.82rem;font-weight:600;color:var(--gray-800)">${serv?.nome||'—'}</div>
         </div>
+        <span style="font-weight:700;color:var(--gray-800)">${formatCurrency(a.valor)}</span>
       </div>
-      <div class="grid grid-2" style="gap:10px;margin-bottom:16px">
-        <div class="card" style="padding:12px 16px">
-          <div class="text-xs text-gray">Serviço</div>
-          <div style="font-weight:600;margin-top:4px">${serv?.nome||'—'}</div>
-        </div>
-        <div class="card" style="padding:12px 16px">
-          <div class="text-xs text-gray">Profissional</div>
-          <div style="font-weight:600;margin-top:4px">${pro?.nome||'—'}</div>
-        </div>
-        <div class="card" style="padding:12px 16px">
-          <div class="text-xs text-gray">Data / Hora</div>
-          <div style="font-weight:600;margin-top:4px">${formatDate(a.data)} às ${a.hora}</div>
-        </div>
-        <div class="card" style="padding:12px 16px">
-          <div class="text-xs text-gray">Valor</div>
-          <div style="font-weight:600;color:var(--primary);font-size:1.05rem;margin-top:4px">${formatCurrency(a.valor)}</div>
-        </div>
+      ${serv?.comissao ? `
+      <div class="ag-det-resumo-row" style="color:var(--gray-500)">
+        <span style="font-size:.82rem">Comissão (${serv.comissao}%)</span>
+        <span style="font-size:.82rem">${formatCurrency(comissaoVal)}</span>
       </div>
-      <div style="margin-bottom:12px">${statusBadge(a.status)}</div>
-      ${a.obs ? `<div class="alert alert-info" style="font-size:.82rem">💬 ${a.obs}</div>` : ''}`,
-    footer: `
-      <button class="btn btn-outline" onclick="closeModal()">Fechar</button>
-      ${!['finalizado','cancelado'].includes(a.status) ? `
-        <button class="btn btn-success" onclick="finalizeAppointment(${a.id})">Finalizar</button>
-        <button class="btn btn-danger" onclick="cancelAppointment(${a.id})">Cancelar</button>` : ''}`
-  });
+      <div class="ag-det-resumo-row" style="border-top:1px solid var(--gray-100);padding-top:8px;margin-top:4px">
+        <span style="font-size:.82rem;font-weight:600">Valor para o salão</span>
+        <span style="font-size:.82rem;font-weight:700">${formatCurrency(valorSalao)}</span>
+      </div>` : ''}
+    </div>
+
+    <div class="ag-det-divider"></div>
+
+    <!-- Ações -->
+    <div class="ag-det-secao-titulo">Ações</div>
+    <div class="ag-det-acoes">
+      <button class="ag-det-acao" onclick="agEditarAgendamento(${a.id})" title="Editar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        <span>Editar</span>
+      </button>
+      <button class="ag-det-acao ag-det-acao-cancel" onclick="agCancelarAgendamento(${a.id})" title="Cancelar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+        <span>Cancelar</span>
+      </button>
+      <button class="ag-det-acao ag-det-acao-reagend" onclick="agReagendarAgendamento(${a.id})" title="Reagendar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+        <span>Reagendar</span>
+      </button>
+      ${podeFinalizar ? `
+      <button class="ag-det-acao ag-det-acao-finalizar" onclick="agFinalizarAgendamento(${a.id})" title="Finalizar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="20 6 9 17 4 12"/></svg>
+        <span>Finalizar</span>
+      </button>` : ''}
+    </div>
+
+    ${a.obs ? `
+    <div class="ag-det-divider"></div>
+    <div class="ag-det-secao-titulo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      Observações
+    </div>
+    <div class="ag-det-obs">${a.obs}</div>` : ''}
+  `;
 }
-function finalizeAppointment(id) {
-  const a = DB.agendamentos.find(x=>x.id===id);
-  if (a) { a.status='finalizado'; closeModal(); showToast('Atendimento finalizado!','success'); navigate('agenda'); }
+
+function agEditarAgendamento(id) {
+  const a = DB.agendamentos.find(x => x.id === id);
+  if (!a) return;
+  openAppointmentEditModal(a);
 }
-function cancelAppointment(id) {
-  closeModal();
+function agCancelarAgendamento(id) {
   confirmDialog('Deseja cancelar este agendamento?', () => {
-    const a = DB.agendamentos.find(x=>x.id===id);
-    if (a) { a.status='cancelado'; showToast('Agendamento cancelado','warning'); navigate('agenda'); }
+    const a = DB.agendamentos.find(x => x.id === id);
+    if (a) { a.status = 'cancelado'; showToast('Agendamento cancelado', 'warning'); navigate('agenda'); }
   });
+}
+function agReagendarAgendamento(id) {
+  const a = DB.agendamentos.find(x => x.id === id);
+  if (!a) return;
+  openModal({
+    title: 'Reagendar Atendimento',
+    body: `
+      <div class="grid grid-2" style="gap:12px">
+        <div class="form-group">
+          <label class="form-label">Nova data</label>
+          <input type="date" class="form-control" id="reagData" value="${a.data}" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Novo horário</label>
+          <input type="time" class="form-control" id="reagHora" value="${a.hora}" />
+        </div>
+      </div>`,
+    footer: `
+      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="
+        const a=DB.agendamentos.find(x=>x.id===${id});
+        const d=document.getElementById('reagData').value;
+        const h=document.getElementById('reagHora').value;
+        if(a&&d&&h){a.data=d;a.hora=h;closeModal();showToast('Reagendado!','success');navigate('agenda');}
+      ">Confirmar</button>`
+  });
+}
+function agFinalizarAgendamento(id) {
+  const a = DB.agendamentos.find(x => x.id === id);
+  if (a) { a.status = 'finalizado'; showToast('Atendimento finalizado!', 'success'); navigate('agenda'); }
 }
 
 /* ===================== CLIENTES ===================== */

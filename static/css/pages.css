@@ -1142,102 +1142,6 @@
   flex-wrap: wrap;
 }
 
-/* ── Barra de filtros horizontal da agenda ── */
-.ag-filtros-bar {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  background: white;
-  border: 1px solid var(--gray-200);
-  border-radius: var(--radius-lg);
-  padding: 10px 16px;
-  margin-bottom: 12px;
-  box-shadow: var(--shadow-sm);
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.ag-data-nav {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-.ag-nav-btn {
-  width: 30px; height: 30px;
-  display: flex; align-items: center; justify-content: center;
-  border: 1px solid var(--gray-200);
-  border-radius: var(--radius-md);
-  background: white;
-  cursor: pointer;
-  color: var(--gray-500);
-  transition: all var(--t-fast);
-}
-.ag-nav-btn:hover { border-color: var(--primary); color: var(--primary); }
-.ag-data-box {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid var(--gray-200);
-  border-radius: var(--radius-md);
-  padding: 5px 12px;
-  background: white;
-  cursor: pointer;
-  min-width: 140px;
-}
-.ag-data-texto {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--gray-700);
-  flex: 1;
-}
-.ag-filtros-sep {
-  width: 1px;
-  height: 32px;
-  background: var(--gray-200);
-  margin: 0 12px;
-  flex-shrink: 0;
-}
-.ag-filtro-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-  min-width: 140px;
-}
-.ag-filtro-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--primary);
-  margin-bottom: 2px;
-}
-.ag-select-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-.ag-select {
-  width: 100%;
-  border: 1px solid var(--gray-200);
-  border-radius: var(--radius-md);
-  padding: 6px 32px 6px 12px;
-  font-size: 0.875rem;
-  color: var(--gray-700);
-  background: white;
-  appearance: none;
-  -webkit-appearance: none;
-  cursor: pointer;
-  font-family: var(--font-body);
-  transition: border-color var(--t-fast);
-  height: 36px;
-}
-.ag-select:focus { outline: none; border-color: var(--primary); }
-.ag-select-arrow {
-  position: absolute;
-  right: 10px;
-  pointer-events: none;
-  color: var(--gray-400);
-}
-
 /* ── Painel Atendimentos de hoje ── */
 .agenda-painel-hoje {
   background: white;
@@ -1419,8 +1323,176 @@
 }
 .mini-cal-day.sel::after { background: white; }
 
-/* Responsivo */
-@media (max-width: 1280px) {
+/* ── Painel de detalhes do atendimento (sidebar agenda) ── */
+.ag-det-panel {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  margin-top: 12px;
+}
+.ag-det-vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 36px 20px;
+  text-align: center;
+  color: var(--gray-400);
+  font-size: .82rem;
+}
+.ag-det-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--gray-100);
+}
+.ag-det-titulo {
+  font-size: .875rem;
+  font-weight: 700;
+  color: var(--gray-800);
+}
+.ag-det-badge {
+  font-size: .7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+.ag-det-cliente {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--gray-100);
+}
+.ag-det-cli-nome {
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--gray-800);
+}
+.ag-det-cli-tel {
+  font-size: .78rem;
+  color: var(--gray-400);
+  margin-top: 2px;
+}
+.ag-det-infos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px 10px;
+}
+.ag-det-info-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: .82rem;
+  color: var(--gray-600);
+  line-height: 1.4;
+}
+.ag-det-info-row svg { flex-shrink: 0; margin-top: 1px; }
+.ag-det-ficha-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: calc(100% - 32px);
+  margin: 4px 16px 14px;
+  padding: 9px;
+  border: 1.5px solid var(--primary);
+  border-radius: var(--radius-md);
+  background: white;
+  color: var(--primary);
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: background var(--t-fast);
+}
+.ag-det-ficha-btn:hover { background: #fce7f3; }
+.ag-det-divider {
+  height: 1px;
+  background: var(--gray-100);
+  margin: 0;
+}
+.ag-det-secao-titulo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--gray-600);
+  padding: 12px 16px 6px;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+.ag-det-resumo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 16px 14px;
+}
+.ag-det-resumo-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: .82rem;
+  color: var(--gray-700);
+}
+.ag-det-acoes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 4px 16px 14px;
+}
+.ag-det-acao {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 4px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  background: white;
+  cursor: pointer;
+  font-size: .68rem;
+  font-weight: 600;
+  color: var(--gray-600);
+  font-family: var(--font-body);
+  transition: all var(--t-fast);
+}
+.ag-det-acao:hover { border-color: var(--primary); color: var(--primary); }
+.ag-det-acao-cancel  { color: var(--danger); border-color: #fecaca; }
+.ag-det-acao-cancel:hover  { background: #fee2e2; border-color: var(--danger); }
+.ag-det-acao-reagend { color: #d97706; border-color: #fde68a; }
+.ag-det-acao-reagend:hover { background: #fef3c7; border-color: #d97706; }
+.ag-det-acao-finalizar { color: #16a34a; border-color: #bbf7d0; }
+.ag-det-acao-finalizar:hover { background: #dcfce7; border-color: #16a34a; }
+.ag-det-obs {
+  padding: 0 16px 14px;
+  font-size: .82rem;
+  color: var(--gray-600);
+  line-height: 1.5;
+  background: var(--gray-50);
+  margin: 0 16px 14px;
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+}
+/* Bloco selecionado na grade */
+.apt-block.apt-selected {
+  box-shadow: 0 0 0 2px var(--primary);
+  z-index: 3 !important;
+}
+
+/* Agenda nova layout com sidebar maior para o painel */
+.agenda-nova-layout {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 16px;
+  align-items: start;
+}
   .agenda-nova-layout { grid-template-columns: 160px 1fr 220px; }
   .agenda-pro-header-cell, .agenda-pro-body-col { width: 150px; }
 }
