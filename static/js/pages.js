@@ -3069,6 +3069,7 @@ function profAbrirEdicao(id) {
     tipoComissao: p.tipo_comissao    || 'percentual',
     funcao:       p.funcao           || '',
     ativo:        p.ativo !== false && p.status !== 'inativo',
+    foto:         p.foto             || '',
   };
   console.log('profAbrirEdicao — npDados:', npDados);
   navigate('novoProfissional');
