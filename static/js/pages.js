@@ -1957,9 +1957,18 @@ function cfgRemoverBloqueio(proId, idx) {
 let _servSelecionado = null;
 let _servAbaAtiva    = 'profissionais';
 let _servBusca       = '';
-let _servFiltrosCat  = '';
-let _servFiltroStat  = '';
+let _servFiltrosCat      = '';
+let _servFiltroStat      = '';
+let _servFiltroPro       = '';
+let _servFiltroComissao  = '';
+let _servFiltroDurMin    = '';
+let _servFiltroDurMax    = '';
+let _servFiltroValMin    = '';
+let _servFiltroValMax    = '';
+let _servFiltroProdutos  = [];
+let _servVerTodosPros    = false;
 const CATS_SERVICO   = ['Unhas','Cabelo','Estética','Maquiagem','Sobrancelha','Depilação','Outros'];
+const PRODUTOS_SERVICO = ['Esmalte','Base','Removedor de esmalte','Algodão','Shampoo','Condicionador','Máscara capilar','Outro'];
 
 function renderServicos() {
   setTimeout(() => { _servIniciar(); }, 0);
@@ -1986,9 +1995,10 @@ function renderServicos() {
           <option value="inativo">Inativo</option>
         </select>
       </div>
-      <button class="btn-filtro">
+      <button class="btn-filtro" id="servBtnFiltros" onclick="servAbrirFiltros()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
         Filtros
+        <span class="prof-filtros-badge" id="servFiltrosBadge" style="display:none">0</span>
       </button>
     </div>
   </div>
@@ -2060,6 +2070,10 @@ let _servPagAtual = 1;
 
 function _servIniciar() {
   _servBusca = ''; _servFiltrosCat = ''; _servFiltroStat = '';
+  _servFiltroPro = ''; _servFiltroComissao = '';
+  _servFiltroDurMin = ''; _servFiltroDurMax = '';
+  _servFiltroValMin = ''; _servFiltroValMax = '';
+  _servFiltroProdutos = []; _servVerTodosPros = false;
   _servSelecionado = null; _servPagAtual = 1;
   servRenderLista();
 }
@@ -2081,8 +2095,329 @@ function servGetFiltrados() {
       const hay = [s.nome, s.categoria, s.descricao].join(' ').toLowerCase();
       if (!hay.includes(_servBusca)) return false;
     }
+    // Profissional
+    if (_servFiltroPro) {
+      const ids = (() => { try { return JSON.parse(s.profissionais_ids || '[]'); } catch(e) { return []; } })();
+      if (!ids.map(String).includes(String(_servFiltroPro))) return false;
+    }
+    // Duração
+    const dur = parseInt(s.duracao) || 0;
+    if (_servFiltroDurMin && dur < parseInt(_servFiltroDurMin)) return false;
+    if (_servFiltroDurMax && dur > parseInt(_servFiltroDurMax)) return false;
+    // Valor
+    const preco = parseFloat(s.preco) || 0;
+    if (_servFiltroValMin && preco < parseFloat(_servFiltroValMin)) return false;
+    if (_servFiltroValMax && preco > parseFloat(_servFiltroValMax)) return false;
+    // Comissão
+    if (_servFiltroComissao) {
+      const com = parseFloat(s.comissao) || 0;
+      if (_servFiltroComissao === 'ate10'   && com > 10)            return false;
+      if (_servFiltroComissao === '10a30'   && (com < 10 || com > 30)) return false;
+      if (_servFiltroComissao === 'acima30' && com <= 30)           return false;
+    }
+    // Produtos
+    if (_servFiltroProdutos.length > 0) {
+      const prods = (() => { try { return JSON.parse(s.produtos_json || '[]'); } catch(e) { return []; } })();
+      const nomes = prods.map(p => (p.nome||p).toLowerCase());
+      if (!_servFiltroProdutos.every(p => nomes.some(n => n.includes(p.toLowerCase())))) return false;
+    }
     return true;
   });
+}
+
+function servAbrirFiltros() {
+  document.getElementById('servFiltrosDrawer')?.remove();
+  document.getElementById('servFiltrosOverlay')?.remove();
+
+  const pros     = (DB.profissionais || []).filter(p => p.ativo !== false);
+  const LIMITE   = 5;
+  const mostrar  = _servVerTodosPros ? pros : pros.slice(0, LIMITE);
+  const temMais  = pros.length > LIMITE;
+
+  const proItem = (p) => `
+    <label class="pf-check-item">
+      <input type="checkbox" class="pf-check" data-grupo="sfpro" value="${p.id}" ${_servFiltroPro===String(p.id)?'checked':''} onchange="sfProChange(this)" />
+      <span class="pf-check-box"></span>
+      ${p.nome}
+    </label>`;
+
+  const checkItem = (grupo, val, label, checked) => `
+    <label class="pf-check-item">
+      <input type="checkbox" class="pf-check" data-grupo="${grupo}" value="${val}" ${checked?'checked':''} onchange="sfSingleChange(this,'${grupo}')" />
+      <span class="pf-check-box"></span>
+      ${label}
+    </label>`;
+
+  const prodItem = (nome) => `
+    <label class="pf-check-item">
+      <input type="checkbox" class="pf-check" data-grupo="sfprod" value="${nome}" ${_servFiltroProdutos.includes(nome)?'checked':''} onchange="sfProdChange(this)" />
+      <span class="pf-check-box"></span>
+      ${nome}
+    </label>`;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'servFiltrosOverlay';
+  overlay.className = 'pf-overlay';
+  overlay.onclick = servFecharFiltros;
+  document.body.appendChild(overlay);
+
+  const drawer = document.createElement('div');
+  drawer.id = 'servFiltrosDrawer';
+  drawer.className = 'pf-drawer';
+  drawer.innerHTML = `
+    <div class="pf-header">
+      <div class="pf-header-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="18" height="18"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        Filtros de Serviços
+      </div>
+      <button class="pf-close" onclick="servFecharFiltros()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="pf-body">
+
+      <!-- Busca por nome -->
+      <div class="pf-section">
+        <div class="pf-section-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Buscar por nome do serviço
+        </div>
+        <div class="pf-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="sfBuscaNome" placeholder="Digite o nome do serviço..." value="${_servBusca}" oninput="sfAtualizarBusca(this.value)" />
+        </div>
+      </div>
+
+      <div class="pf-divider"></div>
+
+      <!-- Categoria + Status lado a lado -->
+      <div class="pf-grid2">
+        <div class="pf-section">
+          <div class="pf-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+            Categoria
+          </div>
+          <select class="form-control" id="sfCat" style="font-size:.82rem;padding:6px 10px;height:36px">
+            <option value="">Todas as categorias</option>
+            ${CATS_SERVICO.map(c=>`<option value="${c}" ${_servFiltrosCat===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+        </div>
+        <div class="pf-section">
+          <div class="pf-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            Status
+          </div>
+          <select class="form-control" id="sfStat" style="font-size:.82rem;padding:6px 10px;height:36px">
+            <option value="">Todos os status</option>
+            <option value="ativo"   ${_servFiltroStat==='ativo'?'selected':''}>Ativo</option>
+            <option value="inativo" ${_servFiltroStat==='inativo'?'selected':''}>Inativo</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="pf-divider"></div>
+
+      <!-- Profissionais -->
+      <div class="pf-section">
+        <div class="pf-section-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Profissionais
+        </div>
+        <div class="pf-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Buscar profissional..." oninput="sfFiltrarPros(this.value)" />
+        </div>
+        <div id="sfProList">
+          ${mostrar.map(p => proItem(p)).join('')}
+        </div>
+        ${temMais ? `<button onclick="sfVerTodosPros()" style="background:none;border:none;color:var(--primary);font-size:.82rem;font-weight:600;cursor:pointer;margin-top:6px;padding:0" id="sfVerTodosBtn">
+          ${_servVerTodosPros ? 'Ver menos ∧' : `Ver todos ∨`}
+        </button>` : ''}
+      </div>
+
+      <div class="pf-divider"></div>
+
+      <!-- Duração -->
+      <div class="pf-section">
+        <div class="pf-section-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Duração
+        </div>
+        <div class="pf-grid2" style="gap:10px">
+          <div>
+            <label style="font-size:.75rem;color:var(--gray-500);display:block;margin-bottom:4px">Mínima</label>
+            <div style="display:flex;align-items:center;gap:6px">
+              <input type="number" id="sfDurMin" class="form-control" placeholder="Ex.: 30" value="${_servFiltroDurMin}" min="0" style="font-size:.82rem;padding:6px 10px;height:36px" />
+              <span style="font-size:.78rem;color:var(--gray-500);white-space:nowrap">min</span>
+            </div>
+          </div>
+          <div>
+            <label style="font-size:.75rem;color:var(--gray-500);display:block;margin-bottom:4px">Máxima</label>
+            <div style="display:flex;align-items:center;gap:6px">
+              <input type="number" id="sfDurMax" class="form-control" placeholder="Ex.: 120" value="${_servFiltroDurMax}" min="0" style="font-size:.82rem;padding:6px 10px;height:36px" />
+              <span style="font-size:.78rem;color:var(--gray-500);white-space:nowrap">min</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pf-divider"></div>
+
+      <!-- Valor + Comissão lado a lado -->
+      <div class="pf-grid2" style="gap:16px;align-items:start">
+        <div class="pf-section">
+          <div class="pf-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+            Valor
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:6px">
+              <input type="number" id="sfValMin" class="form-control" placeholder="Ex.: 30,00" value="${_servFiltroValMin}" min="0" style="font-size:.82rem;padding:6px 10px;height:36px;flex:1" />
+              <span style="font-size:.78rem;color:var(--gray-500)">R$</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <input type="number" id="sfValMax" class="form-control" placeholder="Ex.: 200,00" value="${_servFiltroValMax}" min="0" style="font-size:.82rem;padding:6px 10px;height:36px;flex:1" />
+              <span style="font-size:.78rem;color:var(--gray-500)">R$</span>
+            </div>
+          </div>
+        </div>
+        <div class="pf-section">
+          <div class="pf-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><text x="3" y="17" font-size="14" fill="var(--primary)" stroke="none" font-weight="bold">%</text></svg>
+            Comissão
+          </div>
+          <select class="form-control" id="sfComissao" style="font-size:.82rem;padding:6px 10px;height:36px">
+            <option value="">Todas as comissões</option>
+            <option value="ate10"   ${_servFiltroComissao==='ate10'?'selected':''}>Até 10%</option>
+            <option value="10a30"   ${_servFiltroComissao==='10a30'?'selected':''}>10% a 30%</option>
+            <option value="acima30" ${_servFiltroComissao==='acima30'?'selected':''}>Acima de 30%</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="pf-divider"></div>
+
+      <!-- Produtos utilizados -->
+      <div class="pf-section">
+        <div class="pf-section-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+          Produtos utilizados
+        </div>
+        <div class="pf-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Buscar produto..." oninput="sfFiltrarProdutos(this.value)" />
+        </div>
+        <div id="sfProdList" style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px">
+          ${PRODUTOS_SERVICO.map(p => prodItem(p)).join('')}
+        </div>
+      </div>
+
+    </div>
+
+    <div class="pf-footer">
+      <button class="btn btn-outline" style="flex:1" onclick="servLimparFiltros()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+        Limpar filtros
+      </button>
+      <button class="btn btn-primary" style="flex:1" onclick="servAplicarFiltros()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Aplicar filtros
+      </button>
+    </div>`;
+
+  document.body.appendChild(drawer);
+  requestAnimationFrame(() => { overlay.classList.add('show'); drawer.classList.add('show'); });
+}
+
+function servFecharFiltros() {
+  const drawer  = document.getElementById('servFiltrosDrawer');
+  const overlay = document.getElementById('servFiltrosOverlay');
+  if (drawer)  drawer.classList.remove('show');
+  if (overlay) overlay.classList.remove('show');
+  setTimeout(() => { drawer?.remove(); overlay?.remove(); }, 280);
+}
+
+function sfProChange(cb) {
+  document.querySelectorAll('input[data-grupo="sfpro"]').forEach(x => x !== cb && (x.checked = false));
+}
+function sfSingleChange(cb, grupo) {
+  document.querySelectorAll(`input[data-grupo="${grupo}"]`).forEach(x => x !== cb && (x.checked = false));
+}
+function sfProdChange(cb) {
+  // múltipla seleção — não faz nada
+}
+function sfFiltrarPros(q) {
+  document.querySelectorAll('#sfProList .pf-check-item').forEach(item => {
+    item.style.display = item.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+function sfFiltrarProdutos(q) {
+  document.querySelectorAll('#sfProdList .pf-check-item').forEach(item => {
+    item.style.display = item.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+function sfAtualizarBusca(v) {
+  _servBusca = v.toLowerCase();
+}
+function sfVerTodosPros() {
+  _servVerTodosPros = !_servVerTodosPros;
+  servAbrirFiltros(); // reabre com todos
+}
+
+function servAplicarFiltros() {
+  const checked = (grupo) => { const el = document.querySelector(`input[data-grupo="${grupo}"]:checked`); return el ? el.value : ''; };
+  _servBusca         = document.getElementById('sfBuscaNome')?.value.toLowerCase() || '';
+  _servFiltrosCat    = document.getElementById('sfCat')?.value || '';
+  _servFiltroStat    = document.getElementById('sfStat')?.value || '';
+  _servFiltroPro     = checked('sfpro');
+  _servFiltroComissao= document.getElementById('sfComissao')?.value || '';
+  _servFiltroDurMin  = document.getElementById('sfDurMin')?.value || '';
+  _servFiltroDurMax  = document.getElementById('sfDurMax')?.value || '';
+  _servFiltroValMin  = document.getElementById('sfValMin')?.value || '';
+  _servFiltroValMax  = document.getElementById('sfValMax')?.value || '';
+  _servFiltroProdutos= [...document.querySelectorAll('input[data-grupo="sfprod"]:checked')].map(x => x.value);
+
+  // Sincronizar selects visíveis da barra
+  const selCat  = document.getElementById('servFiltrosCat');
+  const selStat = document.getElementById('servFiltrosStat');
+  const busca   = document.getElementById('servBuscaInput');
+  if (selCat)  selCat.value  = _servFiltrosCat;
+  if (selStat) selStat.value = _servFiltroStat;
+  if (busca)   busca.value   = _servBusca ? _servBusca : '';
+
+  servFecharFiltros();
+  _servPagAtual = 1;
+  servRenderLista();
+  servAtualizarBadge();
+}
+
+function servLimparFiltros() {
+  _servBusca = ''; _servFiltrosCat = ''; _servFiltroStat = '';
+  _servFiltroPro = ''; _servFiltroComissao = '';
+  _servFiltroDurMin = ''; _servFiltroDurMax = '';
+  _servFiltroValMin = ''; _servFiltroValMax = '';
+  _servFiltroProdutos = []; _servVerTodosPros = false;
+  const selCat  = document.getElementById('servFiltrosCat');
+  const selStat = document.getElementById('servFiltrosStat');
+  const busca   = document.getElementById('servBuscaInput');
+  if (selCat)  selCat.value  = '';
+  if (selStat) selStat.value = '';
+  if (busca)   busca.value   = '';
+  servFecharFiltros();
+  _servPagAtual = 1;
+  servRenderLista();
+  servAtualizarBadge();
+}
+
+function servAtualizarBadge() {
+  const count = [_servFiltrosCat, _servFiltroStat, _servFiltroPro, _servFiltroComissao,
+    _servFiltroDurMin, _servFiltroDurMax, _servFiltroValMin, _servFiltroValMax,
+    ..._servFiltroProdutos].filter(Boolean).length;
+  const badge = document.getElementById('servFiltrosBadge');
+  if (!badge) return;
+  if (count > 0) { badge.textContent = count; badge.style.display = 'inline-flex'; }
+  else           { badge.style.display = 'none'; }
 }
 
 function servRenderLista() {
