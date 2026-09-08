@@ -2600,15 +2600,20 @@ function renderNovoProfissional() {
       <div class="nc-form-grid">
         <div class="nc-foto-col">
           <label class="nc-label">Foto do profissional</label>
-          <div class="nc-foto-box" id="npFotoBox" onclick="document.getElementById('np_fotoInput').click()" style="cursor:pointer;position:relative;overflow:hidden">
-            ${npDados.fotoPreview
-              ? `<img src="${npDados.fotoPreview}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;position:absolute;inset:0" />`
-              : npDados.foto
-                ? `<img src="${npDados.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;position:absolute;inset:0" />`
-                : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                  <span>${npDados.foto ? 'Trocar foto' : 'Adicionar foto'}</span>
-                  <small>JPG, PNG até 2MB</small>`
-            }
+          <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+            <!-- Avatar circular -->
+            <div onclick="document.getElementById('np_fotoInput').click()" style="width:120px;height:120px;border-radius:50%;overflow:hidden;cursor:pointer;background:var(--gray-100);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:3px solid var(--gray-200)">
+              ${(npDados.fotoPreview || npDados.foto)
+                ? `<img src="${npDados.fotoPreview || npDados.foto}" style="width:100%;height:100%;object-fit:cover" />`
+                : `<svg viewBox="0 0 24 24" fill="none" stroke="var(--gray-300)" stroke-width="1.2" width="52" height="52"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
+              }
+            </div>
+            <!-- Botão alterar foto -->
+            <button type="button" onclick="document.getElementById('np_fotoInput').click()" style="display:flex;align-items:center;gap:7px;padding:8px 18px;border:2px solid var(--primary);border-radius:30px;background:white;color:var(--primary);font-size:.82rem;font-weight:600;cursor:pointer;font-family:var(--font-body);transition:all .15s">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              ${(npDados.fotoPreview || npDados.foto) ? 'Alterar Foto' : 'Adicionar Foto'}
+            </button>
+            <small style="color:var(--gray-400);font-size:.72rem;text-align:center">JPG, PNG ou GIF<br>Máx. 2MB</small>
           </div>
           <input type="file" id="np_fotoInput" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none" onchange="npSelecionarFoto(this)" />
         </div>
@@ -2852,9 +2857,15 @@ function npSelecionarFoto(input) {
   const reader = new FileReader();
   reader.onload = (e) => {
     npDados.fotoPreview = e.target.result;
-    const box = document.getElementById('npFotoBox');
-    if (box) {
-      box.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;position:absolute;inset:0" />`;
+    // Atualizar avatar circular sem re-renderizar
+    const avatar = document.querySelector('.nc-foto-col div[style*="border-radius:50%"]');
+    if (avatar) {
+      avatar.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover" />`;
+    }
+    // Atualizar texto do botão
+    const btn = document.querySelector('.nc-foto-col button');
+    if (btn) {
+      btn.querySelector('span') && (btn.lastChild.textContent = ' Alterar Foto');
     }
   };
   reader.readAsDataURL(file);
