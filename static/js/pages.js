@@ -2600,11 +2600,17 @@ function renderNovoProfissional() {
       <div class="nc-form-grid">
         <div class="nc-foto-col">
           <label class="nc-label">Foto do profissional</label>
-          <div class="nc-foto-box">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
-            <span>Adicionar foto</span>
-            <small>JPG, PNG até 2MB</small>
+          <div class="nc-foto-box" id="npFotoBox" onclick="document.getElementById('np_fotoInput').click()" style="cursor:pointer;position:relative;overflow:hidden">
+            ${npDados.fotoPreview
+              ? `<img src="${npDados.fotoPreview}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;position:absolute;inset:0" />`
+              : npDados.foto
+                ? `<img src="${npDados.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;position:absolute;inset:0" />`
+                : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                  <span>${npDados.foto ? 'Trocar foto' : 'Adicionar foto'}</span>
+                  <small>JPG, PNG até 2MB</small>`
+            }
           </div>
+          <input type="file" id="np_fotoInput" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none" onchange="npSelecionarFoto(this)" />
         </div>
         <div style="flex:1;display:flex;flex-direction:column;gap:14px">
           <div class="nc-row">
@@ -2834,6 +2840,47 @@ async function npBuscarCEP(cep) {
     showToast('Endereço preenchido!','success');
   } catch(e){showToast('Erro ao buscar CEP','error');}
 }
+function npSelecionarFoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) {
+    showToast('Foto muito grande. Máximo 2MB.', 'error');
+    input.value = '';
+    return;
+  }
+  npDados.fotoArquivo = file;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    npDados.fotoPreview = e.target.result;
+    const box = document.getElementById('npFotoBox');
+    if (box) {
+      box.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;position:absolute;inset:0" />`;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function npUploadFoto(profId) {
+  if (!npDados.fotoArquivo) return;
+  try {
+    const base = (typeof API_BASE !== 'undefined') ? API_BASE : '';
+    const fd = new FormData();
+    fd.append('foto', npDados.fotoArquivo);
+    const resp = await fetch(`${base}/api/profissionais/${profId}/foto`, {
+      method: 'POST',
+      body: fd,
+    });
+    if (resp.ok) {
+      const d = await resp.json();
+      console.log('✅ Foto enviada:', d.foto);
+    } else {
+      console.warn('⚠️ Erro ao enviar foto:', resp.status);
+    }
+  } catch(e) {
+    console.warn('⚠️ Erro upload foto:', e);
+  }
+}
+
 function npSalvarEtapa1() {
   const get = (id) => document.getElementById(id);
   if (get('np_nome'))        npDados.nome       = get('np_nome').value.trim();
