@@ -2171,80 +2171,190 @@ let _profFiltroHorario  = '';
 let _profFiltroComissao = '';
 
 function profAbrirFiltros() {
+  // Remover painel anterior
+  document.getElementById('profFiltrosDrawer')?.remove();
+  document.getElementById('profFiltrosOverlay')?.remove();
+
   const funcoes  = [...new Set((DB.profissionais||[]).map(p => p.funcao).filter(Boolean))];
   const servicos = (DB.servicos||[]).filter(s => s.ativo);
 
-  openModal({
-    title: '🔎 Filtros de profissionais',
-    size:  'lg',
-    body: `
-      <div style="display:flex;flex-direction:column;gap:20px">
+  const espItem = (val, label, checked) => `
+    <label class="pf-check-item">
+      <input type="checkbox" class="pf-check" data-grupo="esp" value="${val}" ${checked?'checked':''} onchange="pfEspChange(this)" />
+      <span class="pf-check-box"></span>
+      ${label}
+    </label>`;
 
-        <div class="grid grid-2" style="gap:16px">
-          <div class="form-group">
-            <label class="form-label">Especialidade</label>
-            <select class="form-control" id="pf_esp">
-              <option value="">Todas</option>
-              ${funcoes.map(f => `<option value="${f}" ${_profFiltroEsp===f?'selected':''}>${f}</option>`).join('')}
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Status</label>
-            <select class="form-control" id="pf_status">
-              <option value="">Todos</option>
-              <option value="ativo"   ${_profFiltroStatus==='ativo'?'selected':''}>Ativo</option>
-              <option value="inativo" ${_profFiltroStatus==='inativo'?'selected':''}>Inativo</option>
-            </select>
-          </div>
+  const servItem = (s) => `
+    <label class="pf-check-item" id="pfServ_${s.id}">
+      <input type="checkbox" class="pf-check" data-grupo="serv" value="${s.id}" ${_profFiltroServico===String(s.id)?'checked':''} onchange="pfServChange(this)" />
+      <span class="pf-check-box"></span>
+      ${s.nome}
+    </label>`;
+
+  const statusItem = (val, label, checked) => `
+    <label class="pf-check-item">
+      <input type="checkbox" class="pf-check" data-grupo="status" value="${val}" ${checked?'checked':''} onchange="pfStatusChange(this)" />
+      <span class="pf-check-box"></span>
+      ${label}
+    </label>`;
+
+  const horarioItem = (val, label) => `
+    <label class="pf-check-item">
+      <input type="checkbox" class="pf-check" data-grupo="horario" value="${val}" ${_profFiltroHorario===val?'checked':''} onchange="pfHorarioChange(this)" />
+      <span class="pf-check-box"></span>
+      ${label}
+    </label>`;
+
+  const comissaoItem = (val, label) => `
+    <label class="pf-check-item">
+      <input type="checkbox" class="pf-check" data-grupo="comissao" value="${val}" ${_profFiltroComissao===val?'checked':''} onchange="pfComissaoChange(this)" />
+      <span class="pf-check-box"></span>
+      ${label}
+    </label>`;
+
+  // Overlay
+  const overlay = document.createElement('div');
+  overlay.id = 'profFiltrosOverlay';
+  overlay.className = 'pf-overlay';
+  overlay.onclick = profFecharFiltros;
+  document.body.appendChild(overlay);
+
+  // Drawer
+  const drawer = document.createElement('div');
+  drawer.id = 'profFiltrosDrawer';
+  drawer.className = 'pf-drawer';
+  drawer.innerHTML = `
+    <!-- Header -->
+    <div class="pf-header">
+      <div class="pf-header-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="18" height="18"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        Filtros de profissionais
+      </div>
+      <button class="pf-close" onclick="profFecharFiltros()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <!-- Conteúdo scrollável -->
+    <div class="pf-body">
+
+      <!-- Especialidade -->
+      <div class="pf-section">
+        <div class="pf-section-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Especialidade
         </div>
+        ${espItem('', 'Todas', !_profFiltroEsp)}
+        ${funcoes.map(f => espItem(f, f, _profFiltroEsp===f)).join('')}
+      </div>
 
-        <div class="form-group">
-          <label class="form-label">Serviços</label>
-          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">
-            ${servicos.map(s => `
-              <button type="button"
-                class="prof-filtro-chip ${_profFiltroServico===String(s.id)?'active':''}"
-                onclick="profToggleChip(this,'${s.id}')"
-                data-val="${s.id}">
-                ${s.emoji||'💅'} ${s.nome}
-              </button>`).join('')}
-          </div>
+      <div class="pf-divider"></div>
+
+      <!-- Serviços -->
+      <div class="pf-section">
+        <div class="pf-section-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          Serviços
         </div>
-
-        <div class="grid grid-2" style="gap:16px">
-          <div class="form-group">
-            <label class="form-label">Horário de atendimento</label>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
-              ${[{v:'manha',l:'☀️ Manhã'},{v:'tarde',l:'🌤️ Tarde'},{v:'noite',l:'🌙 Noite'}].map(h => `
-                <button type="button"
-                  class="prof-filtro-chip ${_profFiltroHorario===h.v?'active':''}"
-                  onclick="profToggleChip(this,'${h.v}','horario')"
-                  data-val="${h.v}">
-                  ${h.l}
-                </button>`).join('')}
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Comissão</label>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
-              ${[{v:'ate10',l:'Até 10%'},{v:'10a20',l:'10% a 20%'},{v:'acima20',l:'Acima de 20%'}].map(c => `
-                <button type="button"
-                  class="prof-filtro-chip ${_profFiltroComissao===c.v?'active':''}"
-                  onclick="profToggleChip(this,'${c.v}','comissao')"
-                  data-val="${c.v}">
-                  ${c.l}
-                </button>`).join('')}
-            </div>
-          </div>
+        <div class="pf-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Buscar serviço..." oninput="pfFiltrarServicos(this.value)" />
         </div>
+        <div id="pfServList">
+          ${servicos.map(s => servItem(s)).join('')}
+        </div>
+      </div>
 
-      </div>`,
-    footer: `
-      <button class="btn btn-outline" onclick="profLimparFiltros()">Limpar filtros</button>
-      <button class="btn btn-primary" onclick="profAplicarFiltros()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+      <div class="pf-divider"></div>
+
+      <!-- Status + Horário lado a lado -->
+      <div class="pf-grid2">
+        <div class="pf-section">
+          <div class="pf-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            Status
+          </div>
+          ${statusItem('', 'Todos', !_profFiltroStatus)}
+          ${statusItem('ativo', 'Ativo', _profFiltroStatus==='ativo')}
+          ${statusItem('inativo', 'Inativo', _profFiltroStatus==='inativo')}
+        </div>
+        <div class="pf-section">
+          <div class="pf-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Horário de atendimento
+          </div>
+          ${horarioItem('manha', 'Manhã')}
+          ${horarioItem('tarde', 'Tarde')}
+          ${horarioItem('noite', 'Noite')}
+        </div>
+      </div>
+
+      <div class="pf-divider"></div>
+
+      <!-- Comissão -->
+      <div class="pf-section">
+        <div class="pf-section-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+          Comissão
+        </div>
+        ${comissaoItem('ate10', 'Até 10%')}
+        ${comissaoItem('10a20', '10% a 20%')}
+        ${comissaoItem('acima20', 'Acima de 20%')}
+      </div>
+
+    </div>
+
+    <!-- Rodapé fixo -->
+    <div class="pf-footer">
+      <button class="btn btn-outline" style="flex:1" onclick="profLimparFiltros()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+        Limpar filtros
+      </button>
+      <button class="btn btn-primary" style="flex:1" onclick="profAplicarFiltros()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         Aplicar filtros
-      </button>`
+      </button>
+    </div>`;
+
+  document.body.appendChild(drawer);
+
+  // Animar entrada
+  requestAnimationFrame(() => {
+    overlay.classList.add('show');
+    drawer.classList.add('show');
+  });
+}
+
+function profFecharFiltros() {
+  const drawer  = document.getElementById('profFiltrosDrawer');
+  const overlay = document.getElementById('profFiltrosOverlay');
+  if (drawer)  drawer.classList.remove('show');
+  if (overlay) overlay.classList.remove('show');
+  setTimeout(() => { drawer?.remove(); overlay?.remove(); }, 280);
+}
+
+/* Helpers de checkbox — grupo único */
+function pfEspChange(cb) {
+  document.querySelectorAll('input[data-grupo="esp"]').forEach(x => x !== cb && (x.checked = false));
+  if (!cb.checked) cb.checked = true; // pelo menos 1 marcado
+}
+function pfStatusChange(cb) {
+  document.querySelectorAll('input[data-grupo="status"]').forEach(x => x !== cb && (x.checked = false));
+  if (!cb.checked) cb.checked = true;
+}
+function pfHorarioChange(cb) {
+  document.querySelectorAll('input[data-grupo="horario"]').forEach(x => x !== cb && (x.checked = false));
+}
+function pfServChange(cb) {
+  document.querySelectorAll('input[data-grupo="serv"]').forEach(x => x !== cb && (x.checked = false));
+}
+function pfComissaoChange(cb) {
+  document.querySelectorAll('input[data-grupo="comissao"]').forEach(x => x !== cb && (x.checked = false));
+}
+function pfFiltrarServicos(q) {
+  document.querySelectorAll('#pfServList .pf-check-item').forEach(item => {
+    item.style.display = item.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
   });
 }
 
@@ -2260,25 +2370,17 @@ function profToggleChip(btn, val, grupo) {
 }
 
 function profAplicarFiltros() {
-  // Especialidade e status dos selects
-  _profFiltroEsp    = document.getElementById('pf_esp')?.value    || '';
-  _profFiltroStatus = document.getElementById('pf_status')?.value || '';
+  const checked = (grupo) => {
+    const el = document.querySelector(`input[data-grupo="${grupo}"]:checked`);
+    return el ? el.value : '';
+  };
+  _profFiltroEsp      = checked('esp');
+  _profFiltroStatus   = checked('status');
+  _profFiltroServico  = checked('serv');
+  _profFiltroHorario  = checked('horario');
+  _profFiltroComissao = checked('comissao');
 
-  // Serviço selecionado (chip ativo no grupo de serviços)
-  const servicoAtivo = document.querySelector('.form-group .prof-filtro-chip.active[data-val]');
-  _profFiltroServico = servicoAtivo ? servicoAtivo.dataset.val : '';
-
-  // Horário
-  const horarioAtivo = [...document.querySelectorAll('.prof-filtro-chip.active')].find(b =>
-    ['manha','tarde','noite'].includes(b.dataset.val));
-  _profFiltroHorario = horarioAtivo ? horarioAtivo.dataset.val : '';
-
-  // Comissão
-  const comissaoAtivo = [...document.querySelectorAll('.prof-filtro-chip.active')].find(b =>
-    ['ate10','10a20','acima20'].includes(b.dataset.val));
-  _profFiltroComissao = comissaoAtivo ? comissaoAtivo.dataset.val : '';
-
-  closeModal();
+  profFecharFiltros();
   _profPagAtual = 1;
   profRenderLista();
   profAtualizarBadge();
@@ -2296,15 +2398,14 @@ function profLimparFiltros() {
   _profFiltroServico  = '';
   _profFiltroHorario  = '';
   _profFiltroComissao = '';
-  document.querySelectorAll('.prof-filtro-chip.active').forEach(b => b.classList.remove('active'));
-  const selEsp    = document.getElementById('pf_esp');
-  const selStatus = document.getElementById('pf_status');
-  if (selEsp)    selEsp.value    = '';
-  if (selStatus) selStatus.value = '';
-  closeModal();
+  profFecharFiltros();
   _profPagAtual = 1;
   profRenderLista();
   profAtualizarBadge();
+  const selEsp    = document.getElementById('profFiltroEsp');
+  const selStatus = document.getElementById('profFiltroStatus');
+  if (selEsp)    selEsp.value    = '';
+  if (selStatus) selStatus.value = '';
 }
 
 function profAtualizarBadge() {
