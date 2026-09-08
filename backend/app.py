@@ -151,7 +151,7 @@ class Profissional(db.Model):
     origem             = db.Column(db.String(30),  default='')
     obs                = db.Column(db.Text,        default='')
     foto               = db.Column(db.String(300), default='')
-    comissao           = db.Column(db.Integer,     default=0)
+    comissao           = db.Column(db.Float,       default=0)
     tipo_comissao      = db.Column(db.String(20),  default='percentual')
     atendimentos_mes   = db.Column(db.Integer,     default=0)
     faturamento_mes    = db.Column(db.Float,       default=0)
@@ -513,6 +513,16 @@ def migrate():
                 print(f"✅ Migration profissionais: {col}")
             except Exception:
                 conn.rollback()
+
+        # Converter comissao de INTEGER para FLOAT se necessário (PostgreSQL)
+        try:
+            conn.execute(db.text(
+                "ALTER TABLE profissionais ALTER COLUMN comissao TYPE FLOAT USING comissao::FLOAT"
+            ))
+            conn.commit()
+            print("✅ Migration profissionais: comissao convertida para FLOAT")
+        except Exception:
+            conn.rollback()
 
         for col, definition in cols_perfis:
             try:
@@ -984,26 +994,37 @@ def create_profissional():
 def update_profissional(id):
     p = Profissional.query.get_or_404(id)
     body = request.get_json()
-    mapa = {
-        'atendimentosMes': 'atendimentos_mes',
-        'faturamentoMes':  'faturamento_mes',
-        'nome_social':     'nome_social',
-        'telefone_fixo':   'telefone_fixo',
-        'data_nascimento': 'data_nascimento',
-        'orgao_emissor':   'orgao_emissor',
-        'data_emissao':    'data_emissao',
-        'tipo_comissao':   'tipo_comissao',
-        'data_cadastro':   'data_cadastro',
-    }
-    for k, v in body.items():
-        campo = mapa.get(k, k)
-        if hasattr(p, campo) and campo != 'id':
-            setattr(p, campo, v)
-    # Sincronizar status <-> ativo
+
+    # Campos string — atribuição direta
+    str_fields = [
+        'nome', 'nome_social', 'funcao', 'telefone', 'telefone_fixo',
+        'email', 'sexo', 'data_nascimento', 'cpf', 'rg', 'orgao_emissor',
+        'data_emissao', 'cep', 'rua', 'numero', 'complemento', 'bairro',
+        'cidade', 'estado', 'origem', 'obs', 'foto', 'tipo_comissao', 'status',
+    ]
+    for f in str_fields:
+        if f in body:
+            setattr(p, f, str(body[f]) if body[f] is not None else '')
+
+    # Campos numéricos
+    if 'comissao' in body:
+        try:
+            p.comissao = int(float(body['comissao']))
+        except (ValueError, TypeError):
+            pass
+    if 'atendimentosMes' in body:
+        p.atendimentos_mes = int(body['atendimentosMes'] or 0)
+    if 'faturamentoMes' in body:
+        p.faturamento_mes = float(body['faturamentoMes'] or 0)
+
+    # Booleano ativo — sincroniza status
     if 'ativo' in body:
-        p.status = 'ativo' if body['ativo'] else 'inativo'
+        p.ativo   = bool(body['ativo'])
+        p.status  = 'ativo' if body['ativo'] else 'inativo'
     elif 'status' in body:
-        p.ativo = (body['status'] == 'ativo')
+        p.status  = body['status']
+        p.ativo   = (body['status'] == 'ativo')
+
     db.session.commit()
     return jsonify(p.to_dict())
 
