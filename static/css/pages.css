@@ -1573,41 +1573,6 @@
 .cli-acao-btn:hover { border-color: var(--primary); color: var(--primary); }
 
 /* Botão WhatsApp verde com texto */
-.cli-wpp-btn-group { display: flex; align-items: center; }
-.cli-wpp-btn {
-  display: flex; align-items: center; gap: 7px;
-  padding: 7px 14px; background: #25d366; color: white;
-  border: none; border-radius: 8px 0 0 8px;
-  font-size: .82rem; font-weight: 600; cursor: pointer;
-  text-decoration: none; font-family: var(--font-body);
-  transition: background .15s; line-height: 1;
-}
-.cli-wpp-btn:hover { background: #1ebe5a; }
-.cli-wpp-arrow {
-  display: flex; align-items: center; justify-content: center;
-  padding: 0 9px; height: 34px;
-  background: #1ebe5a; color: white;
-  border: none; border-left: 1px solid rgba(255,255,255,0.3);
-  border-radius: 0 8px 8px 0; cursor: pointer;
-  transition: background .15s;
-}
-.cli-wpp-arrow:hover { background: #17a84d; }
-
-/* Dropdown WA */
-.cli-wpp-drop {
-  position: fixed; background: white;
-  border: 1px solid var(--gray-200); border-radius: var(--radius-md);
-  box-shadow: var(--shadow-md); z-index: 300; min-width: 180px; overflow: hidden;
-}
-.cli-wpp-drop-item {
-  display: flex; align-items: center; gap: 9px;
-  width: 100%; padding: 10px 14px; font-size: .875rem;
-  color: var(--gray-700); background: none; border: none;
-  cursor: pointer; text-decoration: none;
-  font-family: var(--font-body); transition: background .15s; text-align: left;
-}
-.cli-wpp-drop-item:hover { background: var(--gray-50); }
-
 /* KPIs */
 .cli-kpis {
   display: grid; grid-template-columns: repeat(4,1fr);
