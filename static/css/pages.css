@@ -1081,44 +1081,6 @@
 }
 
 /* ── Agenda painel de hoje ── */
-.agenda-nova-layout {
-  display: grid;
-  grid-template-columns: 200px 1fr 260px;
-  gap: 20px;
-  align-items: start;
-}
-.agenda-painel-hoje {
-  background: white;
-  border: 1px solid var(--gray-200);
-  border-radius: var(--radius-lg);
-  padding: 16px;
-  box-shadow: var(--shadow-sm);
-  position: sticky;
-  top: 20px;
-}
-.hoje-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--gray-100);
-}
-.hoje-stat:last-child { border-bottom: none; }
-.hoje-num {
-  font-size: 1.6rem;
-  font-weight: 700;
-  line-height: 1.1;
-  margin-top: 4px;
-}
-@media (max-width: 1200px) {
-  .agenda-nova-layout { grid-template-columns: 1fr 240px; }
-  .agenda-painel-hoje { display: none; }
-}
-@media (max-width: 900px) {
-  .agenda-nova-layout { grid-template-columns: 1fr; }
-  .agenda-nova-sidebar { position: static; }
-}
-
 /* ══════════════════════════════════════
    AGENDA NOVA — Layout completo
 ══════════════════════════════════════ */
@@ -1647,14 +1609,9 @@
   z-index: 3 !important;
 }
 
-/* Agenda nova layout com sidebar maior para o painel */
-.agenda-nova-layout {
-  display: grid;
-  grid-template-columns: 1fr 280px;
-  gap: 16px;
-  align-items: start;
-}
-  .agenda-nova-layout { grid-template-columns: 160px 1fr 220px; }
+/* Responsivo */
+@media (max-width: 1280px) {
+  .agenda-nova-layout { grid-template-columns: 1fr 260px; }
   .agenda-pro-header-cell, .agenda-pro-body-col { width: 150px; }
 }
 @media (max-width: 1024px) {
