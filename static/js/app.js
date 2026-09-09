@@ -12,6 +12,7 @@ const PAGES = {
   profissionais:  { title: 'Profissionais',    render: renderProfissionais },
   novoProfissional: { title: 'Novo Profissional', render: renderNovoProfissional },
   novoServico:      { title: 'Novo Serviço',      render: renderNovoServico },
+  novoAtendimento:  { title: 'Novo Atendimento',   render: renderNovoAtendimento },
   servicos:       { title: 'Serviços',         render: renderServicos },
   estoque:        { title: 'Estoque',          render: renderEstoque },
   financeiro:     { title: 'Financeiro',       render: renderFinanceiro },
