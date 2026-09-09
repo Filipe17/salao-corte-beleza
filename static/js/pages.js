@@ -295,7 +295,12 @@ function naRenderCliSelecionado(cli) {
   const ultData = ults.length ? ults.sort((a,b)=>b.data.localeCompare(a.data))[0].data : null;
   return `
     <div class="na-cli-card">
-      ${avatarHtml(cli.nome,'avatar-md',cli.id)}
+      <div style="width:48px;height:48px;border-radius:50%;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1rem;color:white;background:var(--primary)">
+        ${cli.foto
+          ? `<img src="${cli.foto}" style="width:100%;height:100%;object-fit:cover" />`
+          : cli.nome[0].toUpperCase()
+        }
+      </div>
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span style="font-weight:700;font-size:.95rem;color:var(--gray-800)">${cli.nome}</span>
