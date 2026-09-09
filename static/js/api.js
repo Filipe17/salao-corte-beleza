@@ -13,9 +13,10 @@ const API_BASE = window.location.hostname === 'localhost'
   : window.location.origin;
 
 async function apiFetch(path, options = {}) {
+  const isFormData = options.body instanceof FormData;
   const res = await fetch(API_BASE + path, {
-    headers: { 'Content-Type': 'application/json' },
     ...options,
+    headers: isFormData ? {} : { 'Content-Type': 'application/json', ...(options.headers || {}) },
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
