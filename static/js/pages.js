@@ -639,6 +639,51 @@ async function naSalvar(acao = 'salvar') {
     if (!proId) { showToast(`Selecione o profissional para "${ns.nome}"`, 'error'); return; }
   }
 
+  // Verificar bloqueios de horário para cada serviço/profissional
+  const dataObj  = new Date(data + 'T12:00');
+  const diaSemana = dataObj.getDay();
+  const [hIni, mIni] = hora.split(':').map(Number);
+  let checkMin = hIni * 60 + mIni;
+  for (const ns of _naServicos) {
+    const proId = ns.proId || _naPreProId;
+    const cfg   = getBloqueiosPro(proId);
+    // Dia bloqueado
+    if ((cfg.diasBloqueados||[]).includes(diaSemana)) {
+      const pro = DB.profissionais.find(p => p.id === parseInt(proId));
+      showToast(`${pro?.nome||'Profissional'} não atende neste dia da semana.`, 'error');
+      return;
+    }
+    // Fora do horário de atendimento
+    const [hInicioAtend, mInicioAtend] = (cfg.horarioInicio||'08:00').split(':').map(Number);
+    const [hFimAtend,    mFimAtend   ] = (cfg.horarioFim   ||'18:00').split(':').map(Number);
+    const inicioAtendMin = hInicioAtend * 60 + mInicioAtend;
+    const fimAtendMin    = hFimAtend    * 60 + mFimAtend;
+    const fimServMin     = checkMin + ns.duracao;
+    if (checkMin < inicioAtendMin || fimServMin > fimAtendMin) {
+      const pro = DB.profissionais.find(p => p.id === parseInt(proId));
+      showToast(`Horário fora do atendimento de ${pro?.nome||'Profissional'} (${cfg.horarioInicio}–${cfg.horarioFim}).`, 'error');
+      return;
+    }
+    // Intervalos e bloqueios específicos
+    const bloqueiosDia = (cfg.bloqueios||[]).filter(b =>
+      b.tipo === 'recorrente' || b.data === data
+    );
+    for (const b of bloqueiosDia) {
+      const [bh, bm] = b.inicio.split(':').map(Number);
+      const [fh, fm] = b.fim.split(':').map(Number);
+      const blqIni = bh * 60 + bm;
+      const blqFim = fh * 60 + fm;
+      // Sobreposição: serviço começa antes do bloqueio terminar E termina depois do bloqueio começar
+      if (checkMin < blqFim && fimServMin > blqIni) {
+        const pro = DB.profissionais.find(p => p.id === parseInt(proId));
+        const motivo = b.motivo || 'Bloqueio';
+        showToast(`${pro?.nome||'Profissional'} está bloqueado das ${b.inicio} às ${b.fim} (${motivo}).`, 'error');
+        return;
+      }
+    }
+    checkMin = fimServMin; // próximo serviço começa onde esse termina
+  }
+
   const statusFinal = acao === 'finalizar' ? 'finalizado' : status;
 
   const btn = document.getElementById(acao === 'finalizar' ? 'naBtnFinalizar' : 'naBtnSalvar');
