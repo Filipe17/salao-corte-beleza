@@ -1772,7 +1772,9 @@
   gap: 16px;
   align-items: stretch;
 }
-.atd-main2 { min-width: 0; }
+.atd-main2 { min-width: 0; display: flex; flex-direction: column; }
+.atd-main2 .card { flex: 1; display: flex; flex-direction: column; }
+.atd-main2 .card .table-wrap { flex: 1; }
 
 /* Filtros superiores */
 .atd-filtros2 {
