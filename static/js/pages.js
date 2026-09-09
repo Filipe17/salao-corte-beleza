@@ -1327,7 +1327,12 @@ function agRenderDetalhe(id) {
 
     <!-- Cliente -->
     <div class="ag-det-cliente">
-      ${avatarHtml(cli?.nome||'?','avatar-lg',a.clienteId||0)}
+      <div style="width:52px;height:52px;border-radius:50%;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.2rem;color:white;background:${`#${'e91e8c7c3aed3b82f610b98142f59e0b'.slice((a.clienteId||0)%8*6,(a.clienteId||0)%8*6+6)}`}">
+        ${cli?.foto
+          ? `<img src="${cli.foto}" style="width:100%;height:100%;object-fit:cover" />`
+          : `${(cli?.nome||'?')[0].toUpperCase()}`
+        }
+      </div>
       <div>
         <div class="ag-det-cli-nome">${cli?.nome||'—'}</div>
         <div class="ag-det-cli-tel">${cli?.telefone||''}</div>
