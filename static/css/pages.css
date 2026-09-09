@@ -1772,7 +1772,7 @@
   gap: 16px;
   align-items: stretch;
 }
-.atd-main2 { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.atd-main2 { min-width: 0; }
 
 /* Filtros superiores */
 .atd-filtros2 {

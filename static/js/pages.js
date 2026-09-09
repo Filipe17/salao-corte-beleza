@@ -31,31 +31,7 @@ function atualizarSidebarHoje() {
   const hoje = new Date().toISOString().slice(0,10);
   const ags  = (DB.agendamentos || []).filter(a => a.data === hoje);
   const set  = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
-
-  // Data formatada
-  const dataEl = document.getElementById('sidebarHojeData');
-  if (dataEl) {
-    const d = new Date();
-    dataEl.textContent = d.toLocaleDateString('pt-BR');
-  }
-
-  // Total de atendimentos do dia
-  set('hojeAgendados', ags.length);
-
-  // Faturamento (atendimentos finalizados)
-  const fat = ags.filter(a => a.status === 'finalizado').reduce((s, a) => s + (a.valor || 0), 0);
-  set('hojeFaturamento', fat.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }));
-
-  // Ticket médio
-  const finalizados = ags.filter(a => a.status === 'finalizado');
-  const ticket = finalizados.length ? fat / finalizados.length : 0;
-  set('hojeTicket', ticket.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }));
-
-  // Novos clientes hoje (cadastrados hoje)
-  const novos = (DB.clientes || []).filter(c => c.dataCadastro === hoje).length;
-  set('hojeNovosClientes', novos);
-
-  // Manter IDs antigos para compatibilidade
+  set('hojeAgendados',  ags.filter(a => ['confirmado','pendente'].includes(a.status)).length);
   set('hojeAndamento',  ags.filter(a => a.status === 'emandamento').length);
   set('hojeConcluidos', ags.filter(a => a.status === 'finalizado').length);
   set('hojeCancelados', ags.filter(a => a.status === 'cancelado').length);
@@ -6462,11 +6438,8 @@ function renderAtendimento() {
     </div>
   </div>
 
-  <div class="atd-layout2 ${sel ? 'com-painel' : ''}">
-    <div class="atd-main2">
-
-      <!-- Filtros superiores -->
-      <div class="atd-filtros2">
+  <!-- Filtros e abas fora do grid -->
+  <div class="atd-filtros2">
         <div style="display:flex;align-items:center;gap:6px">
           <svg viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="2" width="14" height="14"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
           <input type="date" class="form-control" style="width:140px;font-size:0.82rem"
@@ -6494,10 +6467,9 @@ function renderAtendimento() {
             value="${_atdFiltroBusca}"
             oninput="_atdFiltroBusca=this.value;_atdPagina=1;navigate('atendimento')" />
         </div>
-      </div>
+  </div>
 
-      <!-- Abas com contadores -->
-      <div class="atd-tabs2">
+  <div class="atd-tabs2">
         ${[
           {key:'todos',       label:'Todos',        cnt: cntTodos,      color:'var(--primary)'},
           {key:'agendados',   label:'Agendados',    cnt: cntAgendados,  color:'#3b82f6'},
@@ -6510,7 +6482,10 @@ function renderAtendimento() {
             ${t.label}
             <span class="atd-tab2-cnt" style="--tab-color:${t.color}">${t.cnt}</span>
           </button>`).join('')}
-      </div>
+  </div>
+
+  <div class="atd-layout2 ${sel ? 'com-painel' : ''}">
+    <div class="atd-main2">
 
       <!-- Tabela -->
       <div class="card" style="border-radius:12px;overflow:hidden">
