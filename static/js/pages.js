@@ -1989,6 +1989,22 @@ function renderClienteList() {
 let ncEtapa = 1;
 let ncDados = {};
 
+function ncSelFoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { showToast('Foto muito grande. Máximo 2MB.', 'error'); return; }
+  ncDados.fotoArquivo = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    ncDados.fotoPreview = e.target.result;
+    const box = document.getElementById('ncAvatarBox');
+    if (box) box.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover" />`;
+    const btn = document.querySelector('[onclick*="nc_fotoInput"]:not(div)');
+    if (btn) btn.childNodes[btn.childNodes.length - 1].textContent = ' Alterar Foto';
+  };
+  reader.readAsDataURL(file);
+}
+
 function openNewCliente() {
   ncEtapa = 1;
   ncDados = {};
@@ -2013,10 +2029,18 @@ function renderNovoCliente() {
       <div class="nc-form-grid">
         <div class="nc-foto-col">
           <label class="nc-label">Foto do cliente</label>
-          <div class="nc-foto-box">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
-            <span>Adicionar foto</span>
-            <small>JPG, PNG até 2MB</small>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+            <div id="ncAvatarBox" onclick="document.getElementById('nc_fotoInput').click()" style="width:120px;height:120px;border-radius:50%;overflow:hidden;cursor:pointer;background:var(--gray-100);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:3px solid var(--gray-200)">
+              ${ncDados.fotoPreview
+                ? `<img src="${ncDados.fotoPreview}" style="width:100%;height:100%;object-fit:cover" />`
+                : `<svg viewBox="0 0 24 24" fill="none" stroke="var(--gray-300)" stroke-width="1.2" width="52" height="52"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
+              }
+            </div>
+            <button type="button" onclick="document.getElementById('nc_fotoInput').click()" style="display:flex;align-items:center;gap:7px;padding:8px 18px;border:2px solid var(--primary);border-radius:30px;background:white;color:var(--primary);font-size:.82rem;font-weight:600;cursor:pointer;font-family:var(--font-body)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              ${ncDados.fotoPreview ? 'Alterar Foto' : 'Adicionar Foto'}
+            </button>
+            <input type="file" id="nc_fotoInput" accept="image/*" style="display:none" onchange="ncSelFoto(this)" />
           </div>
         </div>
         <div style="flex:1;display:flex;flex-direction:column;gap:14px">
@@ -2390,12 +2414,23 @@ async function ncSalvar() {
     obsInterna:     ncDados.obsInterna || '',
   };
   try {
+    let cliId;
     if (ncDados.editId) {
       await apiFetch(`/api/clientes/${ncDados.editId}`, { method: 'PUT', body: JSON.stringify(payload) });
+      cliId = ncDados.editId;
       showToast('Cliente atualizado com sucesso!', 'success');
     } else {
-      await apiFetch('/api/clientes', { method: 'POST', body: JSON.stringify(payload) });
+      const res = await apiFetch('/api/clientes', { method: 'POST', body: JSON.stringify(payload) });
+      cliId = res.id;
       showToast('Cliente cadastrado com sucesso!', 'success');
+    }
+    // Upload da foto se selecionada
+    if (ncDados.fotoArquivo && cliId) {
+      try {
+        const fd = new FormData();
+        fd.append('foto', ncDados.fotoArquivo);
+        await apiFetch(`/api/clientes/${cliId}/foto`, { method: 'POST', body: fd, isFormData: true });
+      } catch(e) { showToast('Cliente salvo, mas falha ao enviar foto.', 'warning'); }
     }
     ncEtapa = 1; ncDados = {};
     await reloadAndNavigate('clientes');
