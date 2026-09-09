@@ -6461,7 +6461,7 @@ function renderAtendimento() {
           <option value="todos" ${_atdFiltroServ==='todos'?'selected':''}>Todos os serviços</option>
           ${servOptions}
         </select>
-        <div class="search-input" style="flex:1;min-width:180px">
+        <div class="search-input" style="flex:1;min-width:120px">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input type="text" placeholder="Buscar cliente ou atendimento..."
             value="${_atdFiltroBusca}"

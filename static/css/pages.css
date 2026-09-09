@@ -1780,6 +1780,7 @@
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  margin-bottom: 12px;
 }
 
 /* Abas com contadores */
@@ -1787,6 +1788,7 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  margin-bottom: 12px;
 }
 .atd-tab2 {
   display: flex;
