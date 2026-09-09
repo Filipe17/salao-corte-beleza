@@ -374,6 +374,20 @@ class Transacao(db.Model):
         }
 
 
+class BloqueioAgenda(db.Model):
+    __tablename__ = 'bloqueios_agenda'
+    id         = db.Column(db.Integer, primary_key=True)
+    pro_id     = db.Column(db.Integer, db.ForeignKey('profissionais.id'), nullable=False)
+    dados_json = db.Column(db.Text, default='{}')  # JSON com horarioInicio, horarioFim, diasBloqueados, bloqueios
+
+    def to_dict(self):
+        try:
+            dados = json.loads(self.dados_json or '{}')
+        except Exception:
+            dados = {}
+        return {'proId': self.pro_id, **dados}
+
+
 # ── Cria tabelas e seed inicial ───────────────────────────
 def seed():
     """Popula o banco com dados de exemplo se estiver vazio."""
@@ -1455,6 +1469,26 @@ def relatorio_comissoes():
             'valorComissao': p.faturamento_mes * p.comissao / 100,
         })
     return jsonify(sorted(comissoes, key=lambda x: x['valorComissao'], reverse=True))
+
+
+@app.route('/api/bloqueios', methods=['GET'])
+def get_bloqueios():
+    todos = BloqueioAgenda.query.all()
+    result = {}
+    for b in todos:
+        result[str(b.pro_id)] = b.to_dict()
+    return jsonify(result)
+
+@app.route('/api/bloqueios/<int:pro_id>', methods=['PUT'])
+def save_bloqueio(pro_id):
+    body = request.get_json()
+    b = BloqueioAgenda.query.filter_by(pro_id=pro_id).first()
+    if not b:
+        b = BloqueioAgenda(pro_id=pro_id)
+        db.session.add(b)
+    b.dados_json = json.dumps(body)
+    db.session.commit()
+    return jsonify(b.to_dict())
 
 
 # ═══════════════════════════════════════════════════════

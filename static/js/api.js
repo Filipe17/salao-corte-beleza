@@ -62,6 +62,11 @@ async function loadAllFromAPI() {
       agendamentos: agendamentos.length,
       transacoes: transacoes.length,
     });
+
+    // Carregar bloqueios da agenda (sincroniza entre devices)
+    if (typeof carregarBloqueios === 'function') {
+      await carregarBloqueios();
+    }
   } catch (e) {
     console.warn('⚠️ Falha ao carregar dados da API, usando dados locais:', e.message);
     // Se a API falhar, o DB já tem os dados mockados do data.js — sistema continua

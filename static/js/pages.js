@@ -2614,10 +2614,29 @@ function saveCliente() { ncSalvar(); }
    CONFIGURAÇÃO DE AGENDA
 ═══════════════════════════════════════ */
 let cfgProSel = null;
-let cfgBloqueios = JSON.parse(localStorage.getItem('belezza_bloqueios') || '{}');
+let cfgBloqueios = {};
+
+async function carregarBloqueios() {
+  try {
+    const dados = await apiFetch('/api/bloqueios');
+    cfgBloqueios = {};
+    for (const [proId, cfg] of Object.entries(dados)) {
+      cfgBloqueios[parseInt(proId)] = cfg;
+    }
+  } catch(e) {
+    // fallback localStorage se API falhar
+    try { cfgBloqueios = JSON.parse(localStorage.getItem('belezza_bloqueios') || '{}'); } catch(e2) {}
+  }
+}
 
 function salvarBloqueios() {
   localStorage.setItem('belezza_bloqueios', JSON.stringify(cfgBloqueios));
+  if (cfgProSel && typeof apiFetch === 'function') {
+    apiFetch(`/api/bloqueios/${cfgProSel}`, {
+      method: 'PUT',
+      body: JSON.stringify(cfgBloqueios[cfgProSel] || {})
+    }).catch(() => {});
+  }
 }
 
 function agFiltrarPro(val) {
