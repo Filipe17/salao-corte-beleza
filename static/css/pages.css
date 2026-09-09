@@ -1092,7 +1092,7 @@
   gap: 16px;
   align-items: start;
 }
-.agenda-nova-main { min-width: 0; overflow: hidden; }
+.agenda-nova-main { min-width: 0; overflow: visible; }
 
 /* Toolbar (mantida para compatibilidade) */
 .agenda-nova-toolbar {
