@@ -1262,9 +1262,40 @@ function renderAgenda() {
                   </div>`;
                 }).join('');
             return `<div class="agenda-pro-body-col ${bloqueada?'col-bloqueada':''}" style="position:relative">
-              ${blqFaixas}
               ${hours.map(h => {
+                const hNum     = parseInt(h);
                 const slotApts = proApts.filter(a => a.hora && a.hora.startsWith(h+':'));
+
+                // Verificar se este slot (hora h até h+1) está bloqueado
+                let slotBloqueio = '';
+                if (diaBlq) {
+                  slotBloqueio = `<div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,#f3f4f6,#f3f4f6 6px,#e5e7eb 6px,#e5e7eb 12px);opacity:.85;z-index:1;display:flex;align-items:center;justify-content:center">
+                    <span style="font-size:.65rem;color:var(--gray-400);font-weight:600;background:white;padding:1px 6px;border-radius:8px;white-space:nowrap">Bloqueado</span>
+                  </div>`;
+                } else {
+                  // Bloqueios de intervalo que cobrem este slot
+                  const blqsNoSlot = bloqueiosDia.filter(b => {
+                    const [bh] = b.inicio.split(':').map(Number);
+                    const [fh] = b.fim.split(':').map(Number);
+                    return bh <= hNum && fh > hNum;
+                  });
+                  if (blqsNoSlot.length > 0) {
+                    const b = blqsNoSlot[0];
+                    const [bh,bm] = b.inicio.split(':').map(Number);
+                    const [fh,fm] = b.fim.split(':').map(Number);
+                    // Calcular top/height dentro do slot (64px = 1h)
+                    const slotStartMin = hNum * 60;
+                    const blqIniMin    = bh * 60 + bm;
+                    const blqFimMin    = fh * 60 + fm;
+                    const topPct   = Math.max(0, (blqIniMin - slotStartMin) / 60 * 100);
+                    const botPct   = Math.min(100, (blqFimMin - slotStartMin) / 60 * 100);
+                    const heightPct = botPct - topPct;
+                    slotBloqueio = `<div style="position:absolute;left:0;right:0;top:${topPct}%;height:${heightPct}%;background:repeating-linear-gradient(45deg,#f3f4f6,#f3f4f6 4px,#e5e7eb 4px,#e5e7eb 8px);z-index:3;display:flex;align-items:center;justify-content:center;border:1px solid #d1d5db">
+                      <span style="font-size:.65rem;color:var(--gray-500);font-weight:600;background:white;padding:1px 6px;border-radius:8px;white-space:nowrap">${b.motivo||'Bloqueado'} · ${b.inicio}–${b.fim}</span>
+                    </div>`;
+                  }
+                }
+
                 const blocks = slotApts.map(a => {
                   const cli  = getCliente(a.clienteId);
                   const serv = getServico(a.servicoId);
@@ -1273,7 +1304,7 @@ function renderAgenda() {
                   const heightPx = Math.max((durMin/60)*64-2,30);
                   const statusColors = {confirmado:'#c084fc',pendente:'#fbbf24',finalizado:'#34d399',cancelado:'#f87171',emandamento:'#60a5fa'};
                   const cor = statusColors[a.status]||'#a78bfa';
-                  return `<div class="apt-block ${_agSelecionadoId===a.id?'apt-selected':''}" data-apt-id="${a.id}" style="top:${topPx}px;height:${heightPx}px;border-left:3px solid ${cor};background:${cor}20;z-index:2"
+                  return `<div class="apt-block ${_agSelecionadoId===a.id?'apt-selected':''}" data-apt-id="${a.id}" style="top:${topPx}px;height:${heightPx}px;border-left:3px solid ${cor};background:${cor}20;z-index:4"
                     onclick="${bloqueada?'':'openAppointmentDetail('+a.id+')'}"
                     title="${bloqueada?'Sem permissão para editar':''}">
                     <div style="font-weight:600;font-size:0.74rem;color:var(--gray-800);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${cli?.nome?.split(' ').slice(0,2).join(' ')||'—'}</div>
@@ -1281,7 +1312,7 @@ function renderAgenda() {
                     <div style="font-size:0.68rem;color:${cor};font-weight:500">${a.hora}${a.hora_fim?' - '+a.hora_fim:''}</div>
                   </div>`;
                 }).join('');
-                return `<div class="agenda-body-slot" style="position:relative;cursor:${bloqueada?'default':'pointer'}" onclick="${bloqueada?'':'agSlotClick(event,\''+pro.id+'\',\''+h+':00\',\''+dataStr+'\')'}" title="${bloqueada?'':'Clique para novo atendimento'}">${blocks}</div>`;
+                return `<div class="agenda-body-slot" style="position:relative;cursor:${bloqueada||slotBloqueio?'default':'pointer'}" onclick="${bloqueada||slotBloqueio?'':'agSlotClick(event,\''+pro.id+'\',\''+h+':00\',\''+dataStr+'\')'}" title="${bloqueada?'':slotBloqueio?'Horário bloqueado':'Clique para novo atendimento'}">${slotBloqueio}${blocks}</div>`;
               }).join('')}
             </div>`;
           }).join('')}
