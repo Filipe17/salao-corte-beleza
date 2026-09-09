@@ -6316,7 +6316,9 @@ function renderAtendimento() {
             </button>
           </div>
           <div style="background:var(--gray-50);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px">
-            <div style="width:44px;height:44px;border-radius:8px;background:var(--rose-100);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.2rem">${sel._serv?.emoji||'✨'}</div>
+            <div style="width:44px;height:44px;border-radius:8px;background:var(--rose-100);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">
+              ${sel._serv?.foto ? `<img src="${sel._serv.foto}" style="width:100%;height:100%;object-fit:cover" />` : `<span style="font-size:1.2rem">${sel._serv?.emoji||'✨'}</span>`}
+            </div>
             <div style="flex:1">
               <div style="font-weight:600;font-size:0.82rem;color:var(--gray-800)">${sel._serv?.nome||'Serviço'}</div>
               <div style="font-size:0.72rem;color:var(--gray-400);margin-top:2px">${sel._serv?.duracao||60} min &nbsp;|&nbsp; <span style="color:var(--primary);font-weight:600">${formatCurrency(sel.valor)}</span></div>
