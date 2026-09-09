@@ -2297,7 +2297,12 @@ function renderNovoCliente() {
   const resumo = `
     <div class="nc-resumo">
       <div class="nc-resumo-titulo">Resumo do cliente</div>
-      <div class="nc-resumo-av">${(ncDados.nome||'?')[0].toUpperCase()}</div>
+      <div class="nc-resumo-av">
+        ${(ncDados.fotoPreview || ncDados.foto)
+          ? `<img src="${ncDados.fotoPreview || ncDados.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`
+          : (ncDados.nome||'?')[0].toUpperCase()
+        }
+      </div>
       <div class="nc-resumo-nome">${ncDados.nome || 'Nome do cliente'}</div>
       <small style="color:var(--gray-400);font-size:.75rem">${ncDados.nome ? '' : 'Será exibido após salvar'}</small>
       <div class="nc-resumo-lista">
