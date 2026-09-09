@@ -418,7 +418,12 @@ function naHtmlResumo(cli, pros, subtotal, desconto, total) {
     <!-- Cliente no resumo -->
     ${cli ? `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--gray-100)">
-      ${avatarHtml(cli.nome,'avatar-sm',cli.id)}
+      <div style="width:40px;height:40px;border-radius:50%;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.95rem;color:white;background:var(--primary)">
+        ${cli.foto
+          ? `<img src="${cli.foto}" style="width:100%;height:100%;object-fit:cover" />`
+          : cli.nome[0].toUpperCase()
+        }
+      </div>
       <div style="flex:1;min-width:0">
         <div style="font-weight:700;font-size:.875rem;color:var(--gray-800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cli.nome}</div>
         <div style="font-size:.75rem;color:var(--gray-400)">${cli.telefone||''}</div>
