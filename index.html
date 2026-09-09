@@ -102,26 +102,32 @@
       </div>
     </nav>
 
-    <!-- Atendimentos de hoje -->
+    <!-- Card hoje -->
     <div class="sidebar-hoje" id="sidebarHoje">
-      <div class="sidebar-hoje-title">Atendimentos de hoje</div>
-      <div class="sidebar-hoje-stats">
-        <div class="sidebar-hoje-item">
-          <span class="sidebar-hoje-label">Agendados</span>
-          <span class="sidebar-hoje-num" id="hojeAgendados" style="color:var(--primary-light)">0</span>
-        </div>
-        <div class="sidebar-hoje-item">
-          <span class="sidebar-hoje-label">Em andamento</span>
-          <span class="sidebar-hoje-num" id="hojeAndamento" style="color:#fbbf24">0</span>
-        </div>
-        <div class="sidebar-hoje-item">
-          <span class="sidebar-hoje-label">Concluídos</span>
-          <span class="sidebar-hoje-num" id="hojeConcluidos" style="color:#34d399">0</span>
-        </div>
-        <div class="sidebar-hoje-item">
-          <span class="sidebar-hoje-label">Cancelados</span>
-          <span class="sidebar-hoje-num" id="hojeCancelados" style="color:#f87171">0</span>
-        </div>
+      <div class="sidebar-hoje-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="14" height="14"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        <span>Hoje</span>
+        <span class="sidebar-hoje-data" id="sidebarHojeData"></span>
+      </div>
+      <div class="sidebar-hoje-divider"></div>
+      <div class="sidebar-hoje-item">
+        <span class="sidebar-hoje-label">Atendimentos</span>
+        <span class="sidebar-hoje-num" id="hojeAgendados">0</span>
+      </div>
+      <div class="sidebar-hoje-divider"></div>
+      <div class="sidebar-hoje-item">
+        <span class="sidebar-hoje-label">Faturamento</span>
+        <span class="sidebar-hoje-num" id="hojeFaturamento">R$ 0,00</span>
+      </div>
+      <div class="sidebar-hoje-divider"></div>
+      <div class="sidebar-hoje-item">
+        <span class="sidebar-hoje-label">Ticket médio</span>
+        <span class="sidebar-hoje-num sidebar-hoje-ticket" id="hojeTicket">R$ 0,00</span>
+      </div>
+      <div class="sidebar-hoje-divider"></div>
+      <div class="sidebar-hoje-item">
+        <span class="sidebar-hoje-label">Novos clientes</span>
+        <span class="sidebar-hoje-num" id="hojeNovosClientes">0</span>
       </div>
     </div>
 

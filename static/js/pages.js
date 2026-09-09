@@ -31,7 +31,31 @@ function atualizarSidebarHoje() {
   const hoje = new Date().toISOString().slice(0,10);
   const ags  = (DB.agendamentos || []).filter(a => a.data === hoje);
   const set  = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
-  set('hojeAgendados',  ags.filter(a => ['confirmado','pendente'].includes(a.status)).length);
+
+  // Data formatada
+  const dataEl = document.getElementById('sidebarHojeData');
+  if (dataEl) {
+    const d = new Date();
+    dataEl.textContent = d.toLocaleDateString('pt-BR');
+  }
+
+  // Total de atendimentos do dia
+  set('hojeAgendados', ags.length);
+
+  // Faturamento (atendimentos finalizados)
+  const fat = ags.filter(a => a.status === 'finalizado').reduce((s, a) => s + (a.valor || 0), 0);
+  set('hojeFaturamento', fat.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }));
+
+  // Ticket médio
+  const finalizados = ags.filter(a => a.status === 'finalizado');
+  const ticket = finalizados.length ? fat / finalizados.length : 0;
+  set('hojeTicket', ticket.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }));
+
+  // Novos clientes hoje (cadastrados hoje)
+  const novos = (DB.clientes || []).filter(c => c.dataCadastro === hoje).length;
+  set('hojeNovosClientes', novos);
+
+  // Manter IDs antigos para compatibilidade
   set('hojeAndamento',  ags.filter(a => a.status === 'emandamento').length);
   set('hojeConcluidos', ags.filter(a => a.status === 'finalizado').length);
   set('hojeCancelados', ags.filter(a => a.status === 'cancelado').length);

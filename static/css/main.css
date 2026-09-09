@@ -412,40 +412,54 @@ ul { list-style: none; }
   }
 }
 
-/* ── Painel Atendimentos de hoje na sidebar ── */
+/* ── Card Hoje na sidebar ── */
 .sidebar-hoje {
   margin: 12px 10px;
   background: rgba(255,255,255,0.06);
   border-radius: var(--radius-lg);
-  padding: 14px;
+  padding: 16px;
   border: 1px solid rgba(255,255,255,0.08);
-}
-.sidebar-hoje-title {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: rgba(255,255,255,0.5);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-bottom: 12px;
-}
-.sidebar-hoje-stats {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+}
+.sidebar-hoje-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255,255,255,0.5);
+  font-size: 0.78rem;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.sidebar-hoje-header svg { opacity: 0.6; flex-shrink: 0; }
+.sidebar-hoje-data {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.4);
+}
+.sidebar-hoje-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.07);
+  margin: 10px 0;
 }
 .sidebar-hoje-item {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 2px;
 }
 .sidebar-hoje-label {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: rgba(255,255,255,0.45);
+  font-weight: 400;
 }
 .sidebar-hoje-num {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 700;
-  line-height: 1;
+  color: var(--primary-light);
+  line-height: 1.2;
+}
+.sidebar-hoje-ticket {
+  color: #fbbf24;
 }
 /* Esconder quando sidebar colapsada */
 .sidebar.collapsed .sidebar-hoje { display: none; }
