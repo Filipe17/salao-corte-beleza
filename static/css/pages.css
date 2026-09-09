@@ -1761,6 +1761,83 @@
   .atd-detalhe-painel { position: static; max-height: none; }
 }
 
+/* ── Novo layout Atendimentos (v2) ──────────────────────── */
+.atd-layout2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+.atd-layout2.com-painel {
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+  align-items: start;
+}
+.atd-main2 { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+
+/* Filtros superiores */
+.atd-filtros2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Abas com contadores */
+.atd-tabs2 {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.atd-tab2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--gray-500);
+  background: white;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--font-body);
+}
+.atd-tab2:hover { border-color: var(--primary); color: var(--primary); }
+.atd-tab2.active { background: var(--rose-50); border-color: var(--primary); color: var(--primary); font-weight: 600; }
+.atd-tab2-cnt {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--tab-color, var(--primary)) 12%, transparent);
+  color: var(--tab-color, var(--primary));
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+/* Painel lateral de detalhes (v2) */
+.atd-painel-lateral {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 16px;
+  max-height: calc(100vh - 140px);
+  overflow: hidden;
+}
+
+@media (max-width: 1200px) {
+  .atd-layout2.com-painel { grid-template-columns: 1fr; }
+  .atd-painel-lateral { position: static; max-height: none; }
+}
+
 /* ═══════════════════════════════════════
    CLIENTES — Layout dois painéis
 ═══════════════════════════════════════ */
