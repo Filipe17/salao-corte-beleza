@@ -1769,8 +1769,8 @@
 }
 .atd-layout2.com-painel {
   grid-template-columns: 1fr 340px;
-  gap: 20px;
-  align-items: start;
+  gap: 16px;
+  align-items: stretch;
 }
 .atd-main2 { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
 
@@ -1827,10 +1827,7 @@
   box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
-  position: sticky;
-  top: 16px;
-  max-height: calc(100vh - 140px);
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 @media (max-width: 1200px) {
