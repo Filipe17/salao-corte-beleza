@@ -64,10 +64,16 @@ function openNewAppointment(modo = 'agenda', horaInicial = null, proId = null, d
   _naPreHora        = horaInicial || '09:00';
   _naPreProId       = proId || null;
   _naEditId         = null;
+  sessionStorage.removeItem('_naCliId');
   navigate('novoAtendimento');
 }
 
 function renderNovoAtendimento() {
+  // Restaurar cliente do sessionStorage se variável perdeu estado (mobile)
+  if (!_naCliSelecionado) {
+    const backupId = sessionStorage.getItem('_naCliId');
+    if (backupId) _naCliSelecionado = DB.clientes.find(c => c.id === parseInt(backupId)) || null;
+  }
   const pros   = DB.profissionais.filter(p => p.ativo !== false);
   const servs  = DB.servicos.filter(s => s.ativo);
   const cats   = ['Todas as categorias', ...new Set(servs.map(s => s.categoria).filter(Boolean))];
@@ -538,6 +544,10 @@ function naFiltrarCli(q) {
 
 function naSelectCli(id) {
   _naCliSelecionado = DB.clientes.find(c => c.id === id);
+  // Persistir no sessionStorage como backup para mobile
+  if (_naCliSelecionado) {
+    sessionStorage.setItem('_naCliId', String(_naCliSelecionado.id));
+  }
   const area = document.getElementById('naCliArea');
   if (area) area.innerHTML = naRenderCliSelecionado(_naCliSelecionado);
   naAtualizarResumo();
@@ -600,6 +610,11 @@ function _naIniciarEventos() {
 }
 
 async function naSalvar(acao = 'salvar') {
+  // Recuperar cliente do sessionStorage como backup (mobile pode perder estado)
+  if (!_naCliSelecionado) {
+    const backupId = sessionStorage.getItem('_naCliId');
+    if (backupId) _naCliSelecionado = DB.clientes.find(c => c.id === parseInt(backupId));
+  }
   const cli  = _naCliSelecionado;
   const data = document.getElementById('na_data')?.value;
   const hora = document.getElementById('na_hora')?.value;
@@ -673,6 +688,7 @@ async function naSalvar(acao = 'salvar') {
         ? 'Atendimento atualizado com sucesso!'
         : `Atendimento salvo! (${qtd} serviço${qtd>1?'s':''})`;
     _naEditId = null;
+    sessionStorage.removeItem('_naCliId');
     showToast(msg, 'success');
     if (typeof atualizarSidebarHoje === 'function') atualizarSidebarHoje();
     const destino = _naModo === 'atendimento' ? 'atendimento' : 'agenda';
