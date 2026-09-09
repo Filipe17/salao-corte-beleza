@@ -6249,7 +6249,9 @@ function renderAtendimento() {
     <div class="atd-painel-lateral">
       <!-- Header do painel -->
       <div style="display:flex;align-items:center;gap:12px;padding:20px 20px 16px;border-bottom:1px solid var(--gray-100)">
-        ${avatarHtml(sel._cli?.nome||'?','',sel.clienteId,'48px')}
+        <div style="width:52px;height:52px;border-radius:50%;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.3rem;color:white;background:#${'e91e8c7c3aed3b82f610b98142f59e0b'.slice((sel.clienteId||0)%8*6,(sel.clienteId||0)%8*6+6)}">
+          ${sel._cli?.foto ? `<img src="${sel._cli.foto}" style="width:100%;height:100%;object-fit:cover" />` : (sel._cli?.nome||'?')[0].toUpperCase()}
+        </div>
         <div style="flex:1">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span style="font-weight:700;font-size:0.95rem;color:var(--gray-800)">${sel._cli?.nome||'—'}</span>
@@ -6510,7 +6512,9 @@ function renderAtendimento() {
                   </td>
                   <td>
                     <div style="display:flex;align-items:center;gap:8px">
-                      ${avatarHtml(a._cli?.nome||'?','avatar-sm',a.clienteId)}
+                      <div class="avatar-sm" style="overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;color:white;background:#${'e91e8c7c3aed3b82f610b98142f59e0b'.slice((a.clienteId||0)%8*6,(a.clienteId||0)%8*6+6)}">
+                        ${a._cli?.foto ? `<img src="${a._cli.foto}" style="width:100%;height:100%;object-fit:cover" />` : (a._cli?.nome||'?')[0].toUpperCase()}
+                      </div>
                       <div>
                         <div style="font-weight:500;font-size:0.82rem">${a._cli?.nome||'—'}</div>
                         <div style="font-size:0.72rem;color:var(--gray-400)">${a._cli?.telefone||''}</div>
@@ -6523,7 +6527,9 @@ function renderAtendimento() {
                   </td>
                   <td>
                     <div style="display:flex;align-items:center;gap:8px">
-                      ${avatarHtml(a._pro?.nome||'?','avatar-sm',a.proId)}
+                      <div class="avatar-sm" style="overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;color:white;background:#${'7c3aede91e8c3b82f610b98142f59e0b'.slice((a.proId||0)%8*6,(a.proId||0)%8*6+6)}">
+                        ${a._pro?.foto ? `<img src="${a._pro.foto}" style="width:100%;height:100%;object-fit:cover" />` : (a._pro?.nome||'?')[0].toUpperCase()}
+                      </div>
                       <div>
                         <div style="font-weight:500;font-size:0.82rem">${a._pro?.nome||'—'}</div>
                         <div style="font-size:0.72rem;color:var(--gray-400)">${a._pro?.funcao||'Profissional'}</div>
