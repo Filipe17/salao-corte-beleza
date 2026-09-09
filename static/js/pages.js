@@ -1827,7 +1827,12 @@ function renderCliPerfil(id) {
     <div class="cli-perfil">
       <!-- Header do perfil -->
       <div class="cli-perfil-header">
-        <div class="cli-perfil-av">${c.nome[0].toUpperCase()}</div>
+        <div class="cli-perfil-av">
+          ${c.foto
+            ? `<img src="${c.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`
+            : c.nome[0].toUpperCase()
+          }
+        </div>
         <div class="cli-perfil-dados">
           <div class="cli-perfil-nome">${c.nome} <span class="badge badge-green" style="font-size:.7rem">Ativo</span></div>
           ${c.telefone ? `<div class="cli-perfil-linha"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.22 1.2 2 2 0 012.22 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.09a16 16 0 006 6l.66-.66a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg> ${c.telefone}</div>` : ''}
@@ -1930,6 +1935,8 @@ function openClientEdit(id) {
     cabelo:      c.obsCabelo   || '',
     obs:         c.observacoes || '',
     obsInterna:  c.obsInterna  || '',
+    foto:        c.foto        || '',
+    fotoPreview: c.foto        || '',
   };
   navigate('novoCliente');
 }
