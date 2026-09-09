@@ -1301,12 +1301,30 @@ function setAgendaView(v) {
 }
 function openAppointmentDetail(id) {
   _agSelecionadoId = id;
-  // Atualiza painel lateral se existir, senão re-renderiza
   const panel = document.getElementById('agDetPanel');
   if (panel) {
     panel.innerHTML = agRenderDetalhe(id);
   } else {
     navigate('agenda');
+  }
+  // Mobile: abrir sidebar como drawer
+  const sidebar = document.querySelector('.agenda-nova-sidebar');
+  if (sidebar && window.innerWidth <= 1024) {
+    sidebar.style.display = 'block';
+    requestAnimationFrame(() => sidebar.classList.add('mob-aberto'));
+    // Fechar ao clicar fora
+    if (!sidebar._overlayAdded) {
+      sidebar._overlayAdded = true;
+      const overlay = document.createElement('div');
+      overlay.id = 'agSidebarOverlay';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:299;background:rgba(0,0,0,.3)';
+      overlay.onclick = () => {
+        sidebar.classList.remove('mob-aberto');
+        overlay.remove();
+        sidebar._overlayAdded = false;
+      };
+      document.body.appendChild(overlay);
+    }
   }
   // Destacar bloco selecionado
   document.querySelectorAll('.apt-block').forEach(el => el.classList.remove('apt-selected'));

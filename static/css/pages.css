@@ -3068,3 +3068,190 @@ select {
   padding: 16px 0 0;
   border-top: 1px solid var(--gray-200);
 }
+
+/* ══════════════════════════════════════════════
+   RESPONSIVO — TABLET (≤1024px) + MOBILE (≤768px)
+   Touch-friendly: alvos mínimos de 44px, sem hover
+══════════════════════════════════════════════ */
+
+/* ── Tablet ── */
+@media (max-width: 1024px) {
+
+  /* Agenda — ocultar sidebar de detalhes, mostrar em modal ao clicar */
+  .agenda-nova-layout { grid-template-columns: 1fr; }
+  .agenda-nova-sidebar { display: none; }
+
+  /* Clientes — empilhar */
+  .cli-layout { grid-template-columns: 1fr; height: auto; overflow: visible; }
+  .cli-right   { min-height: 300px; }
+
+  /* Novo atendimento — 2 colunas */
+  .na-grid { grid-template-columns: 1fr 1fr; }
+  .na-col-right { grid-column: 1 / -1; }
+
+  /* Serviços selecionados — scroll horizontal na tabela */
+  .na-sel-header,
+  .na-sel-row { grid-template-columns: 1fr 120px 60px 70px 36px; }
+}
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+
+  /* ─ Layout geral ─ */
+  .page-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .page-header-right { width: 100%; justify-content: flex-end; }
+
+  /* ─ Cards e grids genéricos ─ */
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr !important; }
+  .card { padding: 14px; }
+
+  /* ─ Agenda ─ */
+  .ag-filtros-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .ag-filtros-sep { display: none; }
+  .ag-filtro-item { min-width: calc(50% - 8px); flex: 1 1 calc(50% - 8px); }
+  .ag-data-nav { width: 100%; justify-content: center; }
+  .ag-rodape { flex-direction: column; align-items: center; gap: 10px; }
+
+  /* Grade da agenda — scroll horizontal */
+  .agenda-pro-grid-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .agenda-pro-header-cell,
+  .agenda-pro-body-col { width: 140px; }
+
+  /* Painel de detalhes da agenda — drawer mobile */
+  .agenda-nova-sidebar {
+    display: block;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 300;
+    max-height: 85vh;
+    overflow-y: auto;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -4px 24px rgba(0,0,0,.15);
+    transform: translateY(100%);
+    transition: transform .3s ease;
+  }
+  .agenda-nova-sidebar.mob-aberto {
+    transform: translateY(0);
+  }
+  .ag-det-panel { margin-top: 0; border-radius: 0; border: none; }
+  .ag-det-vazio { display: none; }
+
+  /* Ações da agenda — 2x2 */
+  .ag-det-acoes { grid-template-columns: repeat(2, 1fr); }
+
+  /* ─ Clientes ─ */
+  .cli-layout { grid-template-columns: 1fr; height: auto; }
+  .cli-right { border-radius: var(--radius-lg); min-height: 200px; }
+  .cli-perfil-header { flex-wrap: wrap; gap: 10px; }
+  .cli-kpis { grid-template-columns: repeat(2, 1fr); }
+  .cli-perfil-acoes { flex-wrap: wrap; }
+
+  /* ─ Profissionais ─ */
+  .prof-layout { grid-template-columns: 1fr; height: auto; }
+  .prof-tabela th:nth-child(3),
+  .prof-tabela td:nth-child(3),
+  .prof-tabela th:nth-child(4),
+  .prof-tabela td:nth-child(4) { display: none; }
+
+  /* ─ Serviços ─ */
+  .serv-layout { grid-template-columns: 1fr; }
+  .serv-detalhe-panel { display: none; }
+  .serv-tabela th:nth-child(4),
+  .serv-tabela td:nth-child(4) { display: none; }
+
+  /* ─ Barra de filtros de serviços ─ */
+  .serv-filtros-bar { flex-wrap: wrap; }
+
+  /* ─ Novo Atendimento ─ */
+  .na-grid { grid-template-columns: 1fr; }
+  .na-col-right { position: static; }
+  .na-footer { flex-direction: column; gap: 10px; }
+  .na-footer > div { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+  .na-footer .btn { width: 100%; justify-content: center; }
+  .na-sel-header { display: none; }
+  .na-sel-row {
+    grid-template-columns: 1fr 36px;
+    gap: 6px;
+  }
+  .na-sel-row > :nth-child(2),
+  .na-sel-row > :nth-child(3),
+  .na-sel-row > :nth-child(4) { display: none; }
+
+  /* ─ Wizard Novo Cliente ─ */
+  .nc-layout { flex-direction: column; }
+  .nc-resumo { width: 100%; position: static; }
+  .nc-steps { flex-wrap: wrap; gap: 6px; }
+  .nc-step-line { display: none; }
+  .nc-row { flex-direction: column; }
+  .nc-field { min-width: 100%; }
+
+  /* ─ Wizard Novo Profissional ─ */
+  .np-layout { flex-direction: column; }
+  .np-resumo { width: 100%; position: static; }
+
+  /* ─ Wizard Novo Serviço ─ */
+  .nc-layout { flex-direction: column; }
+  .ns-resumo { width: 100%; position: static; }
+
+  /* ─ Drawers (filtros) ─ */
+  .pf-drawer { width: 100% !important; max-width: 100% !important; }
+
+  /* ─ Modais ─ */
+  .modal-overlay .modal { margin: 0; width: 100%; max-width: 100%; border-radius: 20px 20px 0 0; position: fixed; bottom: 0; left: 0; right: 0; top: auto; max-height: 90vh; overflow-y: auto; }
+
+  /* ─ Tabelas — scroll horizontal ─ */
+  .table-wrapper, .serv-tabela-wrap, .prof-tabela-wrap, .atd-tabela-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ─ Financeiro ─ */
+  .fin-summary { grid-template-columns: repeat(2, 1fr); }
+
+  /* ─ Dashboard ─ */
+  .dash-stats { grid-template-columns: repeat(2, 1fr); }
+  .dash-grid  { grid-template-columns: 1fr; }
+
+  /* ─ PDV ─ */
+  .pdv-layout { grid-template-columns: 1fr; height: auto; }
+
+  /* ─ Estoque ─ */
+  .estoque-layout { grid-template-columns: 1fr; }
+
+  /* ─ Touch: alvos maiores ─ */
+  .btn { min-height: 44px; padding: 10px 16px; }
+  .btn-sm { min-height: 38px; }
+  .nav-item { min-height: 48px; }
+  .form-control, .ag-select { min-height: 44px; font-size: 16px; } /* 16px evita zoom no iOS */
+  input[type="date"],
+  input[type="time"],
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="number"],
+  select,
+  textarea { font-size: 16px !important; } /* evitar zoom automático iOS */
+
+  /* ─ Tipografia ─ */
+  h1 { font-size: 1.3rem; }
+  .page-header h1 { font-size: 1.2rem; }
+}
+
+/* ── Pequeno mobile (≤480px) ── */
+@media (max-width: 480px) {
+  .ag-filtro-item { min-width: 100%; flex: 1 1 100%; }
+  .cli-kpis { grid-template-columns: repeat(2, 1fr); }
+  .fin-summary { grid-template-columns: 1fr; }
+  .dash-stats  { grid-template-columns: 1fr; }
+  .na-col-left,
+  .na-col-center { gap: 10px; }
+  .na-card { padding: 12px; }
+  .ag-det-acoes { grid-template-columns: repeat(2, 1fr); }
+  .nc-steps { display: none; } /* em telas muito pequenas esconde o stepper */
+  .nc-footer { flex-direction: column; gap: 8px; }
+  .nc-footer .btn { width: 100%; justify-content: center; }
+}
