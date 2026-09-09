@@ -836,6 +836,7 @@ def upload_foto_cliente(id):
 
 
 @app.route('/api/profissionais/<int:id>/foto', methods=['POST'])
+def upload_foto_profissional(id):
     p = Profissional.query.get_or_404(id)
     if 'foto' not in request.files:
         return jsonify({'erro': 'Nenhum arquivo enviado'}), 400
