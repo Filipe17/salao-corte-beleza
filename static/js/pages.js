@@ -52,6 +52,7 @@ let _naServCat       = '';
 let _naPreData       = '';
 let _naPreHora       = '';
 let _naPreProId      = null;
+let _naEditId        = null; // id do agendamento sendo editado
 
 function openNewAppointment(modo = 'agenda', horaInicial = null, proId = null, dataInicial = null) {
   _naModo           = modo;
@@ -62,6 +63,7 @@ function openNewAppointment(modo = 'agenda', horaInicial = null, proId = null, d
   _naPreData        = dataInicial || today();
   _naPreHora        = horaInicial || '09:00';
   _naPreProId       = proId || null;
+  _naEditId         = null;
   navigate('novoAtendimento');
 }
 
@@ -116,7 +118,7 @@ function renderNovoAtendimento() {
       <div style="display:flex;align-items:center;gap:12px">
         <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="28" height="28"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
         <div>
-          <h1 style="font-size:1.5rem;font-weight:700;color:var(--gray-800);margin:0">Novo Atendimento</h1>
+          <h1 style="font-size:1.5rem;font-weight:700;color:var(--gray-800);margin:0">${_naEditId ? 'Editar Atendimento' : 'Novo Atendimento'}</h1>
           <p style="font-size:.82rem;color:var(--gray-400);margin:2px 0 0">Registre um novo atendimento ou inicie um atendimento em andamento</p>
         </div>
       </div>
@@ -637,9 +639,19 @@ async function naSalvar(acao = 'salvar') {
       };
 
       if (typeof apiFetch === 'function') {
-        await apiFetch('/api/agendamentos', { method: 'POST', body: JSON.stringify(body) });
+        if (_naEditId && _naServicos.length === 1) {
+          // Edição — atualiza o agendamento existente via PUT
+          await apiFetch(`/api/agendamentos/${_naEditId}`, { method: 'PUT', body: JSON.stringify(body) });
+        } else {
+          await apiFetch('/api/agendamentos', { method: 'POST', body: JSON.stringify(body) });
+        }
       } else {
-        DB.agendamentos.push({ id: generateId(DB.agendamentos), ...body });
+        if (_naEditId) {
+          const idx = DB.agendamentos.findIndex(x => x.id === _naEditId);
+          if (idx !== -1) DB.agendamentos[idx] = { ...DB.agendamentos[idx], ...body };
+        } else {
+          DB.agendamentos.push({ id: generateId(DB.agendamentos), ...body });
+        }
       }
       curMin = fimMin;
     }
@@ -647,7 +659,10 @@ async function naSalvar(acao = 'salvar') {
     const qtd = _naServicos.length;
     const msg = acao === 'finalizar'
       ? `Atendimento finalizado! (${qtd} serviço${qtd>1?'s':''})`
-      : `Atendimento salvo! (${qtd} serviço${qtd>1?'s':''})`;
+      : _naEditId
+        ? 'Atendimento atualizado com sucesso!'
+        : `Atendimento salvo! (${qtd} serviço${qtd>1?'s':''})`;
+    _naEditId = null;
     showToast(msg, 'success');
     if (typeof atualizarSidebarHoje === 'function') atualizarSidebarHoje();
     const destino = _naModo === 'atendimento' ? 'atendimento' : 'agenda';
@@ -1421,7 +1436,22 @@ function agRenderDetalhe(id) {
 function agEditarAgendamento(id) {
   const a = DB.agendamentos.find(x => x.id === id);
   if (!a) return;
-  openAppointmentEditModal(a);
+  const cli  = DB.clientes.find(c => c.id === a.clienteId);
+  const serv = DB.servicos.find(s => s.id === a.servicoId);
+
+  _naEditId         = a.id;
+  _naModo           = 'agenda';
+  _naServBusca      = '';
+  _naServCat        = '';
+  _naPreData        = a.data || today();
+  _naPreHora        = a.hora || '09:00';
+  _naPreProId       = a.proId || null;
+  _naCliSelecionado = cli || null;
+  _naServicos       = serv
+    ? [{ id: serv.id, nome: serv.nome, preco: a.valor || serv.preco || 0, duracao: a.duracao || serv.duracao || 60, proId: a.proId }]
+    : [];
+
+  navigate('novoAtendimento');
 }
 function agCancelarAgendamento(id) {
   confirmDialog('Deseja cancelar este agendamento?', () => {
