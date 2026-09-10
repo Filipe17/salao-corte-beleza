@@ -6217,7 +6217,7 @@ function estTrocarAba(aba) {
   showToast('Em desenvolvimento','warning');
 }
 
-function editarProduto(id) { showToast('Edição de produto em desenvolvimento','warning'); }
+function editarProduto(id) { openNewProduto(id); }
 function excluirProduto(id) {
   confirmDialog('Deseja excluir este produto?', () => {
     DB.produtos = (DB.produtos||[]).filter(p=>p.id!==id);
@@ -6243,7 +6243,463 @@ function saveEntrada(id) {
   if (p) { p.qtd += qty; }
   closeModal(); showToast(`+${qty} unidades adicionadas!`,'success'); navigate('estoque');
 }
-function openNewProduto() { showToast('Em desenvolvimento','warning'); }
+/* ══════════════════════════════════════════════════════════
+   NOVO PRODUTO — Tela completa
+══════════════════════════════════════════════════════════ */
+let _npEditId      = null; // id do produto sendo editado
+let _npFotoPreview = null; // base64 da foto selecionada
+let _npFotoFile    = null;
+let _npAtivo       = true;
+let _npControle    = true;
+let _npInternoPDV  = false;
+let _npLoteVal     = false;
+
+function openNewProduto(editId = null) {
+  _npEditId      = editId;
+  _npFotoPreview = null;
+  _npFotoFile    = null;
+  _npAtivo       = true;
+  _npControle    = true;
+  _npInternoPDV  = false;
+  _npLoteVal     = false;
+
+  if (editId) {
+    const p = (DB.produtos || []).find(x => x.id === editId);
+    if (p) {
+      _npFotoPreview = p.foto || null;
+      _npAtivo       = p.ativo !== false;
+      _npControle    = p.controleEstoque !== false;
+      _npInternoPDV  = p.internoPDV || false;
+      _npLoteVal     = p.loteValidade || false;
+    }
+  }
+
+  // Tenta navigate() do app.js; fallback injeta direto no pageContent
+  if (typeof navigate === 'function') {
+    try { navigate('novoProduto'); return; } catch(e) {}
+  }
+  const el = document.getElementById('pageContent');
+  if (el) el.innerHTML = renderNovoProduto();
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelector('.nav-item[data-page="estoque"]')?.classList.add('active');
+  const t = document.getElementById('pageTitle');
+  if (t) t.textContent = _npEditId ? 'Editar Produto' : 'Novo Produto';
+}
+
+function renderNovoProduto() {
+  const prod = _npEditId ? (DB.produtos || []).find(p => p.id === _npEditId) : null;
+  const v = (id) => prod?.[id] ?? '';
+
+  const CATS = ['Unhas','Cabelo','Coloração','Estética','Depilação','Gel','Higiene','Cosméticos','Limpeza','Equipamento','Outros'];
+  const UNIDADES = ['un','ml','L','g','kg','par','pacote','cx','rolo'];
+
+  setTimeout(() => {
+    // Preview de foto
+    const inp = document.getElementById('npFotoInput');
+    if (inp) inp.addEventListener('change', (e) => {
+      const f = e.target.files[0];
+      if (!f) return;
+      _npFotoFile = f;
+      const r = new FileReader();
+      r.onload = ev => {
+        _npFotoPreview = ev.target.result;
+        const box = document.getElementById('npFotoBox');
+        if (box) box.innerHTML = `<img src="${_npFotoPreview}" style="width:100%;height:100%;object-fit:cover;border-radius:12px" />
+          <button onclick="npRemoverFoto()" style="position:absolute;top:4px;right:4px;background:white;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.2)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>`;
+      };
+      r.readAsDataURL(f);
+    });
+    // Margem de lucro
+    const custo = document.getElementById('np_custo');
+    const venda = document.getElementById('np_preco');
+    const margem = document.getElementById('np_margem');
+    const calcMargem = () => {
+      const c = parseFloat(custo?.value)||0;
+      const v2 = parseFloat(venda?.value)||0;
+      if (c > 0 && v2 >= c) {
+        margem.value = (((v2-c)/c)*100).toFixed(2);
+      } else { margem.value = '0.00'; }
+    };
+    const calcPreco = () => {
+      const c = parseFloat(custo?.value)||0;
+      const m = parseFloat(margem?.value)||0;
+      if (c > 0) { venda.value = (c*(1+m/100)).toFixed(2); }
+    };
+    custo?.addEventListener('input', calcMargem);
+    venda?.addEventListener('input', calcMargem);
+    margem?.addEventListener('input', calcPreco);
+  }, 60);
+
+  return `
+  <div class="np-page">
+    <!-- Cabeçalho -->
+    <div class="np-header">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#fce7f3,#f9a8d4);display:flex;align-items:center;justify-content:center">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="18" height="18"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+        </div>
+        <div>
+          <h1 style="font-size:1.4rem;font-weight:700;color:var(--gray-800);margin:0">${_npEditId ? 'Editar Produto' : 'Novo Produto'}</h1>
+          <p style="font-size:.8rem;color:var(--gray-400);margin:0">Cadastre um novo produto no estoque do seu salão</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="np-grid">
+
+      <!-- ── COLUNA ESQUERDA ── -->
+      <div class="np-col-left">
+
+        <!-- Card: Informações do Produto -->
+        <div class="np-card">
+          <div class="np-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+            Informações do Produto
+          </div>
+          <div style="display:flex;gap:16px;align-items:flex-start">
+
+            <!-- Foto -->
+            <div>
+              <div id="npFotoBox" onclick="document.getElementById('npFotoInput').click()"
+                style="width:110px;height:110px;border-radius:12px;border:2px dashed var(--gray-300);background:var(--gray-50);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;position:relative;overflow:hidden;flex-shrink:0;transition:border-color .15s">
+                ${_npFotoPreview
+                  ? `<img src="${_npFotoPreview}" style="width:100%;height:100%;object-fit:cover;border-radius:12px" />`
+                  : `<svg viewBox="0 0 24 24" fill="none" stroke="var(--gray-300)" stroke-width="1.5" width="28" height="28"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    <span style="font-size:.7rem;color:var(--gray-400);text-align:center;line-height:1.3">Adicionar imagem<br><span style="color:var(--primary);font-size:.65rem">Clique para selecionar<br>ou arraste a imagem</span></span>`
+                }
+              </div>
+              <input type="file" id="npFotoInput" accept="image/*" style="display:none" />
+            </div>
+
+            <!-- Campos principais -->
+            <div style="flex:1;display:flex;flex-direction:column;gap:12px">
+              <div class="np-field">
+                <label class="np-label">Nome do produto <span class="np-req">*</span></label>
+                <input class="form-control" id="np_nome" placeholder="Ex.: Esmalte, Shampoo, Removedor..." value="${v('nome')}" />
+              </div>
+              <div class="np-field">
+                <label class="np-label">Categoria <span class="np-req">*</span></label>
+                <div class="ag-select-wrap">
+                  <select class="ag-select" id="np_categoria">
+                    <option value="">Selecione a categoria</option>
+                    ${CATS.map(c=>`<option value="${c}" ${v('categoria')===c?'selected':''}>${c}</option>`).join('')}
+                  </select>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+              </div>
+              <div class="np-field">
+                <label class="np-label">Descrição</label>
+                <textarea class="form-control" id="np_descricao" rows="3" placeholder="Descreva o produto..." style="resize:vertical">${v('descricao')}</textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Linha: Marca / Código / Unidade -->
+          <div class="np-row3" style="margin-top:14px">
+            <div class="np-field">
+              <label class="np-label">Marca</label>
+              <input class="form-control" id="np_marca" placeholder="Ex.: Risqué, L'Oréal..." value="${v('marca')}" />
+            </div>
+            <div class="np-field">
+              <label class="np-label">Código <span style="color:var(--gray-400);font-weight:400">(opcional)</span></label>
+              <input class="form-control" id="np_codigo" placeholder="Ex.: PRD-001" value="${v('codigo')}" />
+            </div>
+            <div class="np-field">
+              <label class="np-label">Unidade de medida <span class="np-req">*</span></label>
+              <div class="ag-select-wrap">
+                <select class="ag-select" id="np_unidade">
+                  <option value="">Selecione a unidade</option>
+                  ${UNIDADES.map(u=>`<option value="${u}" ${v('unidade')===u?'selected':''}>${u}</option>`).join('')}
+                </select>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card: Controle de Estoque -->
+        <div class="np-card">
+          <div class="np-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+            Controle de Estoque
+          </div>
+          <div class="np-row3">
+            <div class="np-field">
+              <label class="np-label">Estoque atual <span class="np-req">*</span></label>
+              <div class="np-qty-wrap">
+                <input class="form-control" id="np_qtd" type="number" min="0" placeholder="0" value="${v('qtd')||0}" style="padding-right:40px" />
+                <span class="np-qty-unit">${v('unidade')||'un'}</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" class="np-qty-arrow" style="pointer-events:none"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+            </div>
+            <div class="np-field">
+              <label class="np-label">Estoque mínimo <span class="np-req">*</span></label>
+              <div class="np-qty-wrap">
+                <input class="form-control" id="np_minimo" type="number" min="0" placeholder="0" value="${v('minimo')||0}" style="padding-right:40px" />
+                <span class="np-qty-unit">${v('unidade')||'un'}</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" class="np-qty-arrow" style="pointer-events:none"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+            </div>
+            <div class="np-field">
+              <label class="np-label">Estoque máximo <span style="color:var(--gray-400);font-weight:400">(opcional)</span></label>
+              <div class="np-qty-wrap">
+                <input class="form-control" id="np_maximo" type="number" min="0" placeholder="0" value="${v('maximo')||0}" style="padding-right:40px" />
+                <span class="np-qty-unit">${v('unidade')||'un'}</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" class="np-qty-arrow" style="pointer-events:none"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+            </div>
+          </div>
+          <!-- Toggle controle -->
+          <div style="display:flex;align-items:flex-start;gap:12px;margin-top:14px">
+            <label class="np-toggle">
+              <input type="checkbox" id="np_controle" ${_npControle?'checked':''} onchange="_npControle=this.checked" />
+              <span class="np-toggle-slider"></span>
+            </label>
+            <div>
+              <div style="font-size:.875rem;font-weight:600;color:var(--gray-800)">Ativar controle de estoque</div>
+              <div style="font-size:.75rem;color:var(--gray-400);margin-top:2px">O produto terá o controle de estoque habilitado.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card: Outras Informações -->
+        <div class="np-card">
+          <div class="np-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Outras Informações
+          </div>
+          <div style="display:flex;gap:14px">
+            <div class="np-field" style="flex:1">
+              <label class="np-label">Validade <span style="color:var(--gray-400);font-weight:400">(opcional)</span></label>
+              <div style="position:relative">
+                <input class="form-control" id="np_validade" type="date" value="${v('validade')}" style="padding-right:36px" />
+              </div>
+            </div>
+            <div class="np-field" style="flex:2">
+              <label class="np-label">Observações <span style="color:var(--gray-400);font-weight:400">(opcional)</span></label>
+              <textarea class="form-control" id="np_obs" rows="3" placeholder="Informações adicionais sobre o produto..." style="resize:vertical">${v('obs')}</textarea>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /col-left -->
+
+      <!-- ── COLUNA DIREITA ── -->
+      <div class="np-col-right">
+
+        <!-- Card: Informações de Compra -->
+        <div class="np-card">
+          <div class="np-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Informações de Compra
+          </div>
+          <div class="np-field">
+            <label class="np-label">Custo unitário <span class="np-req">*</span></label>
+            <div class="np-currency-wrap">
+              <span class="np-currency-prefix">R$</span>
+              <input class="form-control" id="np_custo" type="number" min="0" step="0.01" placeholder="0,00" value="${v('custo')||''}" style="padding-left:36px" />
+            </div>
+          </div>
+          <div class="np-field" style="margin-top:12px">
+            <label class="np-label">Fornecedor</label>
+            <div class="ag-select-wrap">
+              <select class="ag-select" id="np_fornecedor">
+                <option value="">Selecione o fornecedor</option>
+                <option value="${v('fornecedor')}" ${v('fornecedor')?'selected':''}>${v('fornecedor')||''}</option>
+              </select>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+          </div>
+          <div class="np-field" style="margin-top:12px">
+            <label class="np-label">Código de barras <span style="color:var(--gray-400);font-weight:400">(opcional)</span></label>
+            <input class="form-control" id="np_barras" placeholder="Ex.: 7891234567890" value="${v('codigoBarras')}" />
+          </div>
+        </div>
+
+        <!-- Card: Preço de Venda -->
+        <div class="np-card">
+          <div class="np-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+            Preço de Venda
+          </div>
+          <div style="display:flex;gap:12px">
+            <div class="np-field" style="flex:1">
+              <label class="np-label">Valor de venda <span class="np-req">*</span></label>
+              <div class="np-currency-wrap">
+                <span class="np-currency-prefix">R$</span>
+                <input class="form-control" id="np_preco" type="number" min="0" step="0.01" placeholder="0,00" value="${v('preco')||''}" style="padding-left:36px" />
+              </div>
+            </div>
+            <div class="np-field" style="width:110px">
+              <label class="np-label">Margem de lucro</label>
+              <div style="position:relative">
+                <input class="form-control" id="np_margem" type="number" min="0" step="0.01" placeholder="0.00" value="${v('margem')||''}" style="padding-right:30px" />
+                <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:.8rem;color:var(--gray-400);font-weight:600">%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card: Categoria e Status -->
+        <div class="np-card">
+          <div class="np-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+            Categoria e Status
+          </div>
+          <div class="np-field">
+            <label class="np-label">Categoria</label>
+            <div class="ag-select-wrap">
+              <select class="ag-select" id="np_categoria2">
+                <option value="">Selecione a categoria</option>
+                ${CATS.map(c=>`<option value="${c}" ${v('categoria')===c?'selected':''}>${c}</option>`).join('')}
+              </select>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+          </div>
+          <div class="np-field" style="margin-top:12px">
+            <label class="np-label">Status</label>
+            <div style="display:flex;gap:8px;margin-top:6px">
+              <button id="npStatusAtivo" class="np-status-btn ${_npAtivo?'active':''}" onclick="_npAtivo=true;npAtualizarStatus()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg>
+                Ativo
+              </button>
+              <button id="npStatusInativo" class="np-status-btn ${!_npAtivo?'active':''}" onclick="_npAtivo=false;npAtualizarStatus()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                Inativo
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card: Configurações adicionais -->
+        <div class="np-card">
+          <div class="np-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M12 2a10 10 0 000 20"/></svg>
+            Configurações adicionais
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <label class="np-check-label">
+              <input type="checkbox" id="np_internoPDV" ${_npInternoPDV?'checked':''} onchange="_npInternoPDV=this.checked" />
+              <span class="np-check-box"></span>
+              <span>Produto de uso interno (não aparece no PDV)</span>
+            </label>
+            <label class="np-check-label">
+              <input type="checkbox" id="np_loteVal" ${_npLoteVal?'checked':''} onchange="_npLoteVal=this.checked" />
+              <span class="np-check-box"></span>
+              <span>Controlar lote e validade</span>
+            </label>
+          </div>
+        </div>
+
+      </div><!-- /col-right -->
+    </div><!-- /np-grid -->
+
+    <!-- Rodapé -->
+    <div class="np-footer">
+      <button class="btn btn-outline" onclick="navigate('estoque')" style="gap:8px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="15 18 9 12 15 6"/></svg>
+        Cancelar
+      </button>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-outline" onclick="npSalvar('continuar')" id="npBtnContinuar" style="gap:6px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+          Salvar e continuar
+        </button>
+        <button class="btn btn-primary" onclick="npSalvar('salvar')" id="npBtnSalvar" style="gap:6px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
+          Salvar produto
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function npAtualizarStatus() {
+  document.getElementById('npStatusAtivo')?.classList.toggle('active', _npAtivo);
+  document.getElementById('npStatusInativo')?.classList.toggle('active', !_npAtivo);
+}
+
+function npRemoverFoto() {
+  _npFotoPreview = null;
+  _npFotoFile = null;
+  const box = document.getElementById('npFotoBox');
+  if (box) box.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="var(--gray-300)" stroke-width="1.5" width="28" height="28"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+    <span style="font-size:.7rem;color:var(--gray-400);text-align:center;line-height:1.3">Adicionar imagem<br><span style="color:var(--primary);font-size:.65rem">Clique para selecionar<br>ou arraste a imagem</span></span>`;
+}
+
+async function npSalvar(modo) {
+  const nome      = document.getElementById('np_nome')?.value.trim();
+  const categoria = document.getElementById('np_categoria')?.value || document.getElementById('np_categoria2')?.value || '';
+  const qtd       = parseInt(document.getElementById('np_qtd')?.value) || 0;
+  const minimo    = parseInt(document.getElementById('np_minimo')?.value) || 0;
+  const maximo    = parseInt(document.getElementById('np_maximo')?.value) || 0;
+  const unidade   = document.getElementById('np_unidade')?.value || 'un';
+  const custo     = parseFloat(document.getElementById('np_custo')?.value) || 0;
+  const preco     = parseFloat(document.getElementById('np_preco')?.value) || 0;
+  const margem    = parseFloat(document.getElementById('np_margem')?.value) || 0;
+  const marca     = document.getElementById('np_marca')?.value.trim() || '';
+  const codigo    = document.getElementById('np_codigo')?.value.trim() || '';
+  const descricao = document.getElementById('np_descricao')?.value.trim() || '';
+  const validade  = document.getElementById('np_validade')?.value || '';
+  const obs       = document.getElementById('np_obs')?.value.trim() || '';
+  const barras    = document.getElementById('np_barras')?.value.trim() || '';
+
+  if (!nome) { showToast('Informe o nome do produto', 'error'); return; }
+  if (!unidade) { showToast('Selecione a unidade de medida', 'error'); return; }
+
+  const btn = document.getElementById('npBtnSalvar');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner-sm"></div> Salvando...'; }
+
+  const body = {
+    nome, categoria, qtd, minimo, maximo, unidade, custo, preco, margem,
+    marca, codigo, descricao, validade, obs, codigoBarras: barras,
+    ativo: _npAtivo, controleEstoque: _npControle,
+    internoPDV: _npInternoPDV, loteValidade: _npLoteVal,
+    foto: _npFotoPreview || '',
+  };
+
+  try {
+    const base = (typeof API_BASE !== 'undefined') ? API_BASE : '';
+    if (_npEditId) {
+      const res = await fetch(`${base}/api/produtos/${_npEditId}`, {
+        method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      // Atualizar DB local
+      const idx = DB.produtos.findIndex(p => p.id === _npEditId);
+      if (idx >= 0) DB.produtos[idx] = { ...DB.produtos[idx], ...data };
+      showToast('Produto atualizado!', 'success');
+    } else {
+      const res = await fetch(base + '/api/produtos', {
+        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      DB.produtos.push({ id: data.id || generateId(DB.produtos), ...body });
+      showToast('Produto cadastrado!', 'success');
+    }
+    if (modo === 'continuar') {
+      _npEditId = null; _npFotoPreview = null; navigate('novoProduto');
+    } else {
+      navigate('estoque');
+    }
+  } catch(e) {
+    // Fallback offline: salvar no DB local
+    if (_npEditId) {
+      const idx = DB.produtos.findIndex(p => p.id === _npEditId);
+      if (idx >= 0) DB.produtos[idx] = { ...DB.produtos[idx], ...body };
+    } else {
+      DB.produtos.push({ id: generateId(DB.produtos), ...body });
+    }
+    showToast(_npEditId ? 'Produto atualizado!' : 'Produto cadastrado!', 'success');
+    if (modo === 'continuar') { _npEditId = null; _npFotoPreview = null; navigate('novoProduto'); }
+    else navigate('estoque');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg> Salvar produto'; }
+  }
+}
 
 /* ===================== FINANCEIRO ===================== */
 function renderFinanceiro() {

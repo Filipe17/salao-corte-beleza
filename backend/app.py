@@ -237,20 +237,42 @@ class Servico(db.Model):
 
 class Produto(db.Model):
     __tablename__ = 'produtos'
-    id        = db.Column(db.Integer, primary_key=True)
-    nome      = db.Column(db.String(120), nullable=False)
-    categoria = db.Column(db.String(60), default='')
-    qtd       = db.Column(db.Integer, default=0)
-    minimo    = db.Column(db.Integer, default=5)
-    unidade   = db.Column(db.String(20), default='un')
-    custo     = db.Column(db.Float, default=0)
-    preco     = db.Column(db.Float, default=0)
+    id              = db.Column(db.Integer, primary_key=True)
+    nome            = db.Column(db.String(120), nullable=False)
+    categoria       = db.Column(db.String(60), default='')
+    qtd             = db.Column(db.Integer, default=0)
+    minimo          = db.Column(db.Integer, default=5)
+    maximo          = db.Column(db.Integer, default=0)
+    unidade         = db.Column(db.String(20), default='un')
+    custo           = db.Column(db.Float, default=0)
+    preco           = db.Column(db.Float, default=0)
+    margem          = db.Column(db.Float, default=0)
+    marca           = db.Column(db.String(80), default='')
+    codigo          = db.Column(db.String(60), default='')
+    codigo_barras   = db.Column(db.String(60), default='')
+    descricao       = db.Column(db.Text, default='')
+    fornecedor      = db.Column(db.String(120), default='')
+    validade        = db.Column(db.String(20), default='')
+    obs             = db.Column(db.Text, default='')
+    foto            = db.Column(db.Text, default='')
+    localizacao     = db.Column(db.String(120), default='')
+    ativo           = db.Column(db.Boolean, default=True)
+    controle_estoque = db.Column(db.Boolean, default=True)
+    interno_pdv     = db.Column(db.Boolean, default=False)
+    lote_validade   = db.Column(db.Boolean, default=False)
 
     def to_dict(self):
         return {
             'id': self.id, 'nome': self.nome, 'categoria': self.categoria,
-            'qtd': self.qtd, 'minimo': self.minimo, 'unidade': self.unidade,
-            'custo': self.custo, 'preco': self.preco,
+            'qtd': self.qtd, 'minimo': self.minimo, 'maximo': self.maximo or 0,
+            'unidade': self.unidade, 'custo': self.custo, 'preco': self.preco,
+            'margem': self.margem or 0, 'marca': self.marca or '',
+            'codigo': self.codigo or '', 'codigoBarras': self.codigo_barras or '',
+            'descricao': self.descricao or '', 'fornecedor': self.fornecedor or '',
+            'validade': self.validade or '', 'obs': self.obs or '',
+            'foto': self.foto or '', 'localizacao': self.localizacao or '',
+            'ativo': self.ativo, 'controleEstoque': self.controle_estoque,
+            'internoPDV': self.interno_pdv, 'loteValidade': self.lote_validade,
         }
 
 
@@ -595,6 +617,32 @@ def migrate():
                 conn.execute(db.text(f"ALTER TABLE clientes ADD COLUMN {col} {definition}"))
                 conn.commit()
                 print(f"✅ Migration clientes: {col}")
+            except Exception:
+                conn.rollback()
+
+        # Migration: novos campos de Produto
+        cols_produtos = [
+            ("maximo",           "INTEGER     DEFAULT 0"),
+            ("margem",           "FLOAT       DEFAULT 0"),
+            ("marca",            "VARCHAR(80) DEFAULT ''"),
+            ("codigo",           "VARCHAR(60) DEFAULT ''"),
+            ("codigo_barras",    "VARCHAR(60) DEFAULT ''"),
+            ("descricao",        "TEXT        DEFAULT ''"),
+            ("fornecedor",       "VARCHAR(120) DEFAULT ''"),
+            ("validade",         "VARCHAR(20) DEFAULT ''"),
+            ("obs",              "TEXT        DEFAULT ''"),
+            ("foto",             "TEXT        DEFAULT ''"),
+            ("localizacao",      "VARCHAR(120) DEFAULT ''"),
+            ("ativo",            "BOOLEAN     DEFAULT TRUE"),
+            ("controle_estoque", "BOOLEAN     DEFAULT TRUE"),
+            ("interno_pdv",      "BOOLEAN     DEFAULT FALSE"),
+            ("lote_validade",    "BOOLEAN     DEFAULT FALSE"),
+        ]
+        for col, definition in cols_produtos:
+            try:
+                conn.execute(db.text(f"ALTER TABLE produtos ADD COLUMN {col} {definition}"))
+                conn.commit()
+                print(f"✅ Migration produtos: {col}")
             except Exception:
                 conn.rollback()
 
@@ -1334,16 +1382,66 @@ def create_produto():
         categoria=body.get('categoria', ''),
         qtd=int(body.get('qtd', 0)),
         minimo=int(body.get('minimo', 5)),
+        maximo=int(body.get('maximo', 0)),
         unidade=body.get('unidade', 'un'),
         custo=float(body.get('custo', 0)),
         preco=float(body.get('preco', 0)),
+        margem=float(body.get('margem', 0)),
+        marca=body.get('marca', ''),
+        codigo=body.get('codigo', ''),
+        codigo_barras=body.get('codigoBarras', ''),
+        descricao=body.get('descricao', ''),
+        fornecedor=body.get('fornecedor', ''),
+        validade=body.get('validade', ''),
+        obs=body.get('obs', ''),
+        foto=body.get('foto', ''),
+        localizacao=body.get('localizacao', ''),
+        ativo=bool(body.get('ativo', True)),
+        controle_estoque=bool(body.get('controleEstoque', True)),
+        interno_pdv=bool(body.get('internoPDV', False)),
+        lote_validade=bool(body.get('loteValidade', False)),
     )
     db.session.add(p)
     db.session.commit()
     return jsonify(p.to_dict()), 201
 
 
-@app.route('/api/produtos/<int:id>/entrada', methods=['POST'])
+@app.route('/api/produtos/<int:id>', methods=['PUT'])
+def update_produto(id):
+    p = Produto.query.get_or_404(id)
+    body = request.get_json()
+    if 'nome'            in body: p.nome             = body['nome']
+    if 'categoria'       in body: p.categoria        = body['categoria']
+    if 'qtd'             in body: p.qtd              = int(body['qtd'])
+    if 'minimo'          in body: p.minimo           = int(body['minimo'])
+    if 'maximo'          in body: p.maximo           = int(body['maximo'])
+    if 'unidade'         in body: p.unidade          = body['unidade']
+    if 'custo'           in body: p.custo            = float(body['custo'])
+    if 'preco'           in body: p.preco            = float(body['preco'])
+    if 'margem'          in body: p.margem           = float(body['margem'])
+    if 'marca'           in body: p.marca            = body['marca']
+    if 'codigo'          in body: p.codigo           = body['codigo']
+    if 'codigoBarras'    in body: p.codigo_barras    = body['codigoBarras']
+    if 'descricao'       in body: p.descricao        = body['descricao']
+    if 'fornecedor'      in body: p.fornecedor       = body['fornecedor']
+    if 'validade'        in body: p.validade         = body['validade']
+    if 'obs'             in body: p.obs              = body['obs']
+    if 'foto'            in body: p.foto             = body['foto']
+    if 'localizacao'     in body: p.localizacao      = body['localizacao']
+    if 'ativo'           in body: p.ativo            = bool(body['ativo'])
+    if 'controleEstoque' in body: p.controle_estoque = bool(body['controleEstoque'])
+    if 'internoPDV'      in body: p.interno_pdv      = bool(body['internoPDV'])
+    if 'loteValidade'    in body: p.lote_validade    = bool(body['loteValidade'])
+    db.session.commit()
+    return jsonify(p.to_dict())
+
+
+@app.route('/api/produtos/<int:id>', methods=['DELETE'])
+def delete_produto(id):
+    p = Produto.query.get_or_404(id)
+    db.session.delete(p)
+    db.session.commit()
+    return jsonify({'ok': True})
 def entrada_estoque(id):
     p = Produto.query.get_or_404(id)
     qty = int(request.get_json().get('qtd', 0))
