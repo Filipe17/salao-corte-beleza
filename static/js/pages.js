@@ -6066,18 +6066,26 @@ function estRenderPainel(p) {
 
   return `
   <div class="est-painel">
-    <!-- Header painel -->
+    <!-- Título do painel -->
+    <div class="est-painel-titulo">
+      <span style="font-weight:700;font-size:.9rem;color:var(--gray-800)">Detalhes do Produto</span>
+      <button onclick="_estProdutoSel=null;estReRender()" style="background:none;border:none;cursor:pointer;color:var(--gray-400);padding:4px;flex-shrink:0">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <!-- Header produto -->
     <div class="est-painel-header">
       <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
         ${fotoHtml}
         <div style="min-width:0">
-          <div style="font-weight:700;font-size:.95rem;color:var(--gray-800)">${p.nome}</div>
-          <span style="font-size:.72rem;background:#fce7f3;color:var(--primary);padding:2px 8px;border-radius:20px;font-weight:600">${p.categoria||'Sem categoria'}</span>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <div style="font-weight:700;font-size:.95rem;color:var(--gray-800)">${p.nome}</div>
+            ${estBadge(p)}
+          </div>
+          <span style="font-size:.72rem;background:#fce7f3;color:var(--primary);padding:2px 8px;border-radius:20px;font-weight:600;margin-top:4px;display:inline-block">${p.categoria||'Sem categoria'}</span>
         </div>
       </div>
-      <button onclick="_estProdutoSel=null;estReRender()" style="background:none;border:none;cursor:pointer;color:var(--gray-400);padding:4px;flex-shrink:0">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
     </div>
 
     <div class="est-painel-body">
