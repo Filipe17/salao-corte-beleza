@@ -5872,7 +5872,7 @@ function renderEstoque() {
                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                Nova Movimentação
              </button>`
-          : `<button class="btn btn-outline" onclick="showToast('Em desenvolvimento','warning')" style="gap:6px;font-size:.85rem">
+          : `<button class="btn btn-outline" onclick="abrirImportarExportar()" style="gap:6px;font-size:.85rem">
                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                Importar / Exportar
              </button>
@@ -6201,6 +6201,424 @@ function excluirMovimentacao(id) {
     showToast('Movimentação excluída!','success');
     estReRender();
   });
+}
+
+/* ══════════════════════════════════════════════════════════
+   IMPORTAR / EXPORTAR
+══════════════════════════════════════════════════════════ */
+// Histórico mock de operações
+if (!DB.historicoIE) {
+  DB.historicoIE = [
+    { id:1, data:'2026-09-09', tipo:'Importação', arquivo:'produtos.xlsx',   registros:104, status:'concluido' },
+    { id:2, data:'2026-09-08', tipo:'Exportação', arquivo:'estoque.xlsx',    registros:98,  status:'concluido' },
+    { id:3, data:'2026-09-07', tipo:'Importação', arquivo:'insumos.csv',     registros:32,  status:'erro'      },
+  ];
+}
+
+let _ieAba      = 'importar'; // 'importar' | 'exportar'
+let _ieTipo     = 'Produtos';
+let _ieFormato  = 'xlsx';
+let _ieArquivo  = null;   // File selecionado
+let _iePreview  = null;   // dados parseados para preview
+let _ieEtapa    = 1;      // 1=tela principal, 2=preview importação
+let _ieExportFiltros = { apenasAtivos: false, abaixoMinimo: false };
+
+function abrirImportarExportar() {
+  _ieAba = 'importar'; _ieTipo = 'Produtos'; _ieFormato = 'xlsx';
+  _ieArquivo = null; _iePreview = null; _ieEtapa = 1;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'ieOverlay';
+  overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto`;
+  overlay.innerHTML = ieRenderConteudo();
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+function ieRenderConteudo() {
+  const TIPOS = ['Produtos','Insumos','Clientes','Profissionais','Serviços','Movimentações'];
+  const hist  = DB.historicoIE || [];
+
+  return `
+  <div class="ie-modal" onclick="event.stopPropagation()">
+
+    <!-- Header -->
+    <div class="ie-header">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#fce7f3,#f9a8d4);display:flex;align-items:center;justify-content:center">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="18" height="18"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <div>
+          <div style="font-size:1.05rem;font-weight:700;color:var(--gray-800)">Importar / Exportar</div>
+          <div style="font-size:.75rem;color:var(--gray-400)">Gerencie os dados do seu estoque</div>
+        </div>
+      </div>
+      <button onclick="document.getElementById('ieOverlay').remove()" style="background:none;border:none;cursor:pointer;color:var(--gray-400);padding:4px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <!-- Abas -->
+    <div style="display:flex;border-bottom:2px solid var(--gray-100);padding:0 24px">
+      <button class="ie-aba ${_ieAba==='importar'?'active':''}" onclick="_ieAba='importar';ieAtualizar()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0018 9h-1.26A8 8 0 103 16.29"/></svg>
+        Importar dados
+      </button>
+      <button class="ie-aba ${_ieAba==='exportar'?'active':''}" onclick="_ieAba='exportar';ieAtualizar()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="8 7 12 3 16 7"/><line x1="12" y1="3" x2="12" y2="15"/><path d="M20.88 18.09A5 5 0 0018 9h-1.26A8 8 0 103 16.29"/></svg>
+        Exportar dados
+      </button>
+    </div>
+
+    <div id="ieCorpo" style="padding:24px;display:flex;flex-direction:column;gap:20px;overflow-y:auto;max-height:65vh">
+      ${_ieAba === 'importar' ? ieRenderImportar(TIPOS) : ieRenderExportar(TIPOS)}
+    </div>
+
+    <!-- Histórico -->
+    <div style="border-top:1px solid var(--gray-100);padding:16px 24px">
+      <div style="font-size:.85rem;font-weight:700;color:var(--gray-700);margin-bottom:12px">Histórico de operações</div>
+      <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+        <thead>
+          <tr style="border-bottom:1px solid var(--gray-100)">
+            <th style="text-align:left;padding:6px 8px;color:var(--gray-400);font-weight:600">Data</th>
+            <th style="text-align:left;padding:6px 8px;color:var(--gray-400);font-weight:600">Operação</th>
+            <th style="text-align:left;padding:6px 8px;color:var(--gray-400);font-weight:600">Arquivo</th>
+            <th style="text-align:left;padding:6px 8px;color:var(--gray-400);font-weight:600">Registros</th>
+            <th style="text-align:left;padding:6px 8px;color:var(--gray-400);font-weight:600">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${hist.slice(0,5).map(h=>{
+            const [,mm,dd] = h.data.split('-');
+            const stBg = h.status==='concluido' ? '#dcfce7' : '#fee2e2';
+            const stCl = h.status==='concluido' ? '#16a34a' : '#dc2626';
+            const stTx = h.status==='concluido' ? '✓ Concluído' : '✗ Erro';
+            return `<tr style="border-bottom:1px solid var(--gray-100)">
+              <td style="padding:8px;color:var(--gray-500)">${dd}/${mm}</td>
+              <td style="padding:8px;font-weight:600;color:var(--gray-700)">${h.tipo}</td>
+              <td style="padding:8px;color:var(--gray-600)">${h.arquivo}</td>
+              <td style="padding:8px;color:var(--gray-500)">${h.registros} reg.</td>
+              <td style="padding:8px"><span style="background:${stBg};color:${stCl};padding:2px 8px;border-radius:20px;font-size:.72rem;font-weight:700">${stTx}</span></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function ieRenderImportar(TIPOS) {
+  if (_ieEtapa === 2 && _iePreview) return ieRenderPreview();
+  return `
+    <!-- Tipo de dados -->
+    <div>
+      <div style="font-size:.85rem;font-weight:700;color:var(--gray-700);margin-bottom:12px">Tipo de dados</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${TIPOS.map(t=>`
+          <label class="ie-tipo-btn ${_ieTipo===t?'active':''}">
+            <input type="radio" name="ieTipo" value="${t}" ${_ieTipo===t?'checked':''} onchange="_ieTipo=this.value;ieAtualizar()" style="display:none"/>
+            ${t}
+          </label>`).join('')}
+      </div>
+    </div>
+
+    <!-- Área de upload -->
+    <div>
+      <div style="font-size:.85rem;font-weight:700;color:var(--gray-700);margin-bottom:12px">Selecionar arquivo</div>
+      <div id="ieDropZone" class="ie-dropzone" onclick="document.getElementById('ieFileInput').click()"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="event.preventDefault();this.classList.remove('drag');ieArquivoSelecionado(event.dataTransfer.files[0])">
+        ${_ieArquivo ? `
+          <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" width="36" height="36"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="9 15 12 18 15 15"/><line x1="12" y1="11" x2="12" y2="18"/></svg>
+          <div style="font-weight:600;color:#16a34a;margin-top:8px">${_ieArquivo.name}</div>
+          <div style="font-size:.75rem;color:var(--gray-400)">${(_ieArquivo.size/1024).toFixed(1)} KB · Clique para trocar</div>
+        ` : `
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--gray-300)" stroke-width="1.5" width="40" height="40"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <div style="font-weight:600;color:var(--gray-600);margin-top:10px">Arraste o arquivo aqui</div>
+          <div style="color:var(--gray-400);font-size:.8rem;margin:4px 0">ou</div>
+          <div style="color:var(--primary);font-weight:600;font-size:.85rem">Selecionar arquivo</div>
+          <div style="font-size:.72rem;color:var(--gray-400);margin-top:6px">Aceita: .xlsx, .csv · Máx. 10MB</div>
+        `}
+      </div>
+      <input type="file" id="ieFileInput" accept=".xlsx,.csv" style="display:none" onchange="ieArquivoSelecionado(this.files[0])"/>
+    </div>
+
+    <!-- Dica de formato -->
+    <div style="background:#fdf4ff;border:1px solid #f9a8d4;border-radius:10px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <div>
+        <div style="font-size:.82rem;font-weight:600;color:var(--primary);margin-bottom:4px">Formato esperado para ${_ieTipo}</div>
+        <div style="font-size:.75rem;color:var(--gray-600)">Colunas: <strong>Nome, Categoria, Unidade, Estoque, Mínimo, Custo, Preço</strong></div>
+        <a href="#" onclick="ieBaixarModelo();return false" style="font-size:.75rem;color:var(--primary);font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:4px;margin-top:4px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Baixar modelo de planilha
+        </a>
+      </div>
+    </div>
+
+    <!-- Botão -->
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-outline" onclick="document.getElementById('ieOverlay').remove()">Cancelar</button>
+      <button class="btn btn-primary" onclick="ieProcessarImportacao()" ${!_ieArquivo?'disabled':''} style="gap:6px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0018 9h-1.26A8 8 0 103 16.29"/></svg>
+        Analisar arquivo
+      </button>
+    </div>`;
+}
+
+function ieRenderExportar(TIPOS) {
+  return `
+    <!-- Tipo de dados -->
+    <div>
+      <div style="font-size:.85rem;font-weight:700;color:var(--gray-700);margin-bottom:12px">O que deseja exportar?</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${TIPOS.map(t=>`
+          <label class="ie-tipo-btn ${_ieTipo===t?'active':''}">
+            <input type="radio" name="ieTipoEx" value="${t}" ${_ieTipo===t?'checked':''} onchange="_ieTipo=this.value;ieAtualizar()" style="display:none"/>
+            ${t}
+          </label>`).join('')}
+      </div>
+    </div>
+
+    <!-- Formato -->
+    <div>
+      <div style="font-size:.85rem;font-weight:700;color:var(--gray-700);margin-bottom:12px">Formato</div>
+      <div style="display:flex;gap:10px">
+        <label class="ie-tipo-btn ${_ieFormato==='xlsx'?'active':''}">
+          <input type="radio" name="ieFormato" value="xlsx" ${_ieFormato==='xlsx'?'checked':''} onchange="_ieFormato=this.value;ieAtualizar()" style="display:none"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Excel (.xlsx)
+        </label>
+        <label class="ie-tipo-btn ${_ieFormato==='csv'?'active':''}">
+          <input type="radio" name="ieFormato" value="csv" ${_ieFormato==='csv'?'checked':''} onchange="_ieFormato=this.value;ieAtualizar()" style="display:none"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          CSV
+        </label>
+      </div>
+    </div>
+
+    <!-- Filtros opcionais -->
+    <div>
+      <div style="font-size:.85rem;font-weight:700;color:var(--gray-700);margin-bottom:12px">Filtros <span style="font-weight:400;color:var(--gray-400)">(opcional)</span></div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <label class="est-fm-check">
+          <input type="checkbox" id="ieFilAtivo" onchange="_ieExportFiltros.apenasAtivos=this.checked" ${_ieExportFiltros.apenasAtivos?'checked':''}/>
+          <span class="est-fm-chk-box"></span>
+          Apenas produtos ativos
+        </label>
+        <label class="est-fm-check">
+          <input type="checkbox" id="ieFilBaixo" onchange="_ieExportFiltros.abaixoMinimo=this.checked" ${_ieExportFiltros.abaixoMinimo?'checked':''}/>
+          <span class="est-fm-chk-box"></span>
+          Apenas estoque abaixo do mínimo
+        </label>
+      </div>
+    </div>
+
+    <!-- Preview quantidade -->
+    <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;padding:14px 16px">
+      <div style="font-size:.82rem;color:var(--gray-500);margin-bottom:4px">Registros que serão exportados</div>
+      <div style="font-size:1.4rem;font-weight:700;color:var(--gray-800)">${ieContarExport()} <span style="font-size:.82rem;font-weight:400;color:var(--gray-400)">${_ieTipo.toLowerCase()}</span></div>
+    </div>
+
+    <!-- Botão -->
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-outline" onclick="document.getElementById('ieOverlay').remove()">Cancelar</button>
+      <button class="btn btn-primary" onclick="ieExecutarExport()" style="gap:6px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="8 7 12 3 16 7"/><line x1="12" y1="3" x2="12" y2="15"/><path d="M20.88 18.09A5 5 0 0018 9h-1.26A8 8 0 103 16.29"/></svg>
+        Exportar ${_ieTipo}
+      </button>
+    </div>`;
+}
+
+function ieRenderPreview() {
+  const p = _iePreview;
+  return `
+    <div>
+      <button onclick="_ieEtapa=1;_iePreview=null;ieAtualizar()" style="display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--primary);font-size:.82rem;font-weight:600;cursor:pointer;padding:0;margin-bottom:12px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="15 18 9 12 15 6"/></svg>
+        Voltar
+      </button>
+      <div style="font-size:.9rem;font-weight:700;color:var(--gray-800);margin-bottom:4px">Prévia dos dados — ${_ieArquivo?.name}</div>
+
+      <!-- Resumo -->
+      <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+        <div class="ie-stat-card ie-stat-total"><span>${p.total}</span> registros encontrados</div>
+        <div class="ie-stat-card ie-stat-new"><span>${p.novos}</span> novos</div>
+        <div class="ie-stat-card ie-stat-update"><span>${p.atualizar}</span> serão atualizados</div>
+        ${p.erros > 0 ? `<div class="ie-stat-card ie-stat-error"><span>${p.erros}</span> com erro</div>` : ''}
+      </div>
+
+      <!-- Tabela preview -->
+      <div style="overflow-x:auto;border:1px solid var(--gray-200);border-radius:10px;margin-bottom:16px">
+        <table class="est-table" style="font-size:.78rem">
+          <thead>
+            <tr>
+              <th>#</th><th>Nome</th><th>Categoria</th><th>Unidade</th>
+              <th>Estoque</th><th>Custo</th><th>Preço</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${p.linhas.map((l,i)=>{
+              const stBg = l.status==='ok' ? '' : l.status==='update' ? '#fffbeb' : '#fef2f2';
+              const stBadge = l.status==='ok'
+                ? `<span style="color:#16a34a;font-size:.7rem;font-weight:700">✓ Novo</span>`
+                : l.status==='update'
+                  ? `<span style="color:#d97706;font-size:.7rem;font-weight:700">↻ Atualizar</span>`
+                  : `<span style="color:#dc2626;font-size:.7rem;font-weight:700" title="${l.erro}">✗ Erro</span>`;
+              return `<tr style="background:${stBg}">
+                <td style="color:var(--gray-400)">${i+1}</td>
+                <td style="font-weight:600">${l.nome||'—'}</td>
+                <td>${l.categoria||'—'}</td>
+                <td>${l.unidade||'—'}</td>
+                <td>${l.qtd??'—'}</td>
+                <td>${l.custo!=null?formatCurrency(l.custo):'—'}</td>
+                <td>${l.preco!=null?formatCurrency(l.preco):'—'}</td>
+                <td>${stBadge}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      ${p.erros > 0 ? `
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:.78rem;color:#dc2626">
+          <strong>${p.erros} linha(s) com erro</strong> não serão importadas. Corrija o arquivo e tente novamente para incluí-las.
+        </div>` : ''}
+
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn btn-outline" onclick="_ieEtapa=1;_iePreview=null;ieAtualizar()">Cancelar</button>
+        <button class="btn btn-primary" onclick="ieConfirmarImportacao()" style="gap:6px" ${p.novos+p.atualizar===0?'disabled':''}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
+          Importar ${p.novos+p.atualizar} produto(s)
+        </button>
+      </div>
+    </div>`;
+}
+
+function ieAtualizar() {
+  const corpo = document.getElementById('ieCorpo');
+  if (corpo) {
+    const TIPOS = ['Produtos','Insumos','Clientes','Profissionais','Serviços','Movimentações'];
+    corpo.innerHTML = _ieAba === 'importar' ? ieRenderImportar(TIPOS) : ieRenderExportar(TIPOS);
+  }
+  // Atualizar abas
+  document.querySelectorAll('.ie-aba').forEach((b,i) => {
+    b.classList.toggle('active', (i===0&&_ieAba==='importar')||(i===1&&_ieAba==='exportar'));
+  });
+}
+
+function ieArquivoSelecionado(file) {
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!['xlsx','csv'].includes(ext)) { showToast('Formato inválido. Use .xlsx ou .csv','error'); return; }
+  if (file.size > 10*1024*1024) { showToast('Arquivo muito grande. Máx. 10MB','error'); return; }
+  _ieArquivo = file;
+  ieAtualizar();
+}
+
+function ieProcessarImportacao() {
+  if (!_ieArquivo) return;
+  const btn = document.querySelector('#ieCorpo .btn-primary');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner-sm"></div> Analisando...'; }
+
+  setTimeout(() => {
+    // Simular parse e validação
+    const produtos = DB.produtos || [];
+    const linhas = [
+      { nome:'Esmalte Vermelho Risqué', categoria:'Unhas',   unidade:'un', qtd:20, custo:8,  preco:15, status:'ok' },
+      { nome:'Removedor de Esmalte',    categoria:'Unhas',   unidade:'un', qtd:10, custo:6,  preco:12, status:'update' },
+      { nome:'Algodão',                 categoria:'Higiene', unidade:'pacote', qtd:50, custo:5, preco:10, status:'ok' },
+      { nome:'',                        categoria:'',        unidade:'',   qtd:null, custo:null, preco:null, status:'erro', erro:'Nome obrigatório' },
+      { nome:'Shampoo XL',              categoria:'Cabelo',  unidade:'un', qtd:8, custo:25, preco:60, status:'ok' },
+    ];
+    const novos    = linhas.filter(l=>l.status==='ok').length;
+    const atualizar= linhas.filter(l=>l.status==='update').length;
+    const erros    = linhas.filter(l=>l.status==='erro').length;
+
+    _iePreview = { total: linhas.length, novos, atualizar, erros, linhas };
+    _ieEtapa = 2;
+    ieAtualizar();
+  }, 900);
+}
+
+function ieConfirmarImportacao() {
+  const p = _iePreview;
+  if (!p) return;
+  // Importar apenas linhas válidas no DB local
+  const validas = p.linhas.filter(l => l.status !== 'erro');
+  validas.forEach(l => {
+    const existente = DB.produtos.find(x => x.nome.toLowerCase() === l.nome.toLowerCase());
+    if (existente) {
+      Object.assign(existente, { categoria:l.categoria, unidade:l.unidade, qtd:l.qtd, custo:l.custo, preco:l.preco });
+    } else {
+      DB.produtos.push({ id: generateId(DB.produtos), nome:l.nome, categoria:l.categoria, unidade:l.unidade, qtd:l.qtd, minimo:5, custo:l.custo, preco:l.preco, ativo:true });
+    }
+  });
+  // Registrar no histórico
+  DB.historicoIE.unshift({ id:Date.now(), data:new Date().toISOString().slice(0,10), tipo:'Importação', arquivo:_ieArquivo?.name||'arquivo', registros:validas.length, status:'concluido' });
+  document.getElementById('ieOverlay')?.remove();
+  showToast(`${validas.length} produto(s) importado(s) com sucesso!`, 'success');
+  estReRender();
+}
+
+function ieContarExport() {
+  let lista = DB.produtos || [];
+  if (_ieExportFiltros.apenasAtivos)   lista = lista.filter(p => p.ativo !== false);
+  if (_ieExportFiltros.abaixoMinimo)   lista = lista.filter(p => p.qtd <= p.minimo);
+  if (_ieTipo === 'Movimentações') return (DB.movimentacoes||[]).length;
+  if (_ieTipo === 'Clientes')      return (DB.clientes||[]).length;
+  if (_ieTipo === 'Profissionais') return (DB.profissionais||[]).length;
+  if (_ieTipo === 'Serviços')      return (DB.servicos||[]).length;
+  return lista.length;
+}
+
+function ieExecutarExport() {
+  let dados = [];
+  let cabecalho = [];
+  if (_ieTipo === 'Produtos' || _ieTipo === 'Insumos') {
+    let lista = DB.produtos || [];
+    if (_ieExportFiltros.apenasAtivos)  lista = lista.filter(p=>p.ativo!==false);
+    if (_ieExportFiltros.abaixoMinimo)  lista = lista.filter(p=>p.qtd<=p.minimo);
+    cabecalho = ['Nome','Categoria','Unidade','Estoque','Mínimo','Custo','Preço','Ativo'];
+    dados = lista.map(p=>[p.nome,p.categoria,p.unidade,p.qtd,p.minimo,p.custo,p.preco,p.ativo?'Sim':'Não']);
+  } else if (_ieTipo === 'Clientes') {
+    cabecalho = ['Nome','Telefone','Email','Data Cadastro'];
+    dados = (DB.clientes||[]).map(c=>[c.nome,c.telefone,c.email,c.dataCadastro]);
+  } else if (_ieTipo === 'Movimentações') {
+    cabecalho = ['Data','Hora','Produto','Tipo','Quantidade','Unidade','Motivo','Usuário'];
+    dados = (DB.movimentacoes||[]).map(m=>[m.data,m.hora,m.produtoNome,m.tipo,m.qtd,m.unidade,m.motivo,m.usuario]);
+  } else {
+    showToast('Exportação de '+_ieTipo+' em desenvolvimento', 'warning'); return;
+  }
+
+  // Gerar CSV (fallback universal)
+  const csv = [cabecalho, ...dados].map(r => r.map(v=>`"${(v??'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF'+csv], { type:'text/csv;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `${_ieTipo.toLowerCase()}_${new Date().toISOString().slice(0,10)}.${_ieFormato==='csv'?'csv':'csv'}`;
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+
+  // Registrar histórico
+  DB.historicoIE.unshift({ id:Date.now(), data:new Date().toISOString().slice(0,10), tipo:'Exportação', arquivo:`${_ieTipo.toLowerCase()}.${_ieFormato}`, registros:dados.length, status:'concluido' });
+  showToast(`${dados.length} registros exportados!`, 'success');
+  document.getElementById('ieOverlay')?.remove();
+  estReRender();
+}
+
+function ieBaixarModelo() {
+  const modelos = {
+    Produtos: [['Nome','Categoria','Unidade','Estoque','Minimo','Custo','Preco'],['Esmalte Vermelho','Unhas','un',10,5,8,15],['Removedor 1L','Unhas','un',5,3,12,25]],
+  };
+  const linhas = modelos[_ieTipo] || modelos['Produtos'];
+  const csv = linhas.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href=url; a.download=`modelo_${_ieTipo.toLowerCase()}.csv`;
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  showToast('Modelo baixado!','success');
 }
 
 function abrirNovaMovimentacao(produtoIdPresel = null) {

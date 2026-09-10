@@ -3821,3 +3821,106 @@ select {
   background: #fdf4ff;
   color: var(--primary);
 }
+
+/* ============================================================
+   IMPORTAR / EXPORTAR — Modal
+   ============================================================ */
+
+.ie-modal {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 720px;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,.18);
+}
+
+.ie-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--gray-100);
+  flex-shrink: 0;
+}
+
+/* Abas importar/exportar */
+.ie-aba {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 12px 20px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  font-size: .875rem;
+  font-weight: 600;
+  color: var(--gray-400);
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: all .15s;
+}
+.ie-aba.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+/* Botões de tipo de dados (chips) */
+.ie-tipo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 8px;
+  background: white;
+  color: var(--gray-600);
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: all .15s;
+  user-select: none;
+}
+.ie-tipo-btn.active {
+  border-color: var(--primary);
+  background: #fdf4ff;
+  color: var(--primary);
+}
+
+/* Drop zone */
+.ie-dropzone {
+  border: 2px dashed var(--gray-300);
+  border-radius: 12px;
+  padding: 32px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all .15s;
+  background: var(--gray-50);
+  text-align: center;
+  gap: 2px;
+}
+.ie-dropzone:hover, .ie-dropzone.drag {
+  border-color: var(--primary);
+  background: #fdf4ff;
+}
+
+/* Cards de resumo do preview */
+.ie-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: .78rem;
+  font-weight: 600;
+}
+.ie-stat-card span { font-size: 1.2rem; font-weight: 700; margin-right: 2px; }
+.ie-stat-total  { background: #ede9fe; color: #7c3aed; }
+.ie-stat-new    { background: #dcfce7; color: #16a34a; }
+.ie-stat-update { background: #fef9c3; color: #b45309; }
+.ie-stat-error  { background: #fee2e2; color: #dc2626; }
