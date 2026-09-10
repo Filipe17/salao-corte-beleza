@@ -3294,7 +3294,7 @@ select {
 
 /* Painel lateral */
 .est-painel {
-  width: 340px;
+  width: 360px;
   flex-shrink: 0;
   background: white;
   border: 1px solid var(--gray-200);
@@ -3379,12 +3379,14 @@ select {
 }
 .est-painel-footer .btn {
   flex: 1;
-  font-size: .78rem;
-  gap: 5px;
-  padding: 8px 6px;
+  font-size: .75rem;
+  gap: 4px;
+  padding: 8px 4px;
   white-space: nowrap;
   justify-content: center;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .est-btn-excluir {
   background: #fef2f2;
