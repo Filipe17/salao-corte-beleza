@@ -6154,15 +6154,15 @@ function estRenderPainel(p) {
 
     <!-- Ações do painel -->
     <div class="est-painel-footer">
-      <button class="btn btn-outline" style="flex:1;gap:6px;font-size:.82rem" onclick="editarProduto(${p.id})">
+      <button class="btn btn-outline" onclick="editarProduto(${p.id})">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         Editar
       </button>
-      <button class="btn btn-primary" style="flex:1;gap:6px;font-size:.82rem" onclick="entradaEstoque(${p.id})">
+      <button class="btn btn-primary" onclick="entradaEstoque(${p.id})">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         Movimentação
       </button>
-      <button class="btn" style="flex:1;gap:6px;font-size:.82rem;background:#fef2f2;color:#dc2626;border:1px solid #fecaca" onclick="excluirProduto(${p.id})">
+      <button class="btn est-btn-excluir" onclick="excluirProduto(${p.id})">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
         Excluir
       </button>

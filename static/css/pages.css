@@ -3291,7 +3291,7 @@ select {
 
 /* Painel lateral */
 .est-painel {
-  width: 320px;
+  width: 340px;
   flex-shrink: 0;
   background: white;
   border: 1px solid var(--gray-200);
@@ -3299,10 +3299,12 @@ select {
   box-shadow: 0 1px 4px rgba(0,0,0,.04);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
   align-self: flex-start;
   position: sticky;
   top: 16px;
+  /* garante que borda arredondada apareça sem clip */
+  isolation: isolate;
 }
 .est-painel-titulo {
   display: flex;
@@ -3310,6 +3312,8 @@ select {
   justify-content: space-between;
   padding: 14px 16px 12px;
   border-bottom: 1px solid var(--gray-100);
+  border-radius: 14px 14px 0 0;
+  background: white;
 }
 .est-painel-header {
   display: flex;
@@ -3365,10 +3369,27 @@ select {
 }
 .est-painel-footer {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   padding: 12px 16px;
   border-top: 1px solid var(--gray-100);
+  border-radius: 0 0 14px 14px;
+  background: white;
 }
+.est-painel-footer .btn {
+  flex: 1;
+  font-size: .78rem;
+  gap: 5px;
+  padding: 8px 6px;
+  white-space: nowrap;
+  justify-content: center;
+  min-width: 0;
+}
+.est-btn-excluir {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+.est-btn-excluir:hover { background: #fee2e2; }
 
 /* Tabela de movimentações no painel */
 .est-mov-table {
