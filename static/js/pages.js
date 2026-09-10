@@ -6469,26 +6469,28 @@ function renderAtendimento() {
         </div>
   </div>
 
-  <div class="atd-tabs2">
-        ${[
-          {key:'todos',       label:'Todos',        cnt: cntTodos,      color:'var(--primary)'},
-          {key:'agendados',   label:'Agendados',    cnt: cntAgendados,  color:'#3b82f6'},
-          {key:'emandamento', label:'Em andamento', cnt: cntAndamento,  color:'#f59e0b'},
-          {key:'concluidos',  label:'Concluídos',   cnt: cntConcluidos, color:'#22c55e'},
-          {key:'cancelados',  label:'Cancelados',   cnt: cntCancelados, color:'#ef4444'},
-        ].map(t => `
-          <button class="atd-tab2 ${_atdFiltroTab===t.key?'active':''}"
-            onclick="_atdFiltroTab='${t.key}';_atdPagina=1;navigate('atendimento')">
-            ${t.label}
-            <span class="atd-tab2-cnt" style="--tab-color:${t.color}">${t.cnt}</span>
-          </button>`).join('')}
-  </div>
-
   <div class="atd-layout2 ${sel ? 'com-painel' : ''}">
     <div class="atd-main2">
 
       <!-- Tabela -->
       <div class="card" style="border-radius:12px;overflow:hidden">
+
+        <!-- Abas dentro do card -->
+        <div class="atd-tabs2" style="padding:14px 20px 0;border-bottom:1px solid var(--gray-100)">
+          ${[
+            {key:'todos',       label:'Todos',        cnt: cntTodos,      color:'var(--primary)'},
+            {key:'agendados',   label:'Agendados',    cnt: cntAgendados,  color:'#3b82f6'},
+            {key:'emandamento', label:'Em andamento', cnt: cntAndamento,  color:'#f59e0b'},
+            {key:'concluidos',  label:'Concluídos',   cnt: cntConcluidos, color:'#22c55e'},
+            {key:'cancelados',  label:'Cancelados',   cnt: cntCancelados, color:'#ef4444'},
+          ].map(t => `
+            <button class="atd-tab2 ${_atdFiltroTab===t.key?'active':''}"
+              onclick="_atdFiltroTab='${t.key}';_atdPagina=1;navigate('atendimento')">
+              ${t.label}
+              <span class="atd-tab2-cnt" style="--tab-color:${t.color}">${t.cnt}</span>
+            </button>`).join('')}
+        </div>
+
         <div class="table-wrap">
           <table class="table">
             <thead>
