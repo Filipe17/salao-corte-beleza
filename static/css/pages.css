@@ -3737,3 +3737,87 @@ select {
   .est-fm-body { grid-template-columns: 1fr; }
   .est-fm-full { grid-column: 1; }
 }
+
+/* ============================================================
+   ESTOQUE — Abas e Movimentações
+   ============================================================ */
+
+.est-abas {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid var(--gray-100);
+  margin-bottom: 4px;
+}
+
+.est-aba {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 18px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  font-size: .875rem;
+  font-weight: 600;
+  color: var(--gray-400);
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: all .15s;
+  white-space: nowrap;
+}
+.est-aba:hover { color: var(--gray-600); }
+.est-aba.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.est-aba-cnt {
+  background: var(--gray-100);
+  color: var(--gray-500);
+  font-size: .7rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 20px;
+  min-width: 20px;
+  text-align: center;
+}
+.est-aba.active .est-aba-cnt {
+  background: #fce7f3;
+  color: var(--primary);
+}
+
+/* Badges tipo movimentação */
+.mov-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: .72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.mov-badge-entrada { background: #dcfce7; color: #16a34a; }
+.mov-badge-saida   { background: #fee2e2; color: #dc2626; }
+.mov-badge-ajuste  { background: #fef9c3; color: #b45309; }
+
+/* Botões de tipo no modal */
+.nm-tipo-btn {
+  flex: 1;
+  padding: 9px 12px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 8px;
+  background: white;
+  color: var(--gray-600);
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: all .15s;
+}
+.nm-tipo-btn.active {
+  border-color: var(--primary);
+  background: #fdf4ff;
+  color: var(--primary);
+}

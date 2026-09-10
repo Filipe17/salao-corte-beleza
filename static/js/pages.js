@@ -5810,6 +5810,21 @@ let _estPagina      = 1;
 let _estPorPagina   = 10;
 let _estProdutoSel  = null; // produto com painel lateral aberto
 
+let _estAbaAtiva = 'produtos'; // 'produtos' | 'movimentacoes'
+
+// ── Dados mock de movimentações ──────────────────────────
+if (!DB.movimentacoes) {
+  DB.movimentacoes = [
+    { id:1, data:'2026-09-09', hora:'10:30', produtoId:2, produtoNome:'Esmalte Risqué Rosa', tipo:'entrada', qtd:20, unidade:'un', motivo:'Compra', obs:'', usuario:'Admin' },
+    { id:2, data:'2026-09-09', hora:'09:45', produtoId:3, produtoNome:'Acetona 1L',          tipo:'saida',   qtd:5,  unidade:'un', motivo:'Venda', obs:'', usuario:'Maria' },
+    { id:3, data:'2026-09-08', hora:'17:20', produtoId:10,produtoNome:'Descartável pé',       tipo:'saida',   qtd:100,unidade:'par',motivo:'Uso em serviço', obs:'Pedicure', usuario:'Admin' },
+    { id:4, data:'2026-09-08', hora:'15:10', produtoId:6, produtoNome:'Shampoo profissional 5L',tipo:'entrada',qtd:30,unidade:'un', motivo:'Compra', obs:'NF 4521', usuario:'Admin' },
+    { id:5, data:'2026-09-08', hora:'11:30', produtoId:2, produtoNome:'Esmalte Risqué Rosa', tipo:'saida',   qtd:3,  unidade:'un', motivo:'Uso em serviço', obs:'', usuario:'João' },
+    { id:6, data:'2026-09-07', hora:'14:00', produtoId:9, produtoNome:'Cera depilatória 1kg', tipo:'saida',   qtd:1,  unidade:'un', motivo:'Perda', obs:'Vencido', usuario:'Admin' },
+    { id:7, data:'2026-09-07', hora:'09:00', produtoId:4, produtoNome:'Gel UV transparente',  tipo:'ajuste',  qtd:2,  unidade:'un', motivo:'Ajuste de inventário', obs:'Contagem física', usuario:'Admin' },
+  ];
+}
+
 function renderEstoque() {
   const produtos = DB.produtos || [];
   const total    = produtos.length;
@@ -5852,19 +5867,51 @@ function renderEstoque() {
         </div>
       </div>
       <div style="display:flex;gap:10px">
-        <button class="btn btn-outline" onclick="showToast('Em desenvolvimento','warning')" style="gap:6px;font-size:.85rem">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          Importar / Exportar
-        </button>
-        <button class="btn btn-primary" onclick="openNewProduto()" style="gap:6px;font-size:.85rem">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Novo Produto
-        </button>
+        ${_estAbaAtiva === 'movimentacoes'
+          ? `<button class="btn btn-primary" onclick="abrirNovaMovimentacao()" style="gap:6px;font-size:.85rem">
+               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+               Nova Movimentação
+             </button>`
+          : `<button class="btn btn-outline" onclick="showToast('Em desenvolvimento','warning')" style="gap:6px;font-size:.85rem">
+               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+               Importar / Exportar
+             </button>
+             <button class="btn btn-primary" onclick="openNewProduto()" style="gap:6px;font-size:.85rem">
+               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+               Novo Produto
+             </button>`
+        }
       </div>
     </div>
 
-    <!-- Cards de resumo -->
-    <div class="est-cards">
+    <!-- Abas -->
+    <div class="est-abas">
+      <button class="est-aba ${_estAbaAtiva==='produtos'?'active':''}" onclick="_estAbaAtiva='produtos';estReRender()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+        Produtos
+      </button>
+      <button class="est-aba ${_estAbaAtiva==='movimentacoes'?'active':''}" onclick="_estAbaAtiva='movimentacoes';estReRender()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M7 16V4m0 0L3 8m4-4l4 4"/><path d="M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>
+        Movimentações
+        <span class="est-aba-cnt">${(DB.movimentacoes||[]).length}</span>
+      </button>
+    </div>
+
+    ${_estAbaAtiva === 'movimentacoes' ? estRenderMovimentacoes() : estRenderProdutos(produtos, filtrados, paginados, totalPags, sel)}
+  </div>`;
+}
+
+function estRenderProdutos(produtos, filtrados, paginados, totalPags, sel) {
+  const cats = ['Todas', ...new Set(produtos.map(p=>p.categoria).filter(Boolean))];
+  const statusOpts = ['Todos','Normal','Alerta','Falta'];
+  const total    = produtos.length;
+  const emEstoque = produtos.filter(p => p.qtd > p.minimo).length;
+  const emAlerta  = produtos.filter(p => p.qtd > 0 && p.qtd <= p.minimo).length;
+  const emFalta   = produtos.filter(p => p.qtd <= 0).length;
+  const pctEstoque = total ? Math.round((emEstoque/total)*100) : 0;
+  const pctAlerta  = total ? Math.round((emAlerta/total)*100) : 0;
+  const pctFalta   = total ? Math.round((emFalta/total)*100) : 0;
+  return `
       <div class="est-card">
         <div style="display:flex;align-items:center;gap:10px">
           <div style="width:38px;height:38px;border-radius:10px;background:#ede9fe;display:flex;align-items:center;justify-content:center">
@@ -6011,8 +6058,302 @@ function renderEstoque() {
 
       <!-- Painel lateral de detalhes -->
       ${sel ? estRenderPainel(sel) : ''}
+    </div>`;
+}
+
+/* ── MOVIMENTAÇÕES ─────────────────────────────────────── */
+let _movBusca    = '';
+let _movTipo     = '';
+let _movUsuario  = '';
+let _movPagina   = 1;
+let _movPorPag   = 10;
+
+function estRenderMovimentacoes() {
+  const movs = DB.movimentacoes || [];
+  const MOTIVOS = ['Compra','Venda','Uso em serviço','Perda','Vencimento','Devolução','Ajuste de inventário','Outro'];
+
+  const entradas = movs.filter(m=>m.tipo==='entrada').reduce((s,m)=>s+m.qtd,0);
+  const saidas   = movs.filter(m=>m.tipo==='saida').reduce((s,m)=>s+m.qtd,0);
+  const ajustes  = movs.filter(m=>m.tipo==='ajuste').length;
+
+  let filtradas = movs.filter(m => {
+    const matchBusca = !_movBusca || m.produtoNome.toLowerCase().includes(_movBusca.toLowerCase());
+    const matchTipo  = !_movTipo  || _movTipo === 'Todos' || m.tipo === _movTipo;
+    const matchUser  = !_movUsuario || _movUsuario === 'Todos' || m.usuario === _movUsuario;
+    return matchBusca && matchTipo && matchUser;
+  }).sort((a,b) => (b.data+b.hora).localeCompare(a.data+a.hora));
+
+  const totalPags = Math.ceil(filtradas.length / _movPorPag);
+  const pagina    = filtradas.slice((_movPagina-1)*_movPorPag, _movPagina*_movPorPag);
+  const usuarios  = ['Todos', ...new Set(movs.map(m=>m.usuario).filter(Boolean))];
+
+  const tipoIcon = (t) => {
+    if (t==='entrada') return `<span class="mov-badge mov-badge-entrada">▲ Entrada</span>`;
+    if (t==='saida')   return `<span class="mov-badge mov-badge-saida">▼ Saída</span>`;
+    return `<span class="mov-badge mov-badge-ajuste">⇄ Ajuste</span>`;
+  };
+  const fmtQtd = (m) => {
+    const sinal = m.tipo==='entrada' ? '+' : m.tipo==='saida' ? '-' : '±';
+    const cor   = m.tipo==='entrada' ? '#16a34a' : m.tipo==='saida' ? '#dc2626' : '#d97706';
+    return `<span style="font-weight:700;color:${cor}">${sinal}${m.qtd} ${m.unidade}</span>`;
+  };
+  const fmtData = (d,h) => {
+    const [,mm,dd] = d.split('-');
+    return `${dd}/${mm} ${h}`;
+  };
+
+  return `
+    <div class="est-cards" style="grid-template-columns:repeat(3,1fr)">
+      <div class="est-card">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:38px;height:38px;border-radius:10px;background:#dcfce7;display:flex;align-items:center;justify-content:center">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" width="18" height="18"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/></svg>
+          </div>
+          <div>
+            <div style="font-size:.75rem;color:var(--gray-400);font-weight:500">Total de entradas</div>
+            <div style="font-size:1.6rem;font-weight:700;color:#16a34a;line-height:1.1">+${entradas}</div>
+            <div style="font-size:.72rem;color:var(--gray-400)">${movs.filter(m=>m.tipo==='entrada').length} registros</div>
+          </div>
+        </div>
+      </div>
+      <div class="est-card">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:38px;height:38px;border-radius:10px;background:#fee2e2;display:flex;align-items:center;justify-content:center">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" width="18" height="18"><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+          </div>
+          <div>
+            <div style="font-size:.75rem;color:var(--gray-400);font-weight:500">Total de saídas</div>
+            <div style="font-size:1.6rem;font-weight:700;color:#dc2626;line-height:1.1">-${saidas}</div>
+            <div style="font-size:.72rem;color:var(--gray-400)">${movs.filter(m=>m.tipo==='saida').length} registros</div>
+          </div>
+        </div>
+      </div>
+      <div class="est-card">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:38px;height:38px;border-radius:10px;background:#fef9c3;display:flex;align-items:center;justify-content:center">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" width="18" height="18"><path d="M7 16V4m0 0L3 8m4-4l4 4"/><path d="M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>
+          </div>
+          <div>
+            <div style="font-size:.75rem;color:var(--gray-400);font-weight:500">Ajustes</div>
+            <div style="font-size:1.6rem;font-weight:700;color:#d97706;line-height:1.1">${ajustes}</div>
+            <div style="font-size:.72rem;color:var(--gray-400)">registros</div>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>`;
+
+    <div class="est-filtros">
+      <div class="na-search-box" style="flex:1;min-width:180px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Buscar produto..." value="${_movBusca}" oninput="_movBusca=this.value;_movPagina=1;estReRender()" />
+      </div>
+      <div class="ag-select-wrap" style="min-width:130px">
+        <select class="ag-select" onchange="_movTipo=this.value;_movPagina=1;estReRender()">
+          ${['Todos','entrada','saida','ajuste'].map(t=>`<option value="${t}" ${_movTipo===t?'selected':''}>${t==='Todos'?'Tipo':t==='entrada'?'Entrada':t==='saida'?'Saída':'Ajuste'}</option>`).join('')}
+        </select>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="ag-select-wrap" style="min-width:130px">
+        <select class="ag-select" onchange="_movUsuario=this.value;_movPagina=1;estReRender()">
+          ${usuarios.map(u=>`<option value="${u}" ${_movUsuario===u?'selected':''}>${u}</option>`).join('')}
+        </select>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+
+    <div class="est-table-card">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--gray-100)">
+        <h3 style="font-size:.95rem;font-weight:700;color:var(--gray-800);margin:0">Histórico de Movimentações</h3>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="est-table">
+          <thead>
+            <tr>
+              <th>Data / Hora</th><th>Produto</th><th>Tipo</th><th>Quantidade</th>
+              <th>Motivo</th><th>Observação</th><th>Usuário</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${pagina.length ? pagina.map(m=>`
+              <tr class="est-row" style="cursor:default">
+                <td style="font-size:.8rem;color:var(--gray-500);white-space:nowrap">${fmtData(m.data,m.hora)}</td>
+                <td style="font-weight:600;font-size:.875rem;color:var(--gray-800)">${m.produtoNome}</td>
+                <td>${tipoIcon(m.tipo)}</td>
+                <td>${fmtQtd(m)}</td>
+                <td style="font-size:.82rem;color:var(--gray-600)">${m.motivo}</td>
+                <td style="font-size:.78rem;color:var(--gray-400);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.obs||'—'}</td>
+                <td style="font-size:.82rem;color:var(--gray-600)">${m.usuario}</td>
+                <td>
+                  <button class="btn-icon-sm" style="color:var(--danger)" onclick="excluirMovimentacao(${m.id})" title="Excluir">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+                  </button>
+                </td>
+              </tr>`).join('')
+            : `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--gray-400)">Nenhuma movimentação encontrada</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+      <div class="est-paginacao">
+        <span style="font-size:.8rem;color:var(--gray-500)">Mostrando ${filtradas.length===0?0:(_movPagina-1)*_movPorPag+1} a ${Math.min(_movPagina*_movPorPag,filtradas.length)} de ${filtradas.length} registros</span>
+        <div style="display:flex;align-items:center;gap:4px">
+          <button class="est-pg-btn" onclick="if(_movPagina>1){_movPagina--;estReRender()}" ${_movPagina<=1?'disabled':''}>‹</button>
+          ${Array.from({length:Math.min(totalPags||1,5)},(_,i)=>i+1).map(p2=>`<button class="est-pg-btn ${p2===_movPagina?'active':''}" onclick="_movPagina=${p2};estReRender()">${p2}</button>`).join('')}
+          <button class="est-pg-btn" onclick="if(_movPagina<${totalPags||1}){_movPagina++;estReRender()}" ${_movPagina>=(totalPags||1)?'disabled':''}>›</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--gray-500)">
+          Itens por página
+          <div class="ag-select-wrap" style="min-width:60px">
+            <select class="ag-select" style="font-size:.8rem;padding:4px 24px 4px 8px" onchange="_movPorPag=parseInt(this.value);_movPagina=1;estReRender()">
+              ${[10,20,50].map(n=>`<option value="${n}" ${_movPorPag===n?'selected':''}>${n}</option>`).join('')}
+            </select>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function excluirMovimentacao(id) {
+  confirmDialog('Deseja excluir esta movimentação?', () => {
+    DB.movimentacoes = (DB.movimentacoes||[]).filter(m=>m.id!==id);
+    showToast('Movimentação excluída!','success');
+    estReRender();
+  });
+}
+
+function abrirNovaMovimentacao(produtoIdPresel = null) {
+  const produtos = DB.produtos || [];
+  const MOTIVOS  = ['Compra','Venda','Uso em serviço','Perda','Vencimento','Devolução','Ajuste de inventário','Outro'];
+
+  const overlay = document.createElement('div');
+  overlay.id = 'nmOverlay';
+  overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px`;
+  overlay.innerHTML = `
+    <div class="est-filtros-modal" style="max-width:500px" onclick="event.stopPropagation()">
+      <div class="est-fm-header">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;border-radius:10px;background:#fce7f3;display:flex;align-items:center;justify-content:center">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="18" height="18"><path d="M7 16V4m0 0L3 8m4-4l4 4"/><path d="M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>
+          </div>
+          <div>
+            <div style="font-size:1rem;font-weight:700;color:var(--gray-800)">Nova Movimentação</div>
+            <div style="font-size:.75rem;color:var(--gray-400)">Registre uma entrada, saída ou ajuste de estoque</div>
+          </div>
+        </div>
+        <button onclick="document.getElementById('nmOverlay').remove()" style="background:none;border:none;cursor:pointer;color:var(--gray-400);padding:4px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div style="padding:20px 24px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;max-height:60vh">
+        <div>
+          <label class="np-label" style="margin-bottom:8px;display:block">Tipo de movimentação</label>
+          <div style="display:flex;gap:8px">
+            <button id="nmBtnEntrada" class="nm-tipo-btn active" onclick="nmSetTipo('entrada')">▲ Entrada</button>
+            <button id="nmBtnSaida"   class="nm-tipo-btn" onclick="nmSetTipo('saida')">▼ Saída</button>
+            <button id="nmBtnAjuste"  class="nm-tipo-btn" onclick="nmSetTipo('ajuste')">⇄ Ajuste</button>
+          </div>
+        </div>
+        <div class="np-field">
+          <label class="np-label">Produto / Insumo <span class="np-req">*</span></label>
+          <div class="ag-select-wrap">
+            <select class="ag-select" id="nm_produto">
+              <option value="">Selecione o produto...</option>
+              ${produtos.map(p=>`<option value="${p.id}" ${p.id===produtoIdPresel?'selected':''}>${p.nome} (${p.qtd} ${p.unidade})</option>`).join('')}
+            </select>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 120px;gap:12px">
+          <div class="np-field">
+            <label class="np-label">Quantidade <span class="np-req">*</span></label>
+            <input class="form-control" id="nm_qtd" type="number" min="1" value="1" />
+          </div>
+          <div class="np-field">
+            <label class="np-label">Unidade</label>
+            <div class="ag-select-wrap">
+              <select class="ag-select" id="nm_unidade">
+                ${['un','ml','L','g','kg','par','pacote','cx'].map(u=>`<option>${u}</option>`).join('')}
+              </select>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+          </div>
+        </div>
+        <div class="np-field">
+          <label class="np-label">Motivo <span class="np-req">*</span></label>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">
+            ${MOTIVOS.map((m,i)=>`<label class="nm-motivo-lbl" style="border:1.5px solid ${i===0?'var(--primary)':'var(--gray-200)'};background:${i===0?'#fdf4ff':'white'};border-radius:8px;padding:6px 12px;cursor:pointer;font-size:.82rem;font-weight:500;color:${i===0?'var(--primary)':'var(--gray-700)'}">
+              <input type="radio" name="nm_motivo" value="${m}" ${i===0?'checked':''} style="display:none" onchange="nmSelecionarMotivo(this)" />${m}
+            </label>`).join('')}
+          </div>
+        </div>
+        <div class="np-field">
+          <label class="np-label">Observação <span style="color:var(--gray-400);font-weight:400">(opcional)</span></label>
+          <textarea class="form-control" id="nm_obs" rows="2" placeholder="Digite uma observação..."></textarea>
+        </div>
+      </div>
+      <div class="est-fm-footer">
+        <button class="btn btn-outline" onclick="document.getElementById('nmOverlay').remove()">Cancelar</button>
+        <button class="btn btn-primary" onclick="nmRegistrar()" style="gap:6px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
+          Registrar movimentação
+        </button>
+      </div>
+    </div>`;
+  overlay.addEventListener('click', () => overlay.remove());
+  document.body.appendChild(overlay);
+}
+
+function nmSetTipo(tipo) {
+  ['entrada','saida','ajuste'].forEach(t => {
+    const btn = document.getElementById(`nmBtn${t.charAt(0).toUpperCase()+t.slice(1)}`);
+    if (btn) btn.classList.toggle('active', t===tipo);
+  });
+}
+
+function nmSelecionarMotivo(input) {
+  document.querySelectorAll('.nm-motivo-lbl').forEach(lbl => {
+    const r = lbl.querySelector('input[type="radio"]');
+    lbl.style.borderColor = r?.checked ? 'var(--primary)' : 'var(--gray-200)';
+    lbl.style.background  = r?.checked ? '#fdf4ff' : 'white';
+    lbl.style.color       = r?.checked ? 'var(--primary)' : 'var(--gray-700)';
+  });
+}
+
+function nmRegistrar() {
+  const prodId  = parseInt(document.getElementById('nm_produto')?.value);
+  const qtd     = parseInt(document.getElementById('nm_qtd')?.value) || 0;
+  const unidade = document.getElementById('nm_unidade')?.value || 'un';
+  const motivo  = document.querySelector('input[name="nm_motivo"]:checked')?.value || '';
+  const obs     = document.getElementById('nm_obs')?.value.trim() || '';
+
+  // Descobrir tipo pelo botão ativo
+  let tipoReal = 'entrada';
+  if (document.getElementById('nmBtnSaida')?.classList.contains('active'))   tipoReal = 'saida';
+  if (document.getElementById('nmBtnAjuste')?.classList.contains('active'))  tipoReal = 'ajuste';
+
+  if (!prodId) { showToast('Selecione um produto', 'error'); return; }
+  if (!qtd || qtd <= 0) { showToast('Informe a quantidade', 'error'); return; }
+
+  const prod = DB.produtos.find(p=>p.id===prodId);
+  if (!prod) return;
+
+  if (tipoReal === 'entrada') prod.qtd += qtd;
+  else if (tipoReal === 'saida') prod.qtd = Math.max(0, prod.qtd - qtd);
+
+  const agora = new Date();
+  if (!DB.movimentacoes) DB.movimentacoes = [];
+  DB.movimentacoes.unshift({
+    id: Date.now(),
+    data: agora.toISOString().slice(0,10),
+    hora: agora.toTimeString().slice(0,5),
+    produtoId: prod.id, produtoNome: prod.nome,
+    tipo: tipoReal, qtd, unidade, motivo, obs,
+    usuario: (JSON.parse(sessionStorage.getItem('belezza_user')||'{}').nome || 'Admin'),
+  });
+
+  document.getElementById('nmOverlay')?.remove();
+  showToast(`Movimentação registrada! Estoque de "${prod.nome}": ${prod.qtd} ${prod.unidade}`, 'success');
+  estReRender();
 }
 
 function estGetStatus(p) {
@@ -6158,7 +6499,7 @@ function estRenderPainel(p) {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         Editar
       </button>
-      <button class="btn btn-primary" onclick="entradaEstoque(${p.id})">
+      <button class="btn btn-primary" onclick="abrirNovaMovimentacao(${p.id})">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         Movimentação
       </button>
