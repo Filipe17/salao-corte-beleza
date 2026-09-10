@@ -6542,12 +6542,107 @@ function estTrocarAba(aba) {
 
 function editarProduto(id) { openNewProduto(id); }
 function excluirProduto(id) {
-  confirmDialog('Deseja excluir este produto?', () => {
-    DB.produtos = (DB.produtos||[]).filter(p=>p.id!==id);
-    _estProdutoSel = null;
-    showToast('Produto excluído!','success');
-    estReRender();
+  const p = (DB.produtos||[]).find(x => x.id === id);
+  if (!p) return;
+
+  // Verificar se tem histórico (movimentações, atendimentos, transações)
+  const temMov   = (DB.movimentacoes||[]).some(m => m.produtoId === id);
+  const temAtd   = (DB.atendimentos||[]).some(a =>
+    (a.produtos||[]).some(x => x.id === id) ||
+    (a.produtosUtilizados||[]).some(x => x.id === id)
+  );
+  const temTrans = (DB.transacoes||[]).some(t =>
+    (t.descricao||'').toLowerCase().includes((p.nome||'').toLowerCase().slice(0,8))
+  );
+  const temHistorico = temMov || temAtd || temTrans;
+
+  if (temHistorico) {
+    // Modal: não pode excluir — só desativar
+    openModal({
+      size: 'modal-sm',
+      body: `
+        <div style="text-align:center;padding:8px 0 4px">
+          <div style="width:56px;height:56px;border-radius:50%;background:#fef9c3;display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" width="28" height="28"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div style="font-size:1rem;font-weight:700;color:var(--gray-800);margin-bottom:10px">Não é possível excluir</div>
+          <div style="font-size:.875rem;color:var(--gray-600);margin-bottom:8px">
+            Este produto possui histórico de movimentações${temAtd?' e atendimentos':''} no sistema.
+          </div>
+          <div style="font-size:.82rem;color:var(--gray-500);background:var(--gray-50);border-radius:8px;padding:10px 14px;margin:12px 0;text-align:left">
+            Para manter a integridade do histórico do sistema, recomendamos <strong>desativar</strong> o produto em vez de excluí-lo.
+          </div>
+          <div style="font-size:.78rem;color:var(--gray-400)">Produto desativado não aparece no PDV nem em novos atendimentos.</div>
+        </div>`,
+      footer: `
+        <button class="btn btn-outline" onclick="closeModal()" style="flex:1">Cancelar</button>
+        <button class="btn btn-primary" onclick="desativarProduto(${id})" style="flex:1;gap:6px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+          Desativar produto
+        </button>`,
+    });
+    return;
+  }
+
+  // Modal: confirmação de exclusão definitiva
+  openModal({
+    size: 'modal-sm',
+    body: `
+      <div style="text-align:center;padding:8px 0 4px">
+        <div style="width:56px;height:56px;border-radius:50%;background:#fee2e2;display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" width="28" height="28"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        </div>
+        <div style="font-size:1rem;font-weight:700;color:var(--gray-800);margin-bottom:10px">Excluir produto</div>
+        <div style="font-size:.875rem;color:var(--gray-600);margin-bottom:14px">Tem certeza que deseja excluir este produto?</div>
+        <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;padding:12px 16px;text-align:left;margin-bottom:14px">
+          <div style="font-size:.82rem;color:var(--gray-500);margin-bottom:6px">Produto</div>
+          <div style="font-weight:700;color:var(--gray-800);margin-bottom:4px">${p.nome}</div>
+          ${p.codigo ? `<div style="font-size:.78rem;color:var(--gray-400)">Código: ${p.codigo}</div>` : ''}
+          <div style="font-size:.78rem;color:var(--gray-400);margin-top:2px">Estoque atual: <strong>${p.qtd} ${p.unidade||'un'}</strong></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:9px 12px;font-size:.78rem;color:#c2410c">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="flex-shrink:0"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Essa ação não poderá ser desfeita.
+        </div>
+      </div>`,
+    footer: `
+      <button class="btn btn-outline" onclick="closeModal()" style="flex:1">Cancelar</button>
+      <button class="btn" onclick="confirmarExclusaoProduto(${id})" style="flex:1;background:#dc2626;color:white;border:none;gap:6px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+        Excluir
+      </button>`,
   });
+}
+
+function confirmarExclusaoProduto(id) {
+  closeModal();
+  DB.produtos = (DB.produtos||[]).filter(p => p.id !== id);
+  _estProdutoSel = null;
+  showToast('Produto excluído com sucesso!', 'success');
+  // Tentar apagar na API também
+  try {
+    const base = (typeof API_BASE !== 'undefined') ? API_BASE : '';
+    fetch(`${base}/api/produtos/${id}`, { method: 'DELETE' }).catch(()=>{});
+  } catch(e) {}
+  estReRender();
+}
+
+function desativarProduto(id) {
+  closeModal();
+  const p = (DB.produtos||[]).find(x => x.id === id);
+  if (!p) return;
+  p.ativo = false;
+  showToast(`Produto "${p.nome}" desativado.`, 'success');
+  // Tentar atualizar na API
+  try {
+    const base = (typeof API_BASE !== 'undefined') ? API_BASE : '';
+    fetch(`${base}/api/produtos/${id}`, {
+      method: 'PUT', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ ativo: false }),
+    }).catch(()=>{});
+  } catch(e) {}
+  _estProdutoSel = null;
+  estReRender();
 }
 
 // ── Estado dos filtros avançados ──
