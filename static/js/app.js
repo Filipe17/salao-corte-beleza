@@ -15,6 +15,7 @@ const PAGES = {
   novoAtendimento:  { title: 'Novo Atendimento',   render: renderNovoAtendimento },
   servicos:       { title: 'Serviços',         render: renderServicos },
   estoque:        { title: 'Estoque',          render: renderEstoque },
+  novoProduto:    { title: 'Novo Produto',      render: renderNovoProduto },
   financeiro:     { title: 'Financeiro',       render: renderFinanceiro },
   relatorios:     { title: 'Relatórios',       render: renderRelatorios },
   configuracoes:  { title: 'Configurações',    render: renderConfiguracoes },
