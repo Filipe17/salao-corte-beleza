@@ -3631,3 +3631,109 @@ select {
   box-shadow: 0 -2px 12px rgba(0,0,0,.06);
   z-index: 100;
 }
+
+/* ============================================================
+   ESTOQUE — Modal de Filtros
+   ============================================================ */
+
+.est-filtros-modal {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 820px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,.18);
+}
+
+.est-fm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--gray-100);
+  flex-shrink: 0;
+}
+
+.est-fm-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.est-fm-full {
+  grid-column: 1 / -1;
+}
+
+.est-fm-bloco {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.est-fm-bloco-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--gray-700);
+}
+
+/* Checkboxes do modal de filtros */
+.est-fm-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .82rem;
+  color: var(--gray-700);
+  cursor: pointer;
+  font-weight: 500;
+}
+.est-fm-check input[type="checkbox"] { display: none; }
+.est-fm-chk-box {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--gray-300);
+  border-radius: 4px;
+  flex-shrink: 0;
+  background: white;
+  transition: all .15s;
+  position: relative;
+}
+.est-fm-check input:checked + .est-fm-chk-box {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+.est-fm-check input:checked + .est-fm-chk-box::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 7px;
+  height: 10px;
+  border: 2px solid white;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+
+.est-fm-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-top: 1px solid var(--gray-100);
+  flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+  .est-fm-body { grid-template-columns: 1fr; }
+  .est-fm-full { grid-column: 1; }
+}

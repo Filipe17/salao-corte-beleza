@@ -5942,7 +5942,7 @@ function renderEstoque() {
         </select>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
-      <button class="btn btn-outline" style="gap:6px;font-size:.85rem" onclick="showToast('Filtros avançados em desenvolvimento','warning')">
+      <button class="btn btn-outline" style="gap:6px;font-size:.85rem" onclick="estAbrirFiltros()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
         Filtros
       </button>
@@ -6225,6 +6225,261 @@ function excluirProduto(id) {
     showToast('Produto excluído!','success');
     estReRender();
   });
+}
+
+// ── Estado dos filtros avançados ──
+let _estFiltros = {
+  busca: '', categoria: '', status: '', unidade: '', fornecedor: '', marca: '',
+  qtdMin: '', qtdMax: '', precoMin: '', precoMax: '',
+  ativo: true, inativo: false, produto: true, insumo: false,
+  destaque: false, baixoEstoque: false,
+};
+
+function estAbrirFiltros() {
+  const produtos = DB.produtos || [];
+  const cats      = ['Todas as categorias', ...new Set(produtos.map(p=>p.categoria).filter(Boolean))];
+  const unidades  = ['Todas as unidades',   ...new Set(produtos.map(p=>p.unidade).filter(Boolean))];
+  const fornecs   = ['Todos os fornecedores',...new Set(produtos.map(p=>p.fornecedor).filter(Boolean))];
+  const marcas    = ['Todos as marcas',     ...new Set(produtos.map(p=>p.marca).filter(Boolean))];
+  const f = _estFiltros;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'estFiltrosOverlay';
+  overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px`;
+  overlay.innerHTML = `
+    <div class="est-filtros-modal" onclick="event.stopPropagation()">
+
+      <!-- Header -->
+      <div class="est-fm-header">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;border-radius:10px;background:#fce7f3;display:flex;align-items:center;justify-content:center">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="18" height="18"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+          </div>
+          <div>
+            <div style="font-size:1.05rem;font-weight:700;color:var(--gray-800)">Filtros de Produtos</div>
+            <div style="font-size:.75rem;color:var(--gray-400)">Refine sua busca para encontrar os produtos e insumos desejados.</div>
+          </div>
+        </div>
+        <button onclick="estFecharFiltros()" style="background:none;border:none;cursor:pointer;color:var(--gray-400);padding:4px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <!-- Grid de filtros -->
+      <div class="est-fm-body">
+
+        <!-- Buscar -->
+        <div class="est-fm-bloco est-fm-full">
+          <div class="est-fm-bloco-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="15" height="15"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Buscar
+          </div>
+          <input class="form-control" id="efBusca" placeholder="Nome do produto, código ou descrição..." value="${f.busca}" style="margin-top:8px" />
+        </div>
+
+        <!-- Categoria -->
+        <div class="est-fm-bloco">
+          <div class="est-fm-bloco-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="15" height="15"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+            Categoria
+          </div>
+          <div class="ag-select-wrap" style="margin-top:8px">
+            <select class="ag-select" id="efCategoria">
+              ${cats.map(c=>`<option value="${c}" ${f.categoria===c?'selected':''}>${c}</option>`).join('')}
+            </select>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+
+        <!-- Status -->
+        <div class="est-fm-bloco">
+          <div class="est-fm-bloco-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="15" height="15"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Status
+          </div>
+          <div style="display:flex;gap:16px;margin-top:10px">
+            <label class="est-fm-check"><input type="checkbox" id="efAtivo" ${f.ativo?'checked':''}/><span class="est-fm-chk-box"></span> Ativo</label>
+            <label class="est-fm-check"><input type="checkbox" id="efInativo" ${f.inativo?'checked':''}/><span class="est-fm-chk-box"></span> Inativo</label>
+          </div>
+        </div>
+
+        <!-- Tipo -->
+        <div class="est-fm-bloco">
+          <div class="est-fm-bloco-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="15" height="15"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            Tipo
+          </div>
+          <div style="display:flex;gap:16px;margin-top:10px">
+            <label class="est-fm-check"><input type="checkbox" id="efProduto" ${f.produto?'checked':''}/><span class="est-fm-chk-box"></span> Produto</label>
+            <label class="est-fm-check"><input type="checkbox" id="efInsumo" ${f.insumo?'checked':''}/><span class="est-fm-chk-box"></span> Insumo</label>
+          </div>
+        </div>
+
+        <!-- Estoque -->
+        <div class="est-fm-bloco">
+          <div class="est-fm-bloco-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="15" height="15"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Estoque
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+            <div>
+              <div style="font-size:.75rem;color:var(--gray-500);margin-bottom:4px">Quantidade mínima</div>
+              <input class="form-control" id="efQtdMin" type="number" min="0" placeholder="Ex: 5" value="${f.qtdMin}" />
+            </div>
+            <div>
+              <div style="font-size:.75rem;color:var(--gray-500);margin-bottom:4px">Quantidade máxima</div>
+              <input class="form-control" id="efQtdMax" type="number" min="0" placeholder="Ex: 100" value="${f.qtdMax}" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Unidade de medida -->
+        <div class="est-fm-bloco">
+          <div class="est-fm-bloco-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="15" height="15"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Unidade de medida
+          </div>
+          <div class="ag-select-wrap" style="margin-top:8px">
+            <select class="ag-select" id="efUnidade">
+              ${unidades.map(u=>`<option value="${u}" ${f.unidade===u?'selected':''}>${u}</option>`).join('')}
+            </select>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+
+        <!-- Preço de Venda -->
+        <div class="est-fm-bloco">
+          <div class="est-fm-bloco-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="15" height="15"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+            Preço de venda
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+            <div>
+              <div style="font-size:.75rem;color:var(--gray-500);margin-bottom:4px">Valor mínimo</div>
+              <input class="form-control" id="efPrecoMin" type="number" min="0" step="0.01" placeholder="R$ 0,00" value="${f.precoMin}" />
+            </div>
+            <div>
+              <div style="font-size:.75rem;color:var(--gray-500);margin-bottom:4px">Valor máximo</div>
+              <input class="form-control" id="efPrecoMax" type="number" min="0" step="0.01" placeholder="R$ 999,99" value="${f.precoMax}" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Fornecedor -->
+        <div class="est-fm-bloco">
+          <div class="est-fm-bloco-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="15" height="15"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+            Fornecedor
+          </div>
+          <div class="ag-select-wrap" style="margin-top:8px">
+            <select class="ag-select" id="efFornecedor">
+              ${fornecs.map(f2=>`<option value="${f2}">${f2}</option>`).join('')}
+            </select>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+
+        <!-- Destaque -->
+        <div class="est-fm-bloco">
+          <div class="est-fm-bloco-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="15" height="15"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            Destaque
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
+            <label class="est-fm-check"><input type="checkbox" id="efDestaque" ${f.destaque?'checked':''}/><span class="est-fm-chk-box"></span> Produtos em destaque</label>
+            <label class="est-fm-check"><input type="checkbox" id="efBaixo" ${f.baixoEstoque?'checked':''}/><span class="est-fm-chk-box"></span> Produtos de baixo estoque</label>
+          </div>
+        </div>
+
+        <!-- Marca -->
+        <div class="est-fm-bloco">
+          <div class="est-fm-bloco-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="15" height="15"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+            Marca
+          </div>
+          <div class="ag-select-wrap" style="margin-top:8px">
+            <select class="ag-select" id="efMarca">
+              ${marcas.map(m=>`<option value="${m}">${m}</option>`).join('')}
+            </select>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+
+        <!-- Filtros avançados -->
+        <div class="est-fm-full" style="background:#fdf4ff;border:1px solid #f9a8d4;border-radius:10px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="showToast('Filtros avançados em breve','warning')">
+          <div style="display:flex;align-items:center;gap:10px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+            <div>
+              <div style="font-size:.85rem;font-weight:600;color:var(--primary)">Filtros avançados</div>
+              <div style="font-size:.75rem;color:var(--primary);opacity:.7">Mais opções para uma busca ainda mais precisa.</div>
+            </div>
+          </div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+
+      </div><!-- /body -->
+
+      <!-- Footer -->
+      <div class="est-fm-footer">
+        <button class="btn btn-outline" onclick="estLimparFiltros()" style="gap:6px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+          Limpar filtros
+        </button>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-outline" onclick="estFecharFiltros()">Fechar</button>
+          <button class="btn btn-primary" onclick="estAplicarFiltros()" style="gap:6px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Aplicar filtros
+          </button>
+        </div>
+      </div>
+    </div>`;
+
+  overlay.addEventListener('click', estFecharFiltros);
+  document.body.appendChild(overlay);
+}
+
+function estFecharFiltros() {
+  document.getElementById('estFiltrosOverlay')?.remove();
+}
+
+function estLimparFiltros() {
+  _estFiltros = {
+    busca:'', categoria:'', status:'', unidade:'', fornecedor:'', marca:'',
+    qtdMin:'', qtdMax:'', precoMin:'', precoMax:'',
+    ativo:true, inativo:false, produto:true, insumo:false,
+    destaque:false, baixoEstoque:false,
+  };
+  _estBusca = ''; _estCat = ''; _estStatus = ''; _estPagina = 1;
+  estFecharFiltros();
+  estReRender();
+  showToast('Filtros limpos!', 'success');
+}
+
+function estAplicarFiltros() {
+  _estFiltros.busca      = document.getElementById('efBusca')?.value.trim() || '';
+  _estFiltros.categoria  = document.getElementById('efCategoria')?.value || '';
+  _estFiltros.unidade    = document.getElementById('efUnidade')?.value || '';
+  _estFiltros.fornecedor = document.getElementById('efFornecedor')?.value || '';
+  _estFiltros.marca      = document.getElementById('efMarca')?.value || '';
+  _estFiltros.qtdMin     = document.getElementById('efQtdMin')?.value || '';
+  _estFiltros.qtdMax     = document.getElementById('efQtdMax')?.value || '';
+  _estFiltros.precoMin   = document.getElementById('efPrecoMin')?.value || '';
+  _estFiltros.precoMax   = document.getElementById('efPrecoMax')?.value || '';
+  _estFiltros.ativo      = document.getElementById('efAtivo')?.checked ?? true;
+  _estFiltros.inativo    = document.getElementById('efInativo')?.checked ?? false;
+  _estFiltros.produto    = document.getElementById('efProduto')?.checked ?? true;
+  _estFiltros.insumo     = document.getElementById('efInsumo')?.checked ?? false;
+  _estFiltros.destaque   = document.getElementById('efDestaque')?.checked ?? false;
+  _estFiltros.baixoEstoque = document.getElementById('efBaixo')?.checked ?? false;
+
+  // Aplicar ao filtro principal da tabela
+  _estBusca  = _estFiltros.busca;
+  _estCat    = (_estFiltros.categoria === 'Todas as categorias') ? '' : _estFiltros.categoria;
+  _estPagina = 1;
+  estFecharFiltros();
+  estReRender();
+  showToast('Filtros aplicados!', 'success');
 }
 
 function entradaEstoque(id) {
