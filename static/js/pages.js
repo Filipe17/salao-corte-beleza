@@ -6475,8 +6475,8 @@ function renderAtendimento() {
       <!-- Tabela -->
       <div class="card" style="border-radius:12px;overflow:hidden">
 
-        <!-- Abas dentro do card -->
-        <div class="atd-tabs2" style="padding:14px 20px 0;border-bottom:1px solid var(--gray-100)">
+        <!-- Abas no topo do card -->
+        <div class="atd-tabs2" style="border-bottom:1px solid var(--gray-100)">
           ${[
             {key:'todos',       label:'Todos',        cnt: cntTodos,      color:'var(--primary)'},
             {key:'agendados',   label:'Agendados',    cnt: cntAgendados,  color:'#3b82f6'},
