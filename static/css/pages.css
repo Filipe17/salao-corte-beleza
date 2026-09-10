@@ -3213,7 +3213,7 @@ select {
 .est-layout {
   display: flex;
   gap: 14px;
-  align-items: flex-start;
+  align-items: stretch;
 }
 .est-table-card {
   flex: 1;
@@ -3223,6 +3223,8 @@ select {
   border-radius: 14px;
   box-shadow: 0 1px 4px rgba(0,0,0,.04);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Tabela */
@@ -3271,6 +3273,7 @@ select {
   padding: 12px 16px;
   border-top: 1px solid var(--gray-100);
   flex-wrap: wrap;
+  margin-top: auto;
 }
 .est-pg-btn {
   min-width: 30px;
@@ -3303,7 +3306,6 @@ select {
   align-self: flex-start;
   position: sticky;
   top: 16px;
-  /* garante que borda arredondada apareça sem clip */
   isolation: isolate;
 }
 .est-painel-titulo {
