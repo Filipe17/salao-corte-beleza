@@ -5904,7 +5904,7 @@ function renderEstoque() {
 function estRenderProdutos(produtos, filtrados, paginados, totalPags, sel) {
   const cats = ['Todas', ...new Set(produtos.map(p=>p.categoria).filter(Boolean))];
   const statusOpts = ['Todos','Normal','Alerta','Falta'];
-  const total    = produtos.length;
+  const total     = produtos.length;
   const emEstoque = produtos.filter(p => p.qtd > p.minimo).length;
   const emAlerta  = produtos.filter(p => p.qtd > 0 && p.qtd <= p.minimo).length;
   const emFalta   = produtos.filter(p => p.qtd <= 0).length;
@@ -5912,6 +5912,8 @@ function estRenderProdutos(produtos, filtrados, paginados, totalPags, sel) {
   const pctAlerta  = total ? Math.round((emAlerta/total)*100) : 0;
   const pctFalta   = total ? Math.round((emFalta/total)*100) : 0;
   return `
+    <!-- Cards de resumo -->
+    <div class="est-cards">
       <div class="est-card">
         <div style="display:flex;align-items:center;gap:10px">
           <div style="width:38px;height:38px;border-radius:10px;background:#ede9fe;display:flex;align-items:center;justify-content:center">
@@ -5997,8 +5999,6 @@ function estRenderProdutos(produtos, filtrados, paginados, totalPags, sel) {
 
     <!-- Layout: tabela + painel -->
     <div class="est-layout ${sel?'painel-aberto':''}">
-
-      <!-- Tabela -->
       <div class="est-table-card">
         <div style="padding:16px 20px;border-bottom:1px solid var(--gray-100)">
           <h3 style="font-size:.95rem;font-weight:700;color:var(--gray-800);margin:0">Produtos e Insumos</h3>
@@ -6008,14 +6008,8 @@ function estRenderProdutos(produtos, filtrados, paginados, totalPags, sel) {
             <thead>
               <tr>
                 <th style="width:32px"><input type="checkbox" style="accent-color:var(--primary)" /></th>
-                <th>Foto</th>
-                <th>Nome</th>
-                <th>Categoria</th>
-                <th>Estoque Atual</th>
-                <th>Unidade</th>
-                <th>Estoque Mínimo</th>
-                <th>Status</th>
-                <th>Ações</th>
+                <th>Foto</th><th>Nome</th><th>Categoria</th><th>Estoque Atual</th>
+                <th>Unidade</th><th>Estoque Mínimo</th><th>Status</th><th>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -6024,8 +6018,6 @@ function estRenderProdutos(produtos, filtrados, paginados, totalPags, sel) {
             </tbody>
           </table>
         </div>
-
-        <!-- Paginação -->
         <div class="est-paginacao">
           <span style="font-size:.8rem;color:var(--gray-500)">Mostrando ${filtrados.length===0?0:(_estPagina-1)*_estPorPagina+1} a ${Math.min(_estPagina*_estPorPagina,filtrados.length)} de ${filtrados.length} itens</span>
           <div style="display:flex;align-items:center;gap:4px">
@@ -6055,19 +6047,9 @@ function estRenderProdutos(produtos, filtrados, paginados, totalPags, sel) {
           </div>
         </div>
       </div>
-
-      <!-- Painel lateral de detalhes -->
       ${sel ? estRenderPainel(sel) : ''}
     </div>`;
 }
-
-/* ── MOVIMENTAÇÕES ─────────────────────────────────────── */
-let _movBusca    = '';
-let _movTipo     = '';
-let _movUsuario  = '';
-let _movPagina   = 1;
-let _movPorPag   = 10;
-
 function estRenderMovimentacoes() {
   const movs = DB.movimentacoes || [];
   const MOTIVOS = ['Compra','Venda','Uso em serviço','Perda','Vencimento','Devolução','Ajuste de inventário','Outro'];
