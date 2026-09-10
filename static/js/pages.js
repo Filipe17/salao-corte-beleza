@@ -5802,55 +5802,421 @@ function checkoutPDV() {
 }
 
 /* ===================== ESTOQUE ===================== */
+/* ── Estado da tela de Estoque ── */
+let _estBusca       = '';
+let _estCat         = '';
+let _estStatus      = '';
+let _estPagina      = 1;
+let _estPorPagina   = 10;
+let _estProdutoSel  = null; // produto com painel lateral aberto
+
 function renderEstoque() {
-  const low = getLowStock();
-  const rows = DB.produtos.map(p => {
-    const pct = Math.min(Math.round((p.qtd/Math.max(p.minimo*2,1))*100),100);
-    const barCls = p.qtd<=0?'red':p.qtd<=p.minimo?'amber':'green';
-    return `<tr>
-      <td><strong>${p.nome}</strong></td>
-      <td><span class="badge badge-gray">${p.categoria}</span></td>
-      <td>
-        <div class="stock-level-bar">
-          <div class="progress" style="flex:1"><div class="progress-bar ${barCls}" style="width:${pct}%"></div></div>
-          <strong style="color:${p.qtd<=p.minimo?'var(--danger)':'var(--gray-800)'};min-width:32px;text-align:right">${p.qtd}</strong>
-        </div>
-      </td>
-      <td>${p.minimo} ${p.unidade}</td>
-      <td>${formatCurrency(p.custo)}</td>
-      <td>${formatCurrency(p.preco)}</td>
-      <td>${p.qtd<=p.minimo?'<span class="badge badge-red">⚠️ Baixo</span>':'<span class="badge badge-green">OK</span>'}</td>
-      <td>
-        <button class="btn btn-sm btn-outline" onclick="entradaEstoque(${p.id})">+ Entrada</button>
-      </td>
-    </tr>`;
-  }).join('');
+  const produtos = DB.produtos || [];
+  const total    = produtos.length;
+  const emEstoque = produtos.filter(p => p.qtd > p.minimo).length;
+  const emAlerta  = produtos.filter(p => p.qtd > 0 && p.qtd <= p.minimo).length;
+  const emFalta   = produtos.filter(p => p.qtd <= 0).length;
+  const pctEstoque = total ? Math.round((emEstoque/total)*100) : 0;
+  const pctAlerta  = total ? Math.round((emAlerta/total)*100) : 0;
+  const pctFalta   = total ? Math.round((emFalta/total)*100) : 0;
+
+  // Filtros
+  const cats = ['Todas', ...new Set(produtos.map(p=>p.categoria).filter(Boolean))];
+  const statusOpts = ['Todos','Normal','Alerta','Falta'];
+
+  let filtrados = produtos.filter(p => {
+    const matchBusca  = !_estBusca  || p.nome.toLowerCase().includes(_estBusca.toLowerCase());
+    const matchCat    = !_estCat    || _estCat === 'Todas'  || p.categoria === _estCat;
+    const matchStatus = !_estStatus || _estStatus === 'Todos' || estGetStatus(p) === _estStatus;
+    return matchBusca && matchCat && matchStatus;
+  });
+
+  const totalPags = Math.ceil(filtrados.length / _estPorPagina);
+  const paginados = filtrados.slice((_estPagina-1)*_estPorPagina, _estPagina*_estPorPagina);
+
+  // Painel lateral
+  const sel = _estProdutoSel ? produtos.find(p=>p.id===_estProdutoSel) : null;
 
   return `
-  <div class="page-header">
-    <div class="page-header-left"><h1>Estoque</h1><p>Controle de produtos e entradas</p></div>
-    <div class="page-header-right">
-      <button class="btn btn-outline" onclick="showToast('Em desenvolvimento','warning')">Relatório</button>
-      <button class="btn btn-primary" onclick="openNewProduto()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Novo produto
+  <div class="est-page">
+
+    <!-- Cabeçalho -->
+    <div class="est-header">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#fce7f3,#f9a8d4);display:flex;align-items:center;justify-content:center">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="18" height="18"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+        </div>
+        <div>
+          <h1 style="font-size:1.4rem;font-weight:700;color:var(--gray-800);margin:0">Estoque</h1>
+          <p style="font-size:.8rem;color:var(--gray-400);margin:0">Controle de produtos e insumos do seu salão</p>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-outline" onclick="showToast('Em desenvolvimento','warning')" style="gap:6px;font-size:.85rem">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Importar / Exportar
+        </button>
+        <button class="btn btn-primary" onclick="openNewProduto()" style="gap:6px;font-size:.85rem">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Novo Produto
+        </button>
+      </div>
+    </div>
+
+    <!-- Cards de resumo -->
+    <div class="est-cards">
+      <div class="est-card">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:38px;height:38px;border-radius:10px;background:#ede9fe;display:flex;align-items:center;justify-content:center">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" width="18" height="18"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+          </div>
+          <div>
+            <div style="font-size:.75rem;color:var(--gray-400);font-weight:500">Total de itens</div>
+            <div style="font-size:1.6rem;font-weight:700;color:var(--gray-800);line-height:1.1">${total}</div>
+            <div style="font-size:.72rem;color:var(--gray-400)">produtos e insumos</div>
+          </div>
+        </div>
+      </div>
+      <div class="est-card">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:38px;height:38px;border-radius:10px;background:#dcfce7;display:flex;align-items:center;justify-content:center">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" width="18" height="18"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:.75rem;color:var(--gray-400);font-weight:500">Em estoque</div>
+            <div style="display:flex;align-items:baseline;gap:6px">
+              <div style="font-size:1.6rem;font-weight:700;color:var(--gray-800);line-height:1.1">${emEstoque}</div>
+              <div style="font-size:.78rem;color:#16a34a;font-weight:600">${pctEstoque}%</div>
+            </div>
+            <div style="height:4px;background:#dcfce7;border-radius:4px;margin-top:4px"><div style="height:100%;width:${pctEstoque}%;background:#16a34a;border-radius:4px"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="est-card">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:38px;height:38px;border-radius:10px;background:#fef9c3;display:flex;align-items:center;justify-content:center">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" width="18" height="18"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:.75rem;color:var(--gray-400);font-weight:500">Em alerta</div>
+            <div style="display:flex;align-items:baseline;gap:6px">
+              <div style="font-size:1.6rem;font-weight:700;color:var(--gray-800);line-height:1.1">${emAlerta}</div>
+              <div style="font-size:.78rem;color:#d97706;font-weight:600">${pctAlerta}%</div>
+            </div>
+            <div style="height:4px;background:#fef9c3;border-radius:4px;margin-top:4px"><div style="height:100%;width:${pctAlerta}%;background:#d97706;border-radius:4px"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="est-card">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:38px;height:38px;border-radius:10px;background:#fee2e2;display:flex;align-items:center;justify-content:center">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:.75rem;color:var(--gray-400);font-weight:500">Em falta</div>
+            <div style="display:flex;align-items:baseline;gap:6px">
+              <div style="font-size:1.6rem;font-weight:700;color:var(--gray-800);line-height:1.1">${emFalta}</div>
+              <div style="font-size:.78rem;color:#dc2626;font-weight:600">${pctFalta}%</div>
+            </div>
+            <div style="height:4px;background:#fee2e2;border-radius:4px;margin-top:4px"><div style="height:100%;width:${pctFalta}%;background:#dc2626;border-radius:4px"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="est-filtros">
+      <div class="na-search-box" style="flex:1;min-width:180px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Buscar produto ou insumo..." value="${_estBusca}" oninput="_estBusca=this.value;_estPagina=1;estReRender()" />
+      </div>
+      <div class="ag-select-wrap" style="min-width:140px">
+        <select class="ag-select" onchange="_estCat=this.value;_estPagina=1;estReRender()">
+          ${cats.map(c=>`<option value="${c}" ${_estCat===c?'selected':''}>${c}</option>`).join('')}
+        </select>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="ag-select-wrap" style="min-width:120px">
+        <select class="ag-select" onchange="_estStatus=this.value;_estPagina=1;estReRender()">
+          ${statusOpts.map(s=>`<option value="${s}" ${_estStatus===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <button class="btn btn-outline" style="gap:6px;font-size:.85rem" onclick="showToast('Filtros avançados em desenvolvimento','warning')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+        Filtros
       </button>
     </div>
-  </div>
 
-  ${low.length ? `<div class="alert alert-warning mb-20">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-    <span><strong>${low.length} produto(s)</strong> com estoque abaixo do mínimo: ${low.map(p=>p.nome).join(', ')}</span>
-  </div>` : ''}
+    <!-- Layout: tabela + painel -->
+    <div class="est-layout ${sel?'painel-aberto':''}">
 
-  <div class="table-wrapper">
-    <table>
-      <thead>
-        <tr><th>Produto</th><th>Categoria</th><th>Quantidade</th><th>Mínimo</th><th>Custo</th><th>Preço venda</th><th>Status</th><th>Ação</th></tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
+      <!-- Tabela -->
+      <div class="est-table-card">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--gray-100)">
+          <h3 style="font-size:.95rem;font-weight:700;color:var(--gray-800);margin:0">Produtos e Insumos</h3>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="est-table">
+            <thead>
+              <tr>
+                <th style="width:32px"><input type="checkbox" style="accent-color:var(--primary)" /></th>
+                <th>Foto</th>
+                <th>Nome</th>
+                <th>Categoria</th>
+                <th>Estoque Atual</th>
+                <th>Unidade</th>
+                <th>Estoque Mínimo</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${paginados.map(p => estRenderRow(p)).join('')}
+              ${paginados.length===0?`<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--gray-400)">Nenhum produto encontrado</td></tr>`:''}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Paginação -->
+        <div class="est-paginacao">
+          <span style="font-size:.8rem;color:var(--gray-500)">Mostrando ${filtrados.length===0?0:(_estPagina-1)*_estPorPagina+1} a ${Math.min(_estPagina*_estPorPagina,filtrados.length)} de ${filtrados.length} itens</span>
+          <div style="display:flex;align-items:center;gap:4px">
+            <button class="est-pg-btn" onclick="if(_estPagina>1){_estPagina=1;estReRender()}" ${_estPagina<=1?'disabled':''}>«</button>
+            <button class="est-pg-btn" onclick="if(_estPagina>1){_estPagina--;estReRender()}" ${_estPagina<=1?'disabled':''}>‹</button>
+            ${Array.from({length:Math.min(totalPags,5)},(_,i)=>{
+              let p2 = i+1;
+              if(totalPags>5){
+                if(_estPagina<=3) p2=i+1;
+                else if(_estPagina>=totalPags-2) p2=totalPags-4+i;
+                else p2=_estPagina-2+i;
+              }
+              return `<button class="est-pg-btn ${p2===_estPagina?'active':''}" onclick="_estPagina=${p2};estReRender()">${p2}</button>`;
+            }).join('')}
+            ${totalPags>5?`<span style="color:var(--gray-400);font-size:.8rem;padding:0 2px">…</span><button class="est-pg-btn ${totalPags===_estPagina?'active':''}" onclick="_estPagina=${totalPags};estReRender()">${totalPags}</button>`:''}
+            <button class="est-pg-btn" onclick="if(_estPagina<${totalPags}){_estPagina++;estReRender()}" ${_estPagina>=totalPags?'disabled':''}>›</button>
+            <button class="est-pg-btn" onclick="if(_estPagina<${totalPags}){_estPagina=${totalPags};estReRender()}" ${_estPagina>=totalPags?'disabled':''}>»</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--gray-500)">
+            Itens por página
+            <div class="ag-select-wrap" style="min-width:60px">
+              <select class="ag-select" style="font-size:.8rem;padding:4px 24px 4px 8px" onchange="_estPorPagina=parseInt(this.value);_estPagina=1;estReRender()">
+                ${[10,20,50].map(n=>`<option value="${n}" ${_estPorPagina===n?'selected':''}>${n}</option>`).join('')}
+              </select>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10" class="ag-select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Painel lateral de detalhes -->
+      ${sel ? estRenderPainel(sel) : ''}
+    </div>
   </div>`;
+}
+
+function estGetStatus(p) {
+  if (p.qtd <= 0)       return 'Falta';
+  if (p.qtd <= p.minimo) return 'Alerta';
+  return 'Normal';
+}
+
+function estBadge(p) {
+  const s = estGetStatus(p);
+  if (s==='Falta')  return `<span class="est-badge est-badge-falta">Falta</span>`;
+  if (s==='Alerta') return `<span class="est-badge est-badge-alerta">Alerta</span>`;
+  return `<span class="est-badge est-badge-normal">Normal</span>`;
+}
+
+function estRenderRow(p) {
+  const selecionado = _estProdutoSel === p.id;
+  const fotoHtml = p.foto
+    ? `<img src="${p.foto}" style="width:34px;height:34px;border-radius:8px;object-fit:cover" />`
+    : `<div style="width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#fce7f3,#f9a8d4);display:flex;align-items:center;justify-content:center;font-size:1rem">${p.emoji||'📦'}</div>`;
+  return `<tr class="est-row ${selecionado?'est-row-sel':''}" onclick="estAbrirPainel(${p.id})">
+    <td onclick="event.stopPropagation()"><input type="checkbox" style="accent-color:var(--primary)" /></td>
+    <td>${fotoHtml}</td>
+    <td style="font-weight:600;color:var(--gray-800);font-size:.875rem">${p.nome}</td>
+    <td><span style="font-size:.75rem;color:var(--gray-500)">${p.categoria||'—'}</span></td>
+    <td style="font-weight:600;font-size:.875rem">${p.qtd}</td>
+    <td style="font-size:.8rem;color:var(--gray-500)">${p.unidade||'un'}</td>
+    <td style="font-size:.875rem">${p.minimo}</td>
+    <td>${estBadge(p)}</td>
+    <td onclick="event.stopPropagation()">
+      <div style="position:relative;display:inline-block">
+        <button class="btn-icon-sm" onclick="estMenuAcoes(event,${p.id})" style="color:var(--gray-500)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg>
+        </button>
+      </div>
+    </td>
+  </tr>`;
+}
+
+function estRenderPainel(p) {
+  const fotoHtml = p.foto
+    ? `<img src="${p.foto}" style="width:64px;height:64px;border-radius:10px;object-fit:cover" />`
+    : `<div style="width:64px;height:64px;border-radius:10px;background:linear-gradient(135deg,#fce7f3,#f9a8d4);display:flex;align-items:center;justify-content:center;font-size:2rem">${p.emoji||'📦'}</div>`;
+
+  const movs = (p.movimentacoes || [
+    { data:'04/09/2026', tipo:'Entrada', qtd:'+50 '+( p.unidade||'un'), resp:'Administrador' },
+    { data:'03/09/2026', tipo:'Saída',   qtd:'-20 '+(p.unidade||'un'), resp:'Fernanda Lima' },
+    { data:'01/09/2026', tipo:'Entrada', qtd:'+100 '+(p.unidade||'un'), resp:'Administrador' },
+    { data:'28/08/2026', tipo:'Saída',   qtd:'-30 '+(p.unidade||'un'), resp:'Juliana Costa' },
+  ]);
+
+  return `
+  <div class="est-painel">
+    <!-- Header painel -->
+    <div class="est-painel-header">
+      <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
+        ${fotoHtml}
+        <div style="min-width:0">
+          <div style="font-weight:700;font-size:.95rem;color:var(--gray-800)">${p.nome}</div>
+          <span style="font-size:.72rem;background:#fce7f3;color:var(--primary);padding:2px 8px;border-radius:20px;font-weight:600">${p.categoria||'Sem categoria'}</span>
+        </div>
+      </div>
+      <button onclick="_estProdutoSel=null;estReRender()" style="background:none;border:none;cursor:pointer;color:var(--gray-400);padding:4px;flex-shrink:0">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="est-painel-body">
+      <!-- Abas -->
+      <div class="est-painel-abas">
+        <button class="est-painel-aba active" id="estAbaInfo" onclick="estTrocarAba('info')">Informações</button>
+        <button class="est-painel-aba" id="estAbaMov" onclick="estTrocarAba('mov')">Movimentações</button>
+        <button class="est-painel-aba" id="estAbaForn" onclick="estTrocarAba('forn')">Fornecedores</button>
+      </div>
+
+      <!-- Conteúdo aba Informações -->
+      <div id="estAbaConteudo">
+        <div class="est-painel-grid2">
+          <div class="est-painel-info">
+            <div class="est-painel-info-label">Código</div>
+            <div class="est-painel-info-val">PRD-${String(p.id).padStart(3,'0')}</div>
+          </div>
+          <div class="est-painel-info">
+            <div class="est-painel-info-label">Unidade</div>
+            <div class="est-painel-info-val">${p.unidade||'un'}</div>
+          </div>
+          <div class="est-painel-info">
+            <div class="est-painel-info-label">Estoque atual</div>
+            <div class="est-painel-info-val">${p.qtd}</div>
+          </div>
+          <div class="est-painel-info">
+            <div class="est-painel-info-label">Estoque mínimo</div>
+            <div class="est-painel-info-val">${p.minimo}</div>
+          </div>
+          <div class="est-painel-info">
+            <div class="est-painel-info-label">Valor de custo</div>
+            <div class="est-painel-info-val">${formatCurrency(p.custo||0)}</div>
+          </div>
+          <div class="est-painel-info">
+            <div class="est-painel-info-label">Valor de venda</div>
+            <div class="est-painel-info-val">${formatCurrency(p.preco||0)}</div>
+          </div>
+        </div>
+        <div class="est-painel-info" style="margin-top:4px">
+          <div class="est-painel-info-label">Localização</div>
+          <div class="est-painel-info-val">${p.localizacao||'—'}</div>
+        </div>
+
+        <!-- Histórico de movimentações -->
+        <div style="margin-top:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div style="font-size:.82rem;font-weight:700;color:var(--gray-800)">Histórico de movimentações</div>
+            <a href="#" style="font-size:.75rem;color:var(--primary);font-weight:600" onclick="showToast('Em desenvolvimento','warning');return false">Ver todas</a>
+          </div>
+          <table class="est-mov-table">
+            <thead>
+              <tr><th>Data</th><th>Tipo</th><th>Quantidade</th><th>Responsável</th></tr>
+            </thead>
+            <tbody>
+              ${movs.map(m=>`<tr>
+                <td style="color:var(--gray-500);font-size:.78rem">${m.data}</td>
+                <td><span style="font-size:.75rem;font-weight:600;color:${m.tipo==='Saída'?'#dc2626':'#16a34a'}">${m.tipo}</span></td>
+                <td style="font-weight:600;font-size:.8rem;color:${m.qtd.startsWith('-')?'#dc2626':'#16a34a'}">${m.qtd}</td>
+                <td style="font-size:.78rem;color:var(--gray-500)">${m.resp}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ações do painel -->
+    <div class="est-painel-footer">
+      <button class="btn btn-outline" style="flex:1;gap:6px;font-size:.82rem" onclick="editarProduto(${p.id})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Editar
+      </button>
+      <button class="btn btn-primary" style="flex:1;gap:6px;font-size:.82rem" onclick="entradaEstoque(${p.id})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Movimentação
+      </button>
+      <button class="btn" style="flex:1;gap:6px;font-size:.82rem;background:#fef2f2;color:#dc2626;border:1px solid #fecaca" onclick="excluirProduto(${p.id})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+        Excluir
+      </button>
+    </div>
+  </div>`;
+}
+
+function estAbrirPainel(id) {
+  _estProdutoSel = (_estProdutoSel === id) ? null : id;
+  estReRender();
+}
+
+function estReRender() {
+  const el = document.getElementById('pageContent');
+  if (el) el.innerHTML = renderEstoque();
+}
+
+function estMenuAcoes(e, id) {
+  e.stopPropagation();
+  const p = (DB.produtos||[]).find(x=>x.id===id);
+  if (!p) return;
+  // Menu simples via toast por ora
+  const menu = document.createElement('div');
+  menu.className = 'est-ctx-menu';
+  menu.style.cssText = `position:fixed;z-index:400;background:white;border:1px solid var(--gray-200);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:160px;overflow:hidden`;
+  menu.innerHTML = `
+    <button onclick="estAbrirPainel(${id});this.parentNode.remove()" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 14px;background:none;border:none;cursor:pointer;font-size:.82rem;color:var(--gray-700)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Ver detalhes
+    </button>
+    <button onclick="editarProduto(${id});this.parentNode.remove()" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 14px;background:none;border:none;cursor:pointer;font-size:.82rem;color:var(--gray-700)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Editar
+    </button>
+    <button onclick="entradaEstoque(${id});this.parentNode.remove()" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 14px;background:none;border:none;cursor:pointer;font-size:.82rem;color:var(--gray-700)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Entrada de estoque
+    </button>
+    <div style="height:1px;background:var(--gray-100)"></div>
+    <button onclick="excluirProduto(${id});this.parentNode.remove()" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 14px;background:none;border:none;cursor:pointer;font-size:.82rem;color:#dc2626">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg> Excluir
+    </button>`;
+  const rect = e.target.getBoundingClientRect();
+  menu.style.top  = (rect.bottom + 4) + 'px';
+  menu.style.right = (window.innerWidth - rect.right) + 'px';
+  document.body.appendChild(menu);
+  setTimeout(() => document.addEventListener('click', ()=>menu.remove(), {once:true}), 10);
+}
+
+function estTrocarAba(aba) {
+  document.querySelectorAll('.est-painel-aba').forEach(b=>b.classList.remove('active'));
+  if (aba==='info') document.getElementById('estAbaInfo')?.classList.add('active');
+  if (aba==='mov')  document.getElementById('estAbaMov')?.classList.add('active');
+  if (aba==='forn') document.getElementById('estAbaForn')?.classList.add('active');
+  showToast('Em desenvolvimento','warning');
+}
+
+function editarProduto(id) { showToast('Edição de produto em desenvolvimento','warning'); }
+function excluirProduto(id) {
+  confirmDialog('Deseja excluir este produto?', () => {
+    DB.produtos = (DB.produtos||[]).filter(p=>p.id!==id);
+    _estProdutoSel = null;
+    showToast('Produto excluído!','success');
+    estReRender();
+  });
 }
 
 function entradaEstoque(id) {
