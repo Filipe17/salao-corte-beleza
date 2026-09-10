@@ -6304,10 +6304,10 @@ function renderNovoProduto() {
       r.onload = ev => {
         _npFotoPreview = ev.target.result;
         const box = document.getElementById('npFotoBox');
-        if (box) box.innerHTML = `<img src="${_npFotoPreview}" style="width:100%;height:100%;object-fit:cover;border-radius:12px" />
-          <button onclick="npRemoverFoto()" style="position:absolute;top:4px;right:4px;background:white;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.2)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>`;
+        if (box) box.innerHTML = `<img src="${_npFotoPreview}" style="width:100%;height:100%;object-fit:cover" />`;
+        // Atualizar texto do botão
+        const btn = box?.nextElementSibling;
+        if (btn) btn.innerHTML = btn.innerHTML.replace('Adicionar Foto','Alterar Foto');
       };
       r.readAsDataURL(f);
     });
@@ -6361,15 +6361,20 @@ function renderNovoProduto() {
           <div style="display:flex;gap:16px;align-items:flex-start">
 
             <!-- Foto -->
-            <div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:10px;flex-shrink:0">
               <div id="npFotoBox" onclick="document.getElementById('npFotoInput').click()"
-                style="width:110px;height:110px;border-radius:12px;border:2px dashed var(--gray-300);background:var(--gray-50);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;position:relative;overflow:hidden;flex-shrink:0;transition:border-color .15s">
+                style="width:110px;height:110px;border-radius:50%;border:2px solid var(--gray-200);background:var(--gray-100);cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;flex-shrink:0;transition:border-color .15s">
                 ${_npFotoPreview
-                  ? `<img src="${_npFotoPreview}" style="width:100%;height:100%;object-fit:cover;border-radius:12px" />`
-                  : `<svg viewBox="0 0 24 24" fill="none" stroke="var(--gray-300)" stroke-width="1.5" width="28" height="28"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                    <span style="font-size:.7rem;color:var(--gray-400);text-align:center;line-height:1.3">Adicionar imagem<br><span style="color:var(--primary);font-size:.65rem">Clique para selecionar<br>ou arraste a imagem</span></span>`
+                  ? `<img src="${_npFotoPreview}" style="width:100%;height:100%;object-fit:cover" />`
+                  : `<svg viewBox="0 0 24 24" fill="none" stroke="var(--gray-300)" stroke-width="1.2" width="52" height="52"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
                 }
               </div>
+              <button type="button" onclick="document.getElementById('npFotoInput').click()"
+                style="display:flex;align-items:center;gap:7px;padding:8px 18px;border:2px solid var(--primary);border-radius:30px;background:white;color:var(--primary);font-size:.82rem;font-weight:600;cursor:pointer;font-family:var(--font-body)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                ${_npFotoPreview ? 'Alterar Foto' : 'Adicionar Foto'}
+              </button>
+              <span style="font-size:.7rem;color:var(--gray-400);text-align:center">JPG, PNG ou GIF<br>Máx. 2MB</span>
               <input type="file" id="npFotoInput" accept="image/*" style="display:none" />
             </div>
 
@@ -6625,9 +6630,7 @@ function npRemoverFoto() {
   _npFotoPreview = null;
   _npFotoFile = null;
   const box = document.getElementById('npFotoBox');
-  if (box) box.innerHTML = `
-    <svg viewBox="0 0 24 24" fill="none" stroke="var(--gray-300)" stroke-width="1.5" width="28" height="28"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
-    <span style="font-size:.7rem;color:var(--gray-400);text-align:center;line-height:1.3">Adicionar imagem<br><span style="color:var(--primary);font-size:.65rem">Clique para selecionar<br>ou arraste a imagem</span></span>`;
+  if (box) box.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="var(--gray-300)" stroke-width="1.2" width="52" height="52"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
 }
 
 async function npSalvar(modo) {
